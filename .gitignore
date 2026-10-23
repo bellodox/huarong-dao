@@ -1,0 +1,6 @@
+.spexcode/
+.osg/store/
+.osg/backup/
+.osg/cache/
+.osg/logs/
+.osg/export/
