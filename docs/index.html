@@ -1411,9 +1411,54 @@
             border-radius: 4px;
         }
 
+        @media (max-height: 650px) {
+            #solver-assist-note { font-size:.65rem; line-height:1.1; margin-bottom:.3rem; }
+            #assistance-panel { padding-top:.35rem; }
+            #assistance-panel .solver-actions button { min-height:2rem; padding:.3rem .12rem; }
+        }
+        /* iPhone installed web apps have status-bar and home-indicator unsafe regions. */
+        html, body { background: #0b0f19; }
+        body {
+            height: 100dvh; min-height: 100dvh;
+            padding-top: max(0.5rem, env(safe-area-inset-top, 0px) + 0.5rem);
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px) + 0.5rem);
+            padding-left: max(0.5rem, env(safe-area-inset-left, 0px) + 0.5rem);
+            padding-right: max(0.5rem, env(safe-area-inset-right, 0px) + 0.5rem);
+        }
+        #game-story-modal, #install-help-modal, #leaderboard-modal,
+        #levels-modal, #moves-drawer, #victory-modal, #player-gate {
+            padding-top: max(0.75rem, env(safe-area-inset-top, 0px) + 0.4rem);
+            padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px) + 0.4rem);
+        }
+        /* Utility classes added after the original Tailwind build need local definitions. */
+        .sr-only { position:absolute !important; width:1px !important; height:1px !important;
+            padding:0 !important; margin:-1px !important; overflow:hidden !important;
+            clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
+        #btn-game-story, #btn-sound-bottom, #btn-language { flex:none; width:2rem; height:2rem; padding:0; display:grid; place-items:center; position:relative; }
+        #btn-sound-bottom #sound-icon { font-size:.85rem; }
+        #assistance-panel .solver-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.375rem; }
+        #assistance-panel .solver-actions button { font-size:.72rem; min-width:0; min-height:2.35rem;
+            padding:.45rem .15rem; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:.25rem; white-space:nowrap; }
+        #play-icon { width:.8rem !important; height:.8rem !important; display:inline-block !important; flex-shrink:0; }
+        #game-frame { box-sizing:border-box; }
+        /* A compact board keeps the Chinese piece symbols readable on short phones. */
+        #game-frame.compact-board .tile span:last-child { display:none; }
+        #game-frame.compact-board .tile span:first-child { font-size:clamp(.68rem, 3.1vw, .95rem); line-height:1.05; }
+        #active-player { cursor: pointer; border-radius: 0.5rem; padding: 0.18rem 0.3rem; }
+        #active-player:hover, #active-player:focus-visible { color:#fbbf24; background:rgba(245,158,11,.13); }
+        #active-player:focus-visible, #btn-assist-toggle:focus-visible { outline:2px solid #fbbf24; outline-offset:2px; }
+        .onboarding-glow { animation: onboardingGlow 1.15s ease-in-out infinite; position:relative; z-index: 3; }
+        @keyframes onboardingGlow {
+            0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,.2); border-color:rgba(245,158,11,.65); }
+            50% { box-shadow: 0 0 0 5px rgba(245,158,11,.25), 0 0 20px 4px rgba(245,158,11,.3); border-color:#fbbf24; }
+        }
+        #assistance-panel { border-top:1px solid #334155; padding-top:.6rem; }
+        #assistance-panel[hidden] { display:none !important; }
+        #btn-assist-toggle[aria-expanded="true"] { background:rgba(245,158,11,.15); border-color:rgba(245,158,11,.65); color:#fcd34d; }
+        @media (prefers-reduced-motion: reduce) { .onboarding-glow { animation:none; outline:2px solid #fbbf24; } }
         /* Compact installation help beside sound without crowding the speed controls. */
         @media (max-width: 430px) {
-            #btn-install-help .install-help-text { display: none; }
+            
             #btn-install-help { padding-left: .55rem; padding-right: .55rem; }
         }
         .install-platform-tab {
@@ -1440,18 +1485,18 @@
             outline: 2px solid #fbbf24; outline-offset: 2px;
         }
         @media (max-width: 485px) {
-            #btn-install-help .install-help-text { display: none; }
+            
             #btn-install-help { padding-left: .55rem; padding-right: .55rem; }
         }
-        #btn-game-story { padding-left: .48rem; padding-right: .48rem; }
+        #btn-game-story { padding:0; width:2rem; height:2rem; font-size:.95rem; line-height:1; }
         #sound-label { white-space: nowrap; }
         #btn-game-story:focus-visible, #btn-language:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
         @media (max-width: 485px) {
-            #btn-install-help .install-help-text { display: none; }
+            
             #btn-sound-bottom { padding-left: .45rem; padding-right: .45rem; }
         }
         @media (max-width: 365px) {
-            #sound-label { display: none; }
+
             #btn-sound-bottom { padding-left: .55rem; padding-right: .55rem; }
             .speed-btn { padding-left: .36rem; padding-right: .36rem; }
         }
@@ -1463,10 +1508,250 @@
             header h1 { font-size: .68rem; line-height: 1.08; }
             #header-layout-name { max-width: 4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             header > div:last-child { gap: .2rem; flex-shrink: 0; }
-            #btn-levels-menu, #btn-drawer { padding: .22rem .4rem; }
-            #btn-levels-menu > span, #btn-drawer > span { display: none; }
+            #btn-levels-menu { padding: .22rem .4rem; }
+
             #btn-leaderboard { padding: .22rem .45rem; }
         }
+
+
+        /* Assistance must not make the status row wrap and steal game-board height. */
+        section[aria-live="polite"] { flex-wrap:nowrap; gap:.22rem; }
+        #ranked-status { flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        #active-player { flex:0 1 auto; max-width:7.1rem !important; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        #solver-status { flex:0 0 auto; white-space:nowrap; font-size:.67rem; }
+
+        /* Board layout: width-first (as in the earlier game), with one permanent
+           hint slot now belongs to the action bar, not the game area. */
+        main {
+            display: grid !important;
+            grid-template-columns: minmax(0,1fr);
+            grid-template-rows: auto minmax(0,1fr);
+            gap: .3rem;
+            align-items: stretch !important;
+            justify-content: stretch !important;
+            margin-top: .25rem !important;
+            margin-bottom: .25rem !important;
+            overflow: hidden;
+            min-height: 0;
+        }
+        main > div:first-child { margin-bottom: 0 !important; }
+        #game-frame {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 560px !important;
+            min-width: 0;
+            min-height: 0;
+            aspect-ratio: auto !important;
+            align-self: center;
+            justify-self: stretch;
+            flex-shrink: 1;
+        }
+        #hint-banner {
+            position: static !important;
+            z-index: auto !important;
+            transform: none !important;
+            box-sizing: border-box;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 3rem;
+            min-height: 0;
+            max-height: 3rem;
+            margin: 0 !important;
+            padding: .25rem .5rem;
+            text-align: center;
+            line-height: 1.22;
+            font-size: clamp(.65rem, 2.6vw, .75rem);
+            overflow-wrap: anywhere;
+            overflow: hidden;
+            white-space: normal;
+            animation: none !important;
+        }
+        #hint-banner.hidden, #hint-banner[aria-hidden="true"] {
+            display: flex !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        #hint-banner:not(.hidden) { visibility: visible !important; }
+        #header-utility-row { min-height:2.2rem; }
+        #header-utility-row #btn-install-help { margin-left:auto; }
+        #hint-banner { flex:0 0 2.75rem; height:2.75rem !important; max-height:2.75rem !important; }
+        #hint-banner.hidden { visibility:hidden !important; }
+        @media (max-width:365px) { #header-utility-row { min-height:2rem; } }
+
+        @media (max-height: 620px) {
+            main { grid-template-rows: auto minmax(0,1fr); gap: .2rem; }
+            #hint-banner { height: 2.75rem; max-height: 2.75rem; font-size: .65rem; }
+        }
+        header h1 { min-width:0; }
+        #btn-game-story { transition-property:background-color,border-color,color,box-shadow !important; }
+        #btn-game-story.story-under-dialog { visibility: hidden !important; pointer-events: none; }
+        @media (max-width: 365px) {
+            #hint-banner { font-size: .625rem; padding: .2rem .35rem; }
+        }
+        /* Fixed modal sizing: max-w-sm is absent from the embedded Tailwind build. */
+        #player-gate { padding: max(0.75rem, env(safe-area-inset-top, 0px)) max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px)) max(0.75rem, env(safe-area-inset-left, 0px)); }
+        #player-gate > div {
+            box-sizing: border-box;
+            width: min(100%, 26rem);
+            max-width: 26rem;
+            min-width: 0;
+            max-height: min(90dvh, 36rem);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            margin-inline: auto;
+        }
+        #player-form, #player-name-input { min-width: 0; }
+        /* Floating solver tools must never take space away from the game board. */
+        body > footer { position: relative; z-index: 20; overflow: visible; }
+        #assistance-panel {
+            position: absolute;
+            bottom: calc(100% + .5rem);
+            left: 0;
+            right: 0;
+            z-index: 30;
+            padding: .8rem;
+            max-height: min(62dvh, 19rem);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            background: #111c30;
+            border: 1px solid rgba(245, 158, 11, .55);
+            border-radius: 1rem;
+            box-shadow: 0 -10px 38px rgba(0, 0, 0, .5);
+        }
+        #assistance-panel .solver-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        #quick-controls { display: grid; grid-template-columns: .95fr 1.07fr 1.43fr; gap: .4rem; }
+        #quick-controls button { min-width: 0; min-height: 2.3rem; padding: .45rem .25rem; }
+        #quick-controls #btn-next { color: #fcd34d; border-color: rgba(245, 158, 11, .5); }
+        @media(max-width:365px) {
+            #quick-controls { gap: .3rem; }
+            #quick-controls button { font-size: .69rem; }
+            header { gap: .22rem !important; }
+            header > div:last-child { gap: .2rem; flex-shrink: 0; }
+            #btn-game-story { width: 1.75rem; height: 1.75rem; font-size:.82rem; }
+        }
+
+        /* v9: one-line header; moving utility controls up frees board height. */
+        header { flex-direction:row !important; align-items:center; gap:0 !important; min-width:0; }
+        header > div:first-child { width:100%; min-width:0; gap:.3rem; }
+        header > div:first-child > div:first-child { min-width:0; gap:.35rem; flex:0 1 auto; }
+        header > div:first-child > div:last-child { gap:.28rem; flex-shrink:0; }
+        #btn-sound-bottom, #btn-language { width:1.75rem; height:1.75rem; font-size:.68rem; border-radius:.55rem; }
+        #btn-sound-bottom #sound-icon { font-size:.8rem; }
+        #btn-game-story { width:1.75rem; height:1.75rem; font-size:.9rem; }
+        #btn-leaderboard { min-width:1.75rem; height:1.75rem; padding:.15rem .3rem; }
+        #btn-levels-menu { min-height:1.75rem; padding:.24rem .5rem; gap:.2rem; }
+        /* Always reserve the SAME compact slot even with no hint visible. */
+        #hint-banner, #hint-banner.hidden {
+            flex:0 0 2rem !important;
+            height:2rem !important;
+            max-height:2rem !important;
+            min-height:2rem !important;
+            padding:.16rem .4rem;
+            margin:0 !important;
+            font-size:clamp(.60rem,2.3vw,.7rem);
+            line-height:1.08;
+            overflow-wrap:normal;
+            word-break:normal;
+            overflow:hidden;
+            text-overflow:clip;
+        }
+        #quick-controls { grid-template-columns:.95fr 1.1fr 1.35fr .9fr; gap:.28rem; }
+        #quick-controls button { font-size:.66rem; min-height:2.05rem; height:2.05rem; padding:.28rem .12rem; line-height:1.05; }
+        #quick-controls #btn-install-help { margin:0; padding: .25rem .12rem; min-width:0; width:100%; height:2.05rem; font-size:.65rem; gap:.12rem; flex-shrink:1; }
+        #quick-controls #btn-assist-toggle { gap:.12rem; white-space:nowrap; }
+        #quick-controls #btn-assist-toggle > span:first-child { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+        footer { padding:.38rem .5rem !important; gap:.22rem !important; }
+        /* PWA installed: the Install action is hidden; give its width back to gameplay controls. */
+        #quick-controls:has(#btn-install-help.hidden) { grid-template-columns:.95fr 1.1fr 1.35fr; }
+        @media(max-width:390px) {
+            header { padding:.37rem .36rem !important; }
+            header > div:first-child { gap:.18rem; }
+            header > div:first-child > div:first-child { gap:.2rem; }
+            header > div:first-child > div:first-child > div:first-child { width:1.6rem; height:1.6rem; font-size:.94rem; }
+            header h1 { font-size:.62rem; }
+            #header-layout-name { font-size:.54rem; max-width:5rem; }
+            header > div:first-child > div:last-child { gap:.15rem; }
+            #btn-game-story, #btn-leaderboard, #btn-sound-bottom, #btn-language { width:1.53rem; height:1.55rem; min-width:1.53rem; padding:0; font-size:.73rem; }
+            #btn-levels-menu { height:1.55rem; min-height:1.55rem; padding:.12rem .26rem; font-size:.61rem; gap:.05rem; }
+            #hint-banner { font-size:.6rem; }
+            #quick-controls { gap:.2rem; }
+            #quick-controls button { font-size:.61rem; }
+            #quick-controls #btn-install-help { font-size:.60rem; }
+        }
+        @media(max-width:350px) {
+            header > div:first-child > div:first-child > div:first-child { display:none; }
+            header > div:first-child > div:first-child > div:last-child { max-width:6.7rem; }
+            header h1 { font-size:.64rem; }
+            #header-layout-name { max-width:5rem; }
+            #btn-levels-menu { font-size:.57rem; }
+            #quick-controls #btn-assist-toggle > span:first-child { font-size:.57rem; }
+            #quick-controls #btn-install-help .install-help-text { font-size:.58rem; }
+        }
+
+        .assist-label-compact, .install-help-compact { display:none; }
+        @media (max-width:430px) {
+            #quick-controls .assist-label-long, #quick-controls .install-help-text { display:none; }
+            #quick-controls .assist-label-compact, #quick-controls .install-help-compact { display:inline; }
+        }
+        @media (max-width:350px) {
+            #quick-controls #btn-install-help > span:first-child { display:none; }
+        }
+
+
+        /* v10: stable eligibility width; remaining counter shares status side. */
+        section[aria-live="polite"] { display:flex; align-items:center; gap:.28rem; min-width:0; }
+        #eligibility-info { min-width:0; flex:1 1 auto; display:flex; align-items:center; gap:.22rem; overflow:hidden; }
+        #ranked-status { flex:0 1 auto; max-width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:clamp(.59rem,1.45vw,.75rem); }
+        #solver-status { flex:0 0 auto; font-size:clamp(.59rem,1.45vw,.72rem); white-space:nowrap; }
+        #solver-status.hidden { display:none !important; }
+        #active-player { flex:0 0 min(7.5rem,35%); width:min(7.5rem,35%); max-width:min(7.5rem,35%) !important; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        /* Game selectors now live in the former GOAL slot. */
+        main > div:first-child > div:last-child { min-width:0; }
+        main #btn-levels-menu { height:1.85rem; min-height:1.85rem; font-size:.7rem; padding:.25rem .55rem; border-radius:.6rem; }
+        /* Compact Install next to Language; header must not wrap. */
+        header > div:first-child > div:last-child { min-width:0; white-space:nowrap; }
+        header #btn-install-help { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; height:1.75rem; max-width:none; min-width:0; width:auto; padding:0 .34rem; gap:.1rem; border-radius:.55rem; font-size:.65rem; }
+        header #btn-install-help .install-help-text { display:inline !important; font-size:.64rem; }
+        header #btn-install-help .install-help-compact { display:none !important; }
+        @media(max-width:350px){ header #btn-install-help { padding:0 .24rem; font-size:.6rem; } header #btn-install-help .install-help-text { font-size:.60rem; } }
+
+        header #btn-install-help.hidden { display:none !important; }
+        /* Hint and playback are always present, and never change board geometry. */
+        body > footer { position:relative; z-index:20; padding:.32rem .42rem !important; gap:.25rem !important; overflow:visible; }
+        #hint-playback-row { height:2.35rem; min-height:2.35rem; max-height:2.35rem; display:flex; align-items:center; gap:.3rem; min-width:0; }
+        #hint-banner, #hint-banner.hidden { position:static !important; box-sizing:border-box; display:flex !important; align-items:center; flex:1 1 0 !important; min-width:0; height:100% !important; max-height:100% !important; min-height:0 !important; margin:0 !important; padding:.15rem .4rem; line-height:1.12; font-size:.67rem; text-align:left; overflow:hidden; overflow-wrap:anywhere; white-space:normal; animation:none !important; }
+        #hint-banner.hidden, #hint-banner[aria-hidden="true"] { visibility:hidden !important; pointer-events:none; }
+        #hint-banner:not(.hidden) { visibility:visible !important; }
+        #playback-controls { display:flex; align-items:center; gap:.24rem; flex:none; }
+        #btn-play { display:flex; align-items:center; justify-content:center; gap:.14rem; white-space:nowrap; height:2.1rem; min-width:3.95rem; padding:.2rem .36rem; font-size:.64rem; line-height:1; }
+        #play-icon { display:inline-block !important; width:.8rem !important; height:.8rem !important; flex:none; }
+        #speed-controls { display:flex; align-items:center; gap:.12rem; }
+        #speed-controls .speed-btn { min-width:1.55rem; height:1.7rem; padding:.1rem .2rem; font-size:.63rem; white-space:nowrap; }
+        #quick-controls, #quick-controls:has(#btn-install-help.hidden) { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:.24rem; min-width:0; }
+        #quick-controls button { display:flex; align-items:center; justify-content:center; gap:.13rem; padding:.25rem .13rem; height:2.1rem; min-height:2.1rem; min-width:0; white-space:nowrap; font-size:clamp(.61rem,1.55vw,.73rem); line-height:1.05; }
+        #quick-controls button span { overflow:hidden; text-overflow:ellipsis; }
+        /* Moves sheet should never become a desktop-wide stripe; align it to the game width. */
+        #moves-drawer { align-items:center; box-sizing:border-box; padding:0 max(.5rem,env(safe-area-inset-right,0px)) max(.5rem,env(safe-area-inset-bottom,0px)) max(.5rem,env(safe-area-inset-left,0px)); }
+        #moves-drawer > div { box-sizing:border-box; width:100%; max-width:28rem; margin-inline:auto; max-height:min(68dvh,36rem); min-height:0; border:1px solid rgba(245,158,11,.65); border-bottom:0; }
+        @media(max-width:390px){
+            header { padding:.35rem .32rem !important; }
+            header > div:first-child > div:last-child { gap:.12rem; }
+            header #btn-install-help { width:auto; height:1.55rem; min-width:0; max-width:none; padding:0 .2rem; }
+            main #btn-levels-menu { font-size:.61rem; height:1.6rem; min-height:1.6rem; padding:.18rem .32rem; }
+            #active-player { flex-basis: min(6.3rem,34%); width:min(6.3rem,34%); max-width:min(6.3rem,34%) !important; font-size:.64rem; }
+            #hint-banner, #hint-banner.hidden { font-size:.60rem; padding:.14rem .24rem; }
+            #btn-play { font-size:.59rem; min-width:3.5rem; padding:.1rem .2rem; }
+            #speed-controls .speed-btn { min-width:1.4rem; font-size:.59rem; padding:.1rem .13rem; }
+            #quick-controls button { font-size:.6rem; }
+        }
+        @media(max-width:350px){
+            #btn-play { min-width:3.2rem; }
+            #speed-controls .speed-btn { min-width:1.32rem; }
+            #quick-controls button { font-size:.56rem; }
+        }
+
     </style>
     <!-- Optional public scoreboard. Without a configured issuer WIF this HTML is strictly local-only. -->
     <script>
@@ -1496,43 +1781,45 @@
 <body class="h-full w-full flex flex-col justify-between items-center p-2 sm:p-4 select-none overflow-hidden">
 
     <!-- Top Navigation Header -->
-    <header class="w-full max-w-md flex justify-between items-center gap-2 py-2 px-3 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg shrink-0">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-amber-500/20 border border-amber-500/40 rounded-xl flex items-center justify-center text-amber-400 font-black chinese-font text-lg">
+    <header class="w-full max-w-md flex flex-col gap-1.5 py-2 px-3 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg shrink-0">
+      <div class="w-full flex justify-between items-center gap-2 min-w-0">
+        <div class="flex items-center gap-2 min-w-0">
+            <div class="w-8 h-8 shrink-0 bg-amber-500/20 border border-amber-500/40 rounded-xl flex items-center justify-center text-amber-400 font-black chinese-font text-lg">
                 華
             </div>
-            <div>
-                <h1 class="text-sm font-extrabold text-slate-100 leading-none">Хуаронг Дао</h1>
+            <div class="min-w-0">
+                <div class="flex items-center gap-1 min-w-0">
+                    <h1 class="text-sm font-extrabold text-slate-100 leading-none truncate">Хуаронг Дао</h1>
+                </div>
                 <span id="header-layout-name" class="text-[10px] text-amber-400/90 font-medium truncate max-w-[130px] inline-block">Класическа (横刀立马)</span>
             </div>
         </div>
 
-        <div class="flex items-center gap-1.5">
-            <!-- Level Selector Menu Button -->
-            <button id="btn-levels-menu" aria-label="Подредби" title="Подредби" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                🧩 <span>Подредби</span>
-            </button>
-
-            <!-- Moves Drawer Button -->
-            <button id="btn-drawer" aria-label="Ходове" title="Ходове" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                📋 <span>Ходове</span>
-            </button>
-
+        <div class="flex items-center gap-1.5 shrink-0">
+            <button id="btn-game-story" type="button" title="Историята на играта" aria-label="Прочети историята на играта"
+                aria-haspopup="dialog" aria-controls="game-story-modal" aria-expanded="false"
+                class="w-7 h-7 grid place-items-center bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 rounded-lg transition shrink-0" aria-describedby="story-short-label">📜</button>
+            <span id="story-short-label" class="sr-only">Историята на играта</span>
             <button id="btn-leaderboard" title="Класация" aria-label="Отвори класацията" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-bold transition">🏆</button>
+            <button id="btn-sound-bottom" type="button" aria-label="Изключи звука" title="Изключи звука" aria-pressed="false"
+                    class="w-8 h-8 grid place-items-center bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 rounded-xl transition"><span id="sound-icon" aria-hidden="true" class="text-sm">🔊</span><span id="sound-label" class="sr-only">Звук: Вкл</span></button>
+                <button id="btn-language" type="button" aria-label="Switch to English" title="Switch to English"
+                    class="w-8 h-8 bg-slate-800 border border-slate-700 text-amber-400 rounded-xl font-black text-[11px]">EN</button>
+            <button id="btn-install-help" type="button" title="Как да инсталирам играта" aria-label="Инструкции за инсталиране"
+                aria-haspopup="dialog" aria-controls="install-help-modal" aria-expanded="false"
+                class="min-w-0 px-3 h-8 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5"><span aria-hidden="true">📲</span><span class="install-help-text">Инсталирай</span><span class="install-help-compact" aria-hidden="true">Инст.</span></button>
 
-            <!-- PWA Install Button -->
-            <button id="btn-install" class="hidden px-2 py-1 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1 transition shadow">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                <span>Инсталирай</span>
-            </button>
         </div>
+      </div>
     </header>
 
     <!-- Ranked eligibility badge; reveals solver distance only after assistance. -->
     <section class="w-full max-w-md my-1 px-3 py-1.5 bg-amber-950/60 border border-amber-500/40 rounded-xl flex items-center justify-between text-xs shadow shrink-0" aria-live="polite">
-        <span id="ranked-status" class="font-bold text-amber-300">★ Самостоятелна игра · за класацията</span>
-        <span id="active-player" class="text-slate-300 font-bold truncate" style="max-width:7.5rem"></span>
-        <span id="solver-status" class="hidden text-slate-100">Остават: <span id="badge-remaining-moves" class="text-amber-400 font-black">--</span></span>
+        <div id="eligibility-info" class="flex items-center gap-1 min-w-0 flex-1">
+          <span id="ranked-status" class="font-bold text-amber-300">★ Самостоятелна игра · за класацията</span>
+          <span id="solver-status" class="hidden text-slate-100">Остават: <span id="badge-remaining-moves" class="text-amber-400 font-black">--</span></span>
+        </div>
+        <button id="active-player" type="button" aria-label="Отвори класацията и настройките на името" title="Отвори класацията" class="text-slate-300 font-bold truncate text-right"></button>
     </section>
 
     <!-- Main Game Board Container -->
@@ -1550,14 +1837,15 @@
                 <div id="timer-display" class="text-sm font-mono font-bold text-slate-200">00:00</div>
             </div>
 
-            <div class="text-right">
-                <div class="text-[9px] uppercase font-bold text-slate-400">Цел</div>
-                <div class="text-xs font-bold text-emerald-400">Цао Цао ↓</div>
+            <div class="text-right flex items-center justify-end">
+                <button id="btn-levels-menu" type="button" aria-label="Подредби" title="Подредби" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">
+                    🧩 <span>Подредби</span>
+                </button>
             </div>
         </div>
 
         <!-- Board Frame -->
-        <div class="relative w-full aspect-[4/5] max-h-[55vh] p-2 board-frame flex flex-col items-center justify-between shrink-0">
+        <div id="game-frame" class="relative w-full aspect-[4/5] p-2 board-frame flex flex-col items-center justify-between shrink-0">
             <!-- Inner Board Grid -->
             <div id="board" class="relative w-full h-full rounded-lg board-inner overflow-hidden border border-red-950/60">
                 <!-- Grid Lines -->
@@ -1577,69 +1865,31 @@
             </div>
         </div>
 
-        <!-- Active Hint Banner -->
-        <div id="hint-banner" class="hidden w-full mt-2 bg-amber-950/90 border border-amber-500/60 text-amber-300 text-xs font-bold rounded-xl p-2 text-center animate-pulse shrink-0">
-            💡 Препоръчителен ход: Плъзни <span id="hint-text" class="text-white underline">--</span>
-        </div>
+
     </main>
 
-    <!-- Bottom Controls Control Bar -->
-    <footer class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex flex-col gap-2 shadow-lg shrink-0">
-        <!-- Main Game Playback Buttons -->
-        <div class="flex items-center justify-between gap-1.5">
-            <button id="btn-reset" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 font-bold rounded-xl text-xs border border-slate-700 flex items-center justify-center gap-1 transition">
-                🔄 <span>Рестарт</span>
-            </button>
-
-            <button id="btn-hint" class="flex-1 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">
-                💡 <span>Подскажи</span>
-            </button>
-
-            <button id="btn-next" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-amber-300 font-bold rounded-xl text-xs border border-slate-700 flex items-center justify-center gap-1 transition">
-                <span>Ход ›</span>
-            </button>
-
-            <button id="btn-play" class="flex-[1.2] py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1 transition shadow">
-                <svg id="play-icon" class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                <span id="play-text">Авто AI</span>
-            </button>
-        </div>
-
-        <!-- Sub Controls Bar: Sound Toggle & Speed Controls -->
-        <div class="flex items-center justify-between px-1 border-t border-slate-800/80 pt-2 text-[10px] text-slate-400">
-            <div class="flex items-center gap-1 min-w-0">
-                <!-- Story and piece legend. -->
-                <button id="btn-game-story" type="button" title="Историята на играта" aria-label="Прочети историята на играта"
-                    aria-haspopup="dialog" aria-controls="game-story-modal" aria-expanded="false"
-                    class="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 rounded-xl font-bold flex items-center gap-1.5 transition active:scale-95">
-                    <span aria-hidden="true" class="text-xs">📜</span>
-                </button>
-                <!-- Bottom Sound Toggle Button -->
-                <button id="btn-sound-bottom" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 rounded-xl font-bold flex items-center gap-1.5 transition active:scale-95">
-                    <span id="sound-icon" class="text-xs">🔊</span>
-                    <span id="sound-label" class="text-slate-200 font-bold">Звук: Вкл</span>
-                </button>
-
-                <button id="btn-language" type="button" aria-label="Switch to English" title="Switch to English"
-                    class="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 rounded-xl font-black text-[11px] transition active:scale-95" style="min-width:2rem">EN</button>
-                <!-- Persistent installation instructions, including browsers without a native install prompt. -->
-                <button id="btn-install-help" type="button" title="Как да инсталирам играта" aria-label="Инструкции за инсталиране"
-                    aria-haspopup="dialog" aria-controls="install-help-modal" aria-expanded="false"
-                    class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 rounded-xl font-bold flex items-center gap-1.5 transition active:scale-95">
-                    <span aria-hidden="true" class="text-xs">📲</span>
-                    <span class="install-help-text text-slate-200 font-bold">Инсталиране</span>
-                </button>
+    <!-- Compact gameplay controls. The hint/playback row is permanently reserved. -->
+    <footer class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl p-2 flex flex-col gap-1 shadow-lg shrink-0">
+        <div id="hint-playback-row" class="flex items-center gap-1 w-full min-w-0">
+            <div id="hint-banner" class="hidden bg-amber-950/90 border border-amber-500/60 text-amber-300 font-bold rounded-lg text-left" aria-live="polite">
+                💡 Ход: <span id="hint-text" class="text-white">--</span>
             </div>
-
-            <!-- AI Speed Selector -->
-            <div class="flex items-center gap-1.5">
-                <span class="text-slate-400 font-medium">Скорост:</span>
-                <div class="flex gap-1">
-                    <button data-speed="600" class="speed-btn px-2 py-0.5 bg-slate-800 text-slate-300 rounded-md font-bold border border-slate-700">1x</button>
-                    <button data-speed="350" class="speed-btn px-2 py-0.5 bg-amber-500 text-slate-950 rounded-md font-bold border border-amber-400">2x</button>
-                    <button data-speed="180" class="speed-btn px-2 py-0.5 bg-slate-800 text-slate-300 rounded-md font-bold border border-slate-700">3x</button>
+            <div id="playback-controls" class="flex items-center gap-1 shrink-0">
+                <button id="btn-play" type="button" class="bg-amber-500 text-slate-950 border border-amber-400 rounded-lg font-black" aria-label="Авто AI" title="Авто AI">
+                    <svg id="play-icon" class="w-3 h-3 inline-block align-middle fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> <span id="play-text">Авто AI</span>
+                </button>
+                <div id="speed-controls" class="flex gap-0.5" role="group" aria-label="Скорост на възпроизвеждане">
+                    <button type="button" data-speed="600" aria-label="1x" class="speed-btn bg-slate-800 text-slate-300 rounded-md font-bold border border-slate-700">1x</button>
+                    <button type="button" data-speed="350" aria-label="2x" class="speed-btn bg-amber-500 text-slate-950 rounded-md font-bold border border-amber-400">2x</button>
+                    <button type="button" data-speed="180" aria-label="3x" class="speed-btn bg-slate-800 text-slate-300 rounded-md font-bold border border-slate-700">3x</button>
                 </div>
             </div>
+        </div>
+        <div id="quick-controls" class="grid grid-cols-4 gap-1">
+            <button id="btn-reset" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-lg border border-slate-700">↻ <span>Рестарт</span></button>
+            <button id="btn-next" type="button" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-lg font-bold" aria-label="Изпълни следващия ход" title="Изпълни следващия ход">Следващ ›</button>
+            <button id="btn-hint" type="button" class="bg-amber-500/20 text-amber-300 border border-amber-500/50 rounded-lg font-bold">💡 <span>Подскажи</span></button>
+            <button id="btn-drawer" type="button" aria-label="Ходове" title="Ходове" class="bg-slate-800 text-slate-300 border border-slate-700 rounded-lg font-bold">📋 <span>Ходове</span></button>
         </div>
     </footer>
 
@@ -1651,9 +1901,17 @@
                 <div class="flex items-center gap-2">
                     <span class="text-2xl" aria-hidden="true">📜</span>
                     <h2 id="game-story-title" class="font-extrabold text-lg text-amber-300">Легендата за Хуаронг</h2>
+                    <span id="beta-version" class="text-[10px] text-slate-400">Бета 0.1.0-beta.1</span>
                 </div>
                 <button id="btn-close-game-story" type="button" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold" aria-label="Затвори историята">✕</button>
             </div>
+            <div class="mb-3 bg-slate-800/80 border border-amber-500/30 rounded-xl p-3 text-sm leading-relaxed text-slate-100">
+                <p class="font-bold text-amber-300 mb-1">Как се играе?</p>
+                <p>Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започни с „Тренировка“ и избери следваща подредба чрез 🧩.</p>
+            </div>
+            <details id="story-literary-details" class="min-h-0 overflow-y-auto custom-scroll border border-slate-700 rounded-xl px-3 py-2">
+              <summary class="cursor-pointer text-sm text-amber-300 font-bold">📜 Историята зад пъзела</summary>
+              <div class="mt-3">
             <div id="game-story-description" class="overflow-y-auto custom-scroll text-sm leading-relaxed text-slate-200 space-y-3">
                 <p>Според романа <strong class="text-amber-300">„Трицарствие“</strong>, след поражението при Червените скали (208 г.) пълководецът Цао Цао бяга през тесния проход Хуаронг. Там го пресреща Гуан Ю, но го пропуска заради стара признателност.</p>
                 <p>В играта големият червен блок е <strong class="text-amber-300">Цао Цао</strong>. Премествай останалите фигури, без да ги повдигаш, докато освободиш пътя му към <strong class="text-emerald-400">изхода долу по средата</strong>.</p>
@@ -1669,7 +1927,9 @@
                 <p><strong class="text-amber-300">The four soldiers</strong> are the small square blocks. Moving them creates the openings needed for the larger blocks to slide.</p>
                 <p class="text-xs text-slate-400">These characters and events come from the literary tradition, not a literal historical reconstruction.</p>
             </div>
-            <button type="button" id="btn-game-story-done" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl py-2.5 mt-4 shrink-0">Към играта</button>
+              </div>
+            </details>
+            <button type="button" id="btn-game-story-done" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl py-2.5 mt-4 shrink-0">Да играем</button>
         </div>
     </div>
 
@@ -1719,6 +1979,7 @@
                 </section>
                 <p id="install-online-note" class="hidden text-[11px] text-slate-400 mt-4 leading-tight">Забележка: добавянето на икона не означава непременно офлайн достъп. За онлайн класацията е нужен интернет.</p>
             </div>
+            <button type="button" id="btn-native-install" class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl py-2.5 mt-3 shrink-0">Инсталирай приложението</button>
             <button type="button" id="btn-install-help-done" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl py-2.5 mt-4 shrink-0">Разбрах</button>
         </div>
     </div>
@@ -1821,7 +2082,12 @@
           <select id="ranking-layout" class="bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-lg p-2 max-w-[70%]"></select>
         </div>
         <p id="ranking-source" class="text-[11px] text-slate-400 mb-2" role="status"></p>
+        <p id="ranking-personal-best" class="text-[11px] font-bold text-amber-200 mb-2"></p>
         <div id="ranking-list" class="space-y-1 mb-4" aria-live="polite"></div>
+        <div id="ranking-recent-wrap" class="hidden mb-4">
+          <h3 class="text-xs text-slate-200 font-bold mb-2">Последните 5 локални резултата</h3>
+          <div id="ranking-recent-list" class="space-y-1"></div>
+        </div>
         <button id="btn-refresh-scores" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl py-2 text-xs font-bold">Обнови класацията</button>
       </div>
     </div>
@@ -1831,7 +2097,8 @@
         <div class="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-xs w-full p-5 text-center shadow-2xl">
             <div class="text-4xl mb-2 animate-bounce">🏆</div>
             <h2 class="chinese-font text-2xl font-black text-amber-400 mb-1">Победа!</h2>
-            <p class="text-xs text-slate-300 font-semibold mb-3">Цао Цао бе успешно изведен през прохода!</p>
+            <p class="text-xs text-slate-300 font-semibold mb-2">Цао Цао бе успешно изведен през прохода!</p>
+            <p id="victory-layout-name" class="text-xs font-bold text-amber-200 bg-amber-500/10 border border-amber-500/25 rounded-lg p-2 mb-3"></p>
 
             <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 mb-4 grid grid-cols-2 gap-2 text-left">
                 <div>
@@ -1883,29 +2150,28 @@
         document.getElementById('manifest-link').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(pwaManifest));
 
         let deferredPrompt = null;
-        const btnInstall = document.getElementById('btn-install');
-
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            btnInstall.classList.remove('hidden');
+            document.getElementById('btn-native-install').classList.remove('hidden');
         });
-
-        btnInstall.onclick = async () => {
+        document.getElementById('btn-native-install').addEventListener('click', async () => {
             if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') btnInstall.classList.add('hidden');
+            const prompt = deferredPrompt;
             deferredPrompt = null;
-        };
-
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        if (isIOS && !isStandalone) {
-            btnInstall.classList.remove('hidden');
-            btnInstall.onclick = () => {
-                document.getElementById('btn-install-help').click();
-            };
+            try {
+                await prompt.prompt();
+                await prompt.userChoice;
+            } catch (error) { console.warn('Native installation unavailable', error); }
+            document.getElementById('btn-native-install').classList.add('hidden');
+        });
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            document.getElementById('btn-native-install').classList.add('hidden');
+            document.getElementById('btn-install-help').classList.add('hidden');
+        });
+        if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) {
+            document.getElementById('btn-install-help').classList.add('hidden');
         }
     </script>
 
@@ -1916,21 +2182,46 @@
             const dialog = document.getElementById('game-story-modal');
             const close = document.getElementById('btn-close-game-story');
             const done = document.getElementById('btn-game-story-done');
+            const literaryDetails = document.getElementById('story-literary-details');
             let previousFocus = null;
-            function openStory() {
+            function openStory(expandStory = true) {
+                // The modal opened before, but its nested <details> remained collapsed.
+                // On first launch, show the short how-to; explicit button clicks show the full story.
+                literaryDetails.open = !!expandStory;
+                if (!dialog.classList.contains('hidden')) return;
                 previousFocus = document.activeElement;
                 dialog.classList.remove('hidden');
                 dialog.setAttribute('aria-hidden', 'false');
                 trigger.setAttribute('aria-expanded', 'true');
+                trigger.classList.add('story-under-dialog');
+                // An explicit display override also works if utility CSS ordering changes.
+                dialog.style.setProperty('display', 'flex', 'important');
                 close.focus();
             }
             function closeStory() {
+                try { localStorage.setItem('huarong_story_seen_v1','1'); } catch(e) {}
                 dialog.classList.add('hidden');
+                literaryDetails.open = false;
+                dialog.style.removeProperty('display');
                 dialog.setAttribute('aria-hidden', 'true');
                 trigger.setAttribute('aria-expanded', 'false');
+                trigger.classList.remove('story-under-dialog');
                 (previousFocus?.isConnected ? previousFocus : trigger).focus();
+                window.dispatchEvent(new CustomEvent('huarong:storyclosed'));
             }
-            trigger.addEventListener('click', openStory);
+            // Capture clicks before any game-wide interaction handler can consume them.
+            // This is a deliberate, idempotent reopening path (not the welcome-only path).
+            document.addEventListener('click', event => {
+                if (!event.target.closest('#btn-game-story')) return;
+                event.preventDefault();
+                openStory(true);
+            }, true);
+            window.huarongOpenStory = () => openStory(true);
+            window.addEventListener('DOMContentLoaded', () => {
+                let seen = false;
+                try { seen=localStorage.getItem('huarong_story_seen_v1')==='1'; } catch(e) {}
+                if (!seen) requestAnimationFrame(() => openStory(false));
+            });
             close.addEventListener('click', closeStory);
             done.addEventListener('click', closeStory);
             dialog.addEventListener('click', event => {
@@ -2101,6 +2392,8 @@
     <!-- Username, results, and ranking. All application JavaScript is inline. -->
     <script>
       const SCORE_KEY = 'huarong_local_leaderboard_v1';
+      const SCORE_STORE_V2_KEY = 'huarong_local_scores_v2';
+      const RECENT_LIMIT = 5;
       const NICK_KEY = 'huarong_player_name_v1';
       const FIXED_NAME_KEY = 'huarong_player_fixed_name_v1';
       const PRIVACY_KEY = 'huarong_public_score_consent_v1';
@@ -2114,11 +2407,14 @@
       let publicNameReady = false;
       let pendingPublicScore = null;
       let pendingNameScore = null;
+      let pendingLocalScore = null;
       let playerGateMode = null;
       let nameLocked = false;
       let allowPublicScores = false;
       try {allowPublicScores = JSON.parse(localStorage.getItem(PRIVACY_KEY)||'null')?.allowed===true;}catch(e){}
-      let leaderboard = {};
+      let leaderboard = {}; // Permanent best per layout, independent from rolling history.
+      let recentScores = {}; // Last five completed, unassisted runs per layout (newest first).
+      let savedVictoryEpoch = -1;
       let onlineLeaderboard = null;
       try {nickname = localStorage.getItem(NICK_KEY) || '';} catch(e) {}
       // Generate a local pseudonym without asking anything on first launch.
@@ -2141,29 +2437,66 @@
       }
       // Anonymous play is always the default; only explicitly confirmed players
       // can enable the separate public score-submission flow.
-      try {
-          const saved = JSON.parse(localStorage.getItem(SCORE_KEY)||'{}');
-          if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
-              for(const [layout,rows] of Object.entries(saved)){
-                  if(!Array.isArray(rows))continue;
-                  const clean=rows.filter(e=>Array.isArray(e)&&e.length===3&&isValidStoredNick(e[0])&&
-                      Number.isSafeInteger(e[1])&&e[1]>0&&Number.isSafeInteger(e[2])&&e[2]>=0);
-                  const dedup=new Map();
-                  for(const e of clean){const key=e[0].toLocaleLowerCase();
-                      if(!dedup.has(key)||e[1]<dedup.get(key)[1]||(e[1]===dedup.get(key)[1]&&e[2]<dedup.get(key)[2]))dedup.set(key,e);
+      function validLocalBest(entry){
+          return Array.isArray(entry) && entry.length===3 && isValidStoredNick(entry[0]) &&
+              Number.isSafeInteger(entry[1]) && entry[1]>0 &&
+              Number.isSafeInteger(entry[2]) && entry[2]>=0;
+      }
+      function validRecentEntry(entry){
+          return Array.isArray(entry) && entry.length===4 &&
+              Number.isSafeInteger(entry[0]) && entry[0]>0 &&
+              Number.isSafeInteger(entry[1]) && entry[1]>=0 &&
+              Number.isSafeInteger(entry[2]) && entry[2]>=0 &&
+              typeof entry[3]==='string' && entry[3].length>0 && entry[3].length<=80;
+      }
+      const sortScores=(a,b)=>a[1]-b[1]||a[2]-b[2]||a[0].localeCompare(b[0]);
+      function parseLocalScores(raw){
+          const best={},recent={};
+          if(raw && typeof raw==='object' && !Array.isArray(raw)){
+              const bestMap=raw.v===2 ? raw.best : raw;
+              const historyMap=raw.v===2 ? raw.recent : null;
+              if(bestMap && typeof bestMap==='object'){
+                  for(const [layout,entries] of Object.entries(bestMap)){
+                      // Legacy format was a best-scores array per layout; v2 has one personal best.
+                      const rows=raw.v===2 ? [entries] : entries;
+                      if(!Array.isArray(rows))continue;
+                      const valid=rows.filter(validLocalBest).sort(sortScores);
+                      if(valid.length)best[layout]=valid[0];
                   }
-                  leaderboard[layout]=[...dedup.values()].sort((a,b)=>a[1]-b[1]||a[2]-b[2]||a[0].localeCompare(b[0])).slice(0,10);
+              }
+              if(historyMap && typeof historyMap==='object' && !Array.isArray(historyMap)){
+                  for(const [layout,entries] of Object.entries(historyMap)){
+                      if(!Array.isArray(entries))continue;
+                      recent[layout]=entries.filter(validRecentEntry).slice(0,RECENT_LIMIT);
+                  }
               }
           }
-      } catch(e) {}
-      // One-time identity commitment. There is no migration: the game has not
-      // been released. A provisional nickname stays editable until first save.
+          // A committed username travels with its score history in the SAME atomic write.
+          const owner=raw && raw.v===2 && isValidStoredNick(raw.owner) ? safeNickname(raw.owner) : null;
+          return {best,recent,owner};
+      }
+      function readLocalScores(){
+          try{
+              const v2=localStorage.getItem(SCORE_STORE_V2_KEY);
+              if(v2){return parseLocalScores(JSON.parse(v2));}
+              return parseLocalScores(JSON.parse(localStorage.getItem(SCORE_KEY)||'{}'));
+          }catch(e){return {best:{},recent:{},owner:null};}
+      }
+      // Read v2 after the score comparator is initialized below, before any UI rendering.
+      // Commit name and scores atomically. A legacy fixed-name marker alone
+      // is NOT evidence that a score was saved (older test builds wrote it early).
       try {
-          const fixed=localStorage.getItem(FIXED_NAME_KEY);
-          if(isValidStoredNick(fixed)){
-              nickname=safeNickname(fixed);
+          const disk=readLocalScores();
+          const previousFixed=safeNickname(localStorage.getItem(FIXED_NAME_KEY));
+          const hasCommittedBest=Object.values(disk.best).some(row=>row[0]===previousFixed);
+          const committed=disk.owner || (hasCommittedBest ? previousFixed : null);
+          if(isValidStoredNick(committed)){
+              nickname=committed;
               nameLocked=true;
-              localStorage.setItem(NICK_KEY,nickname);
+              try{localStorage.setItem(NICK_KEY,nickname);}catch(e){}
+          }else if(isValidStoredNick(previousFixed)){
+              // Recover from a prematurely written lock with no saved score.
+              try{localStorage.removeItem(FIXED_NAME_KEY);}catch(e){}
           }
           publicNameReady=nameLocked && HUARONG_PUBLIC_ENABLED && allowPublicScores &&
               localStorage.getItem(PUBLIC_NAME_KEY)==='true';
@@ -2196,7 +2529,13 @@
       const activePlayer=document.getElementById('active-player');
       const UNRANKED_LAYOUT_ID = 'training';
       const LOCAL_ONLY_LAYOUT_ID = 'first_steps';
-      const sortScores=(a,b)=>a[1]-b[1]||a[2]-b[2]||a[0].localeCompare(b[0]);
+      ({best:leaderboard,recent:recentScores}=readLocalScores());
+      function bestForLayout(layout){return leaderboard[layout] || null;}
+      function needsPublicUpdate(layout){
+          const local=bestForLayout(layout), published=typeof rodBest!=='undefined' ? rodBest[layout] : null;
+          return local && (!Array.isArray(published) ||
+              local[1]<Number(published[0]) || (local[1]===Number(published[0]) && local[2]<Number(published[1])));
+      }
       function setAssisted(reason){
           if(!solverEnabled){
               solverEnabled=true;
@@ -2229,6 +2568,7 @@
           submitScoreBtn.classList.add('hidden');
           pendingPublicScore=null;
           pendingNameScore=null;
+          pendingLocalScore=null;
           playerGateMode=null;
           confirmFirstScoreBtn.classList.add('hidden');
           playerGate.classList.add('hidden');
@@ -2258,9 +2598,12 @@
           const requested=HUARONG_PUBLIC_ENABLED && rankingPublicConsent.checked;
           setPublicScoreConsent(requested);
           if(requested){
-              // This checkbox reflects an explicit preference, but public submission
-              // still asks to confirm the suggested nickname on the first eligible win.
-              if(publicNameReady)try{localStorage.setItem(PUBLIC_NAME_KEY,'true');}catch(e){}
+              // An existing confirmed public identity may resume queued best scores;
+              // a new player still confirms publication from the victory screen.
+              if(publicNameReady){
+                  try{localStorage.setItem(PUBLIC_NAME_KEY,'true');}catch(e){}
+                  if(typeof syncOutstandingBests==='function')syncOutstandingBests();
+              }
           }else{
               publicNameReady=false;
               try{localStorage.removeItem(PUBLIC_NAME_KEY);}catch(e){}
@@ -2269,7 +2612,11 @@
       // A second open tab must respect a consent withdrawal immediately.
       window.addEventListener('storage',event=>{
           if(event.key===FIXED_NAME_KEY){
-              const fixed=safeNickname(event.newValue);
+              // A compatibility marker alone can be stale. Only a confirmed
+              // score/owner record may lock the name across tabs.
+              const disk=readLocalScores();
+              const marker=safeNickname(event.newValue);
+              const fixed=disk.owner || (Object.values(disk.best).some(row=>row[0]===marker) ? marker : null);
               if(isValidNickname(fixed)){
                   nameLocked=true;
                   nickname=fixed;
@@ -2302,16 +2649,16 @@
               }
               return;
           }
-          if(event.key===SCORE_KEY){
-              try{
-                  const data=JSON.parse(event.newValue||'{}');
-                  if(data && typeof data==='object' && !Array.isArray(data)){
-                      for(const [layout,rows] of Object.entries(data)){
-                          if(Array.isArray(rows))leaderboard[layout]=rows.filter(e=>Array.isArray(e)&&e.length===3).slice(0,10);
-                      }
-                      refreshRanking();
-                  }
-              }catch(e){}
+          if(event.key===SCORE_STORE_V2_KEY || (event.key===SCORE_KEY && !localStorage.getItem(SCORE_STORE_V2_KEY))){
+              const disk=readLocalScores();
+              leaderboard=disk.best;recentScores=disk.recent;
+              if(disk.owner && (!nameLocked || nickname!==disk.owner)){
+                  nickname=disk.owner;nameLocked=true;
+                  nickInput.value=nickname;playerNameInput.value=nickname;
+                  activePlayer.textContent='♙ '+nickname;
+                  updateNameLockUI();
+              }
+              refreshRanking();
               return;
           }
           if(event.key!==PRIVACY_KEY)return;
@@ -2334,34 +2681,16 @@
       // Changing the display name must not orphan the player's existing local bests.
       // Public blockchain records, if enabled, are immutable history and are not renamed.
       function renameLocalLeaderboard(oldName,newName){
-          if(!oldName || oldName===newName)return;
-          let updated=false;
-          for(const layout of Object.keys(leaderboard)){
-              const rows=leaderboard[layout];
-              if(!Array.isArray(rows))continue;
-              let found=false;
-              const bestByName=new Map();
-              for(const entry of rows){
-                  if(!Array.isArray(entry) || entry.length!==3 || typeof entry[0]!=='string')continue;
-                  const ownEntry=entry[0].toLocaleLowerCase()===oldName.toLocaleLowerCase();
-                  if(ownEntry)found=true;
-                  const renamed=[ownEntry?newName:entry[0],entry[1],entry[2]];
-                  const key=renamed[0].toLocaleLowerCase();
-                  if(!bestByName.has(key) || sortScores(renamed,bestByName.get(key))<0)bestByName.set(key,renamed);
-              }
-              if(found){
-                  leaderboard[layout]=[...bestByName.values()].sort(sortScores).slice(0,10);
-                  updated=true;
-              }
-          }
-          if(updated)try{localStorage.setItem(SCORE_KEY,JSON.stringify(leaderboard));}catch(e){}
+          // All completed scores commit the identity first; no history can be renamed.
+          // This method only exists so tentative nickname edits don't rewrite old data.
       }
       function saveNickname(value){
           const name=safeNickname(value);
           if(!isValidNickname(name))return false;
           // Re-read cross-tab commitment at the mutation boundary.
           try{
-              const fixed=localStorage.getItem(FIXED_NAME_KEY);
+              const disk=readLocalScores();
+              const fixed=disk.owner || (Object.values(disk.best).some(row=>row[0]===safeNickname(localStorage.getItem(FIXED_NAME_KEY))) ? localStorage.getItem(FIXED_NAME_KEY) : null);
               if(isValidNickname(fixed)){
                   nameLocked=true;
                   if(name!==safeNickname(fixed)){
@@ -2376,6 +2705,12 @@
               }
           }catch(e){}
           if(nameLocked && name!==nickname)return false;
+          // The trophy editor must not claim a successful save when file://
+          // browser storage, privacy settings, or quotas reject the write.
+          try{
+              localStorage.setItem(NICK_KEY,name);
+              if(localStorage.getItem(NICK_KEY)!==name)return false;
+          }catch(e){return false;}
           const changed=!!nickname && nickname!==name;
           if(changed) {
               renameLocalLeaderboard(nickname,name);
@@ -2388,7 +2723,7 @@
           playerNameInput.value=name;
           activePlayer.textContent='♙ '+name;
           try{localStorage.setItem(NICK_KEY,name);}catch(e){}
-          playerGate.classList.add('hidden');
+          if(playerGateMode!=='first')playerGate.classList.add('hidden');
           document.getElementById('ranking-public-controls').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED || !publicNameReady);
           updateNameLockUI();
           refreshRanking();
@@ -2481,48 +2816,53 @@
                  GAME_LAYOUTS[currentLayoutIdx]?.id!==first.layout){
                   playerGate.classList.add('hidden');return;
               }
-              if(!finalizeNickname(playerNameInput.value)){
+              const chosen=safeNickname(playerNameInput.value);
+              if(!isValidNickname(chosen)){
                   playerNameError.textContent='Въведи име от 1 до 12 знака.';
                   playerNameInput.focus();return;
               }
-              // Save first; the name is locked only after score persistence succeeds.
-              // Keep a rollback snapshot in case the second storage write fails.
-              const previousScores=JSON.stringify(leaderboard);
-              let previousStoredScore=null;
-              try{previousStoredScore=localStorage.getItem(SCORE_KEY);}catch(e){}
-              nameLocked=true;
+              // Respect an identity committed in another tab, but do not accept a
+              // stale FIXED_NAME_KEY left by a failed pre-release save.
+              const disk=readLocalScores();
+              if(disk.owner && disk.owner!==chosen){
+                  nameLocked=true;
+                  nickname=disk.owner;
+                  activePlayer.textContent='♙ '+nickname;
+                  playerNameInput.value=nickname;
+                  playerNameError.textContent='Името вече е заключено в друг раздел.';
+                  updateNameLockUI();return;
+              }
+              const previousName=nickname;
+              nickname=chosen;
+              // storeVictory writes { owner, best, recent } together, verifies the
+              // write, and never requires an additional lock write to succeed.
               const scored=storeVictory(first.layout,first.moves,first.seconds,true);
               if(!scored){
-                  nameLocked=false;
-                  updateNameLockUI();
-                  pendingNameScore=first;
-                  playerNameError.textContent='Записът е блокиран от браузъра. Разреши данните за сайта и опитай отново.';
+                  nickname=previousName;
+                  activePlayer.textContent='♙ '+nickname;
+                  nickInput.value=nickname;
+                  playerNameError.textContent='Резултатът не можа да се запази. Провери дали браузърът разрешава съхранение на данни за този файл или сайт.';
                   playerGate.classList.remove('hidden');
                   playerNameInput.focus();
                   return;
               }
-              if(!persistNameCommit()){
-                  // Do not leave a score under a name that never got committed.
-                  leaderboard=JSON.parse(previousScores);
-                  try{
-                      if(previousStoredScore===null)localStorage.removeItem(SCORE_KEY);
-                      else localStorage.setItem(SCORE_KEY,previousStoredScore);
-                  }catch(e){}
-                  nameLocked=false;
-                  pendingPublicScore=null;
-                  submitScoreBtn.classList.add('hidden');
-                  updateNameLockUI();
-                  pendingNameScore=first;
-                  playerNameError.textContent='Името не можа да се запази трайно. Опитай отново.';
-                  playerGate.classList.remove('hidden');
-                  playerNameInput.focus();
-                  return;
-              }
+              nameLocked=true;
+              nickInput.value=nickname;
+              activePlayer.textContent='♙ '+nickname;
+              // Compatibility mirrors are best-effort; the verified score record
+              // is the authoritative lock and survives reloads by itself.
+              try{localStorage.setItem(NICK_KEY,nickname);}catch(e){}
+              try{localStorage.setItem(FIXED_NAME_KEY,nickname);}catch(e){}
               pendingNameScore=null;
               playerGateMode=null;
               playerGate.classList.add('hidden');
               confirmFirstScoreBtn.classList.add('hidden');
               updateNameLockUI();
+              if(HUARONG_PUBLIC_ENABLED && first.layout!==LOCAL_ONLY_LAYOUT_ID && needsPublicUpdate(first.layout)) {
+                  const best=bestForLayout(first.layout);
+                  pendingPublicScore={layout:first.layout,moves:best[1],seconds:best[2],epoch:victoryEpoch,nickname};
+                  submitScoreBtn.classList.remove('hidden');
+              }
               return;
           }
           const score=pendingPublicScore;
@@ -2545,7 +2885,7 @@
           refreshRanking();
           pendingPublicScore=null;
           submitScoreBtn.classList.add('hidden');
-          if(typeof queueRodVictory==='function')queueRodVictory(score.layout,score.moves,score.seconds);
+          if(typeof queueRodVictory==='function')syncOutstandingBests();
       });
       // Keep keyboard focus inside the initial username dialog until it is submitted.
       playerGate.addEventListener('keydown',event=>{
@@ -2560,7 +2900,6 @@
       });
       function storeVictory(layout,moves,seconds,afterNameConfirmation=false){
           if(!afterNameConfirmation)victoryEpoch++;
-          // Training is practice-only: no local score, wallet, or ROD transaction.
           if(layout===UNRANKED_LAYOUT_ID){
               victoryRankStatus.textContent='Тренировъчна подредба — резултатът не се класира.';
               return;
@@ -2568,44 +2907,61 @@
           if(assistedRun){victoryRankStatus.textContent='Използвана е помощ — резултатът не се записва.';return;}
           if(!nickname){victoryRankStatus.textContent='Запази потребителско име преди игра.';return;}
           if(!Number.isSafeInteger(moves)||!Number.isSafeInteger(seconds)||moves<1||seconds<0)return;
-          if(!nameLocked){
+          if(!nameLocked && !afterNameConfirmation){
               pendingNameScore={layout,moves,seconds,epoch:victoryEpoch};
               victoryRankStatus.textContent='Потвърди името си, преди да запазиш първия резултат.';
               confirmFirstScoreBtn.classList.remove('hidden');
               openFirstScoreDialog();
               return;
           }
-          const oldScores=leaderboard[layout];
-          let scores=Array.isArray(oldScores)?oldScores.filter(e=>Array.isArray(e)&&typeof e[0]==='string'):[];
+          // Duplicate result callbacks or double-clicks must never add two history entries.
+          if(savedVictoryEpoch===victoryEpoch)return true;
+          // Preserve a previous write from a second tab, to the extent synchronous
+          // localStorage supports it. No network upload occurs until persistence succeeds.
+          const beforeBest=leaderboard,beforeRecent=recentScores;
+          const onDisk=readLocalScores();
+          leaderboard=onDisk.best;
+          recentScores=onDisk.recent;
           const candidate=[nickname,moves,seconds];
-          const existing=scores.findIndex(e=>e[0].toLocaleLowerCase()===nickname.toLocaleLowerCase());
-          if(existing>=0){
-              if(sortScores(candidate,scores[existing])<0)scores[existing]=candidate;
-          }else scores.push(candidate);
-          scores.sort(sortScores);
-          leaderboard[layout]=scores.slice(0,10);
+          const oldBest=bestForLayout(layout);
+          const improved=!oldBest || sortScores(candidate,oldBest)<0;
+          if(improved)leaderboard[layout]=candidate;
+          const id=(window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now())+'-'+Math.random().toString(36).slice(2);
+          recentScores[layout]=[[moves,seconds,Date.now(),id],...(recentScores[layout]||[])].slice(0,RECENT_LIMIT);
           try{
-              const encoded=JSON.stringify(leaderboard);
-              localStorage.setItem(SCORE_KEY,encoded);
-              if(localStorage.getItem(SCORE_KEY)!==encoded)throw Error('Score write verification failed');
+              const encoded=JSON.stringify({v:2,owner:nickname,best:leaderboard,recent:recentScores});
+              localStorage.setItem(SCORE_STORE_V2_KEY,encoded);
+              if(localStorage.getItem(SCORE_STORE_V2_KEY)!==encoded)throw Error('Score write verification failed');
           }catch(e){
-              if(oldScores===undefined)delete leaderboard[layout];
-              else leaderboard[layout]=oldScores;
+              leaderboard=beforeBest;recentScores=beforeRecent;
               victoryRankStatus.textContent='Запазването на резултата е блокирано от браузъра.';
+              if(nameLocked && !pendingNameScore){
+                  pendingLocalScore={layout,moves,seconds,epoch:victoryEpoch,nickname};
+                  document.getElementById('retry-score').classList.remove('hidden');
+              }
               return false;
+          }
+          savedVictoryEpoch=victoryEpoch;
+          if(pendingLocalScore){
+              pendingLocalScore=null;
+              document.getElementById('retry-score').classList.add('hidden');
           }
           victoryRankStatus.textContent=layout===LOCAL_ONLY_LAYOUT_ID
               ? 'Резултатът е запазен само на това устройство. Не се изпраща в общата класация.'
-              : 'Резултатът е добавен в локалната класация.';
-          if(layout!==LOCAL_ONLY_LAYOUT_ID){
-              if(playerGateMode!=='first' && HUARONG_PUBLIC_ENABLED && allowPublicScores && publicNameReady && typeof queueRodVictory==='function'){
-                  queueRodVictory(layout,moves,seconds);
-              }else if(HUARONG_PUBLIC_ENABLED){
-                  pendingPublicScore={layout,moves,seconds,epoch:victoryEpoch,nickname};
-                  submitScoreBtn.classList.remove('hidden');
-                  victoryRankStatus.textContent='Резултатът е запазен локално. Можеш да го добавиш и в общата класация.';
-              }else{
-                  victoryRankStatus.textContent='Резултатът е запазен само на това устройство.';
+              : 'Резултатът е запазен в последните 5 локални резултата.';
+          if(layout!==LOCAL_ONLY_LAYOUT_ID && HUARONG_PUBLIC_ENABLED){
+              // Only personal bests, never the most recent worse run, go on-chain.
+              // Public opt-in remains explicit. Offline/failure recovery uses
+              // the persistent local best rather than a transient victory object.
+              if(needsPublicUpdate(layout)){
+                  if(playerGateMode!=='first' && allowPublicScores && publicNameReady){
+                      queueRodVictory(layout,leaderboard[layout][1],leaderboard[layout][2],true);
+                  }else if(!allowPublicScores || !publicNameReady){
+                      const best=leaderboard[layout];
+                      pendingPublicScore={layout,moves:best[1],seconds:best[2],epoch:victoryEpoch,nickname};
+                      submitScoreBtn.classList.remove('hidden');
+                      victoryRankStatus.textContent='Резултатът е запазен локално. Можеш да публикуваш най-добрия си резултат.';
+                  }
               }
           }
           refreshRanking();
@@ -2614,30 +2970,42 @@
       function refreshRanking(){
           const layout=rankLayout.value || (typeof GAME_LAYOUTS!=='undefined' ? GAME_LAYOUTS.find(x=>x.id!==UNRANKED_LAYOUT_ID)?.id : '');
           rankList.replaceChildren();
-          const localOnly=layout===LOCAL_ONLY_LAYOUT_ID || !HUARONG_PUBLIC_ENABLED;
-          const source=localOnly ? leaderboard : (onlineLeaderboard || leaderboard);
-          document.getElementById('ranking-source').textContent=localOnly
-              ? 'Локална класация · само на това устройство'
-              : (onlineLeaderboard ? (window.huarongHistoryScanTruncated ? 'Обща класация · само скорошни резултати' : 'Обща класация') : 'Локални резултати · общата класация не е заредена');
-          document.getElementById('btn-refresh-scores').classList.toggle('hidden',localOnly);
-          const scores=Array.isArray(source[layout]) ? source[layout] : [];
-          if(!scores.length){
-              const empty=document.createElement('p');
-              empty.className='text-xs text-slate-400 bg-slate-800/50 p-3 rounded-xl';
-              empty.textContent='Все още няма резултати без помощ за тази подредба.';
-              rankList.appendChild(empty);
-          }else scores.slice(0,10).forEach((entry,i)=>{
-              if(!Array.isArray(entry)||entry.length!==3)return;
+          const showPublic=HUARONG_PUBLIC_ENABLED && layout!==LOCAL_ONLY_LAYOUT_ID && !!onlineLeaderboard;
+          const localHistory=recentScores[layout]||[];
+          const best=bestForLayout(layout);
+          const historyWrap=document.getElementById('ranking-recent-wrap');
+          const historyList=document.getElementById('ranking-recent-list');
+          historyWrap.classList.toggle('hidden',!showPublic);
+          historyList.replaceChildren();
+          document.getElementById('ranking-personal-best').textContent=best
+              ? 'Личен рекорд: '+best[1]+' хода · '+best[2]+' сек'
+              : 'Все още нямаш личен рекорд за тази подредба.';
+          document.getElementById('ranking-source').textContent=showPublic
+              ? (window.huarongHistoryScanTruncated ? 'Обща класация · само скорошни резултати' : 'Обща класация')
+              : 'Последните 5 резултата · само на това устройство';
+          document.getElementById('btn-refresh-scores').classList.toggle('hidden',layout===LOCAL_ONLY_LAYOUT_ID || !HUARONG_PUBLIC_ENABLED);
+          function addRow(parent,name,moves,seconds,badge){
               const line=document.createElement('div');
               line.className='flex items-center justify-between gap-2 border border-slate-700 rounded-xl px-3 py-2 bg-slate-800/50 text-xs';
-              const name=document.createElement('span');
-              name.className='font-bold text-slate-100 truncate flex-1';
-              name.textContent=(i+1)+'. '+entry[0];
+              const label=document.createElement('span');
+              label.className='font-bold text-slate-100 truncate flex-1';
+              label.textContent=name;
               const result=document.createElement('span');
               result.className='text-amber-300 font-bold shrink-0';
-              result.textContent=entry[1]+' хода · '+entry[2]+' сек';
-              line.append(name,result);rankList.appendChild(line);
+              result.textContent=moves+' хода · '+seconds+' сек'+(badge?' ★':'');
+              line.append(label,result);parent.appendChild(line);
+          }
+          if(showPublic){
+              const rows=Array.isArray(onlineLeaderboard?.[layout])?onlineLeaderboard[layout]:[];
+              rows.slice(0,10).forEach((row,i)=>{if(validLocalBest(row))addRow(rankList,(i+1)+'. '+row[0],row[1],row[2],false);});
+              if(!rankList.childElementCount){const empty=document.createElement('p');empty.className='text-xs text-slate-400 p-2';empty.textContent='Няма публични резултати.';rankList.appendChild(empty);}
+          }
+          const destination=showPublic?historyList:rankList;
+          localHistory.forEach((row,i)=>{
+              if(!validRecentEntry(row))return;
+              addRow(destination,(i+1)+'. '+nickname,row[0],row[1],!!best && row[0]===best[1] && row[1]===best[2]);
           });
+          if(!localHistory.length){const empty=document.createElement('p');empty.className='text-xs text-slate-400 bg-slate-800/50 p-3 rounded-xl';empty.textContent='Все още няма резултати без помощ за тази подредба.';destination.appendChild(empty);}
           document.getElementById('nickname-feedback').textContent='Играеш като '+nickname;
       }
       let rankingPreviousFocus=null;
@@ -2680,7 +3048,9 @@
       document.getElementById('btn-save-nickname').onclick=()=>{
           if(nameLocked){updateNameLockUI();return;}
           if(!saveNickname(nickInput.value)){
-              document.getElementById('nickname-feedback').textContent='Името трябва да е от 1 до 12 знака.';
+              document.getElementById('nickname-feedback').textContent=isValidNickname(nickInput.value)
+                  ? 'Името не можа да се запази. Провери настройките за съхранение на данни.'
+                  : 'Името трябва да е от 1 до 12 знака.';
           }
       };
       rankLayout.onchange=refreshRanking;
@@ -2713,7 +3083,7 @@
             'S4': { nameBg: 'Войник 4', zh: '兵', w: 1, h: 1, class: 'tile-soldier' },
         };
 
-        // 7 Preset Board Layout Definitions
+        // 8 Preset Board Layout Definitions
         const GAME_LAYOUTS = [
             {
                 id: 'training',
@@ -2751,6 +3121,44 @@
                     'S2': { x: 2, y: 0 },
                     'S3': { x: 1, y: 4 },
                     'S4': { x: 3, y: 0 }
+                }
+            },
+            {
+                id: 'next_steps',
+                name: "Следващи стъпки",
+                difficulty: "50 хода",
+                badgeColor: "bg-teal-500/20 text-teal-200 border-teal-500/40",
+                desc: "Преход към сложните пъзели: минимум 50 хода. Можеш да запазиш най-добрия резултат.",
+                board: {
+                    'CC': { x: 2, y: 0 },
+                    'ZY': { x: 1, y: 1 },
+                    'ZF': { x: 1, y: 3 },
+                    'GY': { x: 2, y: 2 },
+                    'MC': { x: 0, y: 1 },
+                    'HZ': { x: 0, y: 3 },
+                    'S1': { x: 3, y: 3 },
+                    'S2': { x: 1, y: 0 },
+                    'S3': { x: 0, y: 0 },
+                    'S4': { x: 3, y: 4 }
+                }
+            },
+            {
+                id: 'wings',
+                name: "Криле (左右翼)",
+                difficulty: "116 хода",
+                badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                desc: "Симетрична подредба с генерали по фланговете.",
+                board: {
+                    'CC': { x: 1, y: 0 },
+                    'ZY': { x: 0, y: 0 },
+                    'ZF': { x: 3, y: 0 },
+                    'GY': { x: 1, y: 2 },
+                    'MC': { x: 0, y: 2 },
+                    'HZ': { x: 3, y: 2 },
+                    'S3': { x: 1, y: 3 },
+                    'S4': { x: 2, y: 3 },
+                    'S1': { x: 0, y: 4 },
+                    'S2': { x: 3, y: 4 }
                 }
             },
             {
@@ -2829,26 +3237,12 @@
                     'HZ': { x: 2, y: 3 }
                 }
             },
-            {
-                id: 'wings',
-                name: "Криле (左右翼)",
-                difficulty: "116 хода",
-                badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-                desc: "Симетрична подредба с генерали по фланговете.",
-                board: {
-                    'CC': { x: 1, y: 0 },
-                    'ZY': { x: 0, y: 0 },
-                    'ZF': { x: 3, y: 0 },
-                    'GY': { x: 1, y: 2 },
-                    'MC': { x: 0, y: 2 },
-                    'HZ': { x: 3, y: 2 },
-                    'S3': { x: 1, y: 3 },
-                    'S4': { x: 2, y: 3 },
-                    'S1': { x: 0, y: 4 },
-                    'S2': { x: 3, y: 4 }
-                }
-            }
+
         ];
+
+        // Game progression and layout picker share the same verified minimum-move ordering.
+        // Sort by the numeric move count; stable IDs preserve local records after reordering.
+        GAME_LAYOUTS.sort((a,b)=>parseInt(a.difficulty,10)-parseInt(b.difficulty,10));
 
         const DIRECTIONS = [
             { dx: 0, dy: -1, bg: 'нагоре', symbol: '↑' },
@@ -2915,11 +3309,17 @@
             if (audioSys.muted) {
                 soundIcon.textContent = '🔇';
                 soundLabel.textContent = 'Звук: Изкл';
+                btnSoundBottom.setAttribute('aria-label','Включи звука');
+                btnSoundBottom.title='Включи звука';
+                btnSoundBottom.setAttribute('aria-pressed','true');
                 btnSoundBottom.classList.replace('border-slate-700', 'border-red-900/60');
                 btnSoundBottom.classList.replace('text-amber-400', 'text-slate-400');
             } else {
                 soundIcon.textContent = '🔊';
                 soundLabel.textContent = 'Звук: Вкл';
+                btnSoundBottom.setAttribute('aria-label','Изключи звука');
+                btnSoundBottom.title='Изключи звука';
+                btnSoundBottom.setAttribute('aria-pressed','false');
                 btnSoundBottom.classList.replace('border-red-900/60', 'border-slate-700');
                 btnSoundBottom.classList.replace('text-slate-400', 'text-amber-400');
             }
@@ -3236,12 +3636,14 @@
 
             if (!hintActive || calculatedRemainingPath.length === 0) {
                 hintBanner.classList.add('hidden');
+                window.huarongFitBoard?.();
                 return;
             }
 
             const nextMoveObj = calculatedRemainingPath[0]?.move;
             if (!nextMoveObj) {
                 hintBanner.classList.add('hidden');
+                window.huarongFitBoard?.();
                 return;
             }
 
@@ -3254,6 +3656,7 @@
 
                 hintBanner.classList.remove('hidden');
                 hintText.textContent = `${nextMoveObj.pieceNameBg} (${nextMoveObj.zh}) ${nextMoveObj.dirBg}`;
+                window.huarongFitBoard?.();
             }
         }
 
@@ -3329,6 +3732,7 @@
             currentLayoutIdx = idx;
             const layout = GAME_LAYOUTS[idx];
             resetEligibility();
+
             headerLayoutNameEl.textContent = layout.name;
 
             stopAutoPlay();
@@ -3355,6 +3759,7 @@
             if (calculatedRemainingPath.length === 0) return;
             startTimer();
             isPlaying = true;
+            btnPlay.setAttribute('aria-pressed','true');
             playText.textContent = 'Пауза';
             playIcon.innerHTML = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
             btnPlay.classList.replace('bg-amber-500', 'bg-red-500');
@@ -3370,6 +3775,7 @@
 
         function stopAutoPlay() {
             isPlaying = false;
+            btnPlay.setAttribute('aria-pressed','false');
             clearInterval(playTimer);
             playText.textContent = 'Авто AI';
             playIcon.innerHTML = `<path d="M8 5v14l11-7z"/>`;
@@ -3411,6 +3817,7 @@
                 stopAutoPlay();
                 audioSys.playWin();
 
+                document.getElementById('victory-layout-name').textContent = GAME_LAYOUTS[currentLayoutIdx].name;
                 modalMoves.textContent = userMovesCount;
                 modalTime.textContent = timerDisplay.textContent;
                 victoryModal.classList.remove('hidden');
@@ -3461,6 +3868,7 @@
         btnDrawer.onclick = () => {setAssisted('solution-list'); movesDrawer.classList.remove('hidden');};
         btnCloseDrawer.onclick = () => movesDrawer.classList.add('hidden');
 
+        document.getElementById('active-player').addEventListener('click',()=>document.getElementById('btn-leaderboard').click());
         btnLevelsMenu.onclick = () => {
             renderLevelsMenu();
             levelsModal.classList.remove('hidden');
@@ -3504,6 +3912,11 @@
             renderLevelsMenu();
             selectLayout(0);
         });
+    </script>
+    <script>
+    // Width-first board sizing is CSS-only. This compatibility hook deliberately
+    // does nothing: showing/hiding a hint must never trigger a new fit pass.
+    window.huarongFitBoard = function () {};
     </script>
     <!-- ROD name experiment: one silent player wallet/name; fee reserve inside name output. -->
     <script>
@@ -3688,7 +4101,7 @@
            const change=Number(selected.value)-ROD_NAME_START_SATS-ROD_MARKER_SATS-ROD_FEE_SATS;
            if(change>600)tx.addoutput(rodIssuer.address,change/1e8);
            tx.signinput(0,rodIssuer.wif,1);
-           if(!allowPublicScores || player!==nickname)throw Error('Public consent withdrawn or player changed');
+           if(!allowPublicScores || !publicNameReady || player!==nickname)throw Error('Public consent withdrawn or player changed');
            const txid=await rodBroadcast(tx.serialize());
            rodNameState={name,txid,vout:0,amount:ROD_NAME_START_SATS,script:rodHex(tx.outs[0].script.buffer)};
            rodStoreName();
@@ -3703,44 +4116,87 @@
     }
     let rodVictoryQueue=Promise.resolve();
     let failedScore=null;
-    // A pending response can finish after a player restarted or switched levels.
-    function rodShowVictoryStatus(message, layout, epoch, player){
+    const rodQueuedLayouts=new Set();
+    // Never manufacture a fresh result on retry. Always read the durable
+    // best-ever record, even after five newer (slower) local runs or a reload.
+    function rodShowVictoryStatus(message,layout,epoch,player){
        if(epoch!==victoryEpoch || GAME_LAYOUTS[currentLayoutIdx]?.id!==layout ||
           (player && player!==nickname))return;
        victoryRankStatus.textContent=message;
     }
     function queueRodVictory(layout,moves,seconds,isRetry=false){
-       if(!HUARONG_PUBLIC_ENABLED)return;
-       if(!allowPublicScores)return;
+       if(!HUARONG_PUBLIC_ENABLED || !allowPublicScores || !publicNameReady || !nameLocked)return;
        if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID)return;
-       if((assistedRun && !isRetry)||!nickname)return;
-       const score={layout,moves,seconds,nickname,epoch:victoryEpoch};
-       document.getElementById('retry-score').classList.add('hidden');
-       rodShowVictoryStatus('Запазване в общата класация…',layout,score.epoch,score.nickname);
-       rodVictoryQueue=rodVictoryQueue.then(()=>rodPublishVictory(score.layout,score.moves,score.seconds,isRetry,score.epoch,score.nickname)).catch(e=>{
+       if(!needsPublicUpdate(layout) || rodQueuedLayouts.has(layout))return;
+       rodQueuedLayouts.add(layout);
+       const context={layout,epoch:victoryEpoch,nickname};
+       rodShowVictoryStatus('Запазване в общата класация…',layout,context.epoch,context.nickname);
+       let completedBest=null, succeeded=false;
+       rodVictoryQueue=rodVictoryQueue.then(async()=>{
+           if(!allowPublicScores || !publicNameReady || !needsPublicUpdate(layout))return;
+           const best=bestForLayout(layout);
+           if(!best || best[0]!==nickname)return;
+           // Re-evaluate at execution time; do not send a stale inferior run.
+           completedBest=[best[1],best[2]];
+           await rodPublishVictory(layout,best[1],best[2],true,context.epoch,context.nickname);
+           succeeded=true;
+       }).catch(e=>{
            console.warn('Leaderboard submission failed',e);
-           if(score.epoch!==victoryEpoch || GAME_LAYOUTS[currentLayoutIdx]?.id!==layout || score.nickname!==nickname)return;
-           failedScore=score;
-           rodShowVictoryStatus('Резултатът е запазен на устройството, но изпращането не успя.',layout,score.epoch,score.nickname);
-           document.getElementById('retry-score').classList.remove('hidden');
+           if(allowPublicScores && publicNameReady && context.epoch===victoryEpoch && GAME_LAYOUTS[currentLayoutIdx]?.id===layout){
+               failedScore=context;
+               rodShowVictoryStatus('Резултатът е запазен на устройството, но изпращането не успя.',layout,context.epoch,context.nickname);
+               document.getElementById('retry-score').classList.remove('hidden');
+           }
+       }).finally(()=>{
+           rodQueuedLayouts.delete(layout);
+           const latest=bestForLayout(layout);
+           // Another personal best may have arrived DURING the network request.
+           // Schedule only a strictly newer best, and never spin on an error.
+           if(succeeded && completedBest && latest &&
+              (latest[1]<completedBest[0] || (latest[1]===completedBest[0] && latest[2]<completedBest[1])) &&
+              needsPublicUpdate(layout) && allowPublicScores && publicNameReady){
+               queueRodVictory(layout,0,0,true);
+           }
        });
     }
+    function syncOutstandingBests(){
+        if(!HUARONG_PUBLIC_ENABLED || !allowPublicScores || !publicNameReady || !nameLocked)return;
+        for(const layout of Object.keys(leaderboard)){
+            if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID || !GAME_LAYOUTS.some(x=>x.id===layout))continue;
+            if(needsPublicUpdate(layout))queueRodVictory(layout,0,0,true);
+        }
+    }
     document.getElementById('retry-score').onclick=()=>{
-        if(!failedScore)return;
-        const score=failedScore;
-        failedScore=null;
-        // Retry a previously eligible score without changing the current run's assistance status.
-        if(score.nickname!==nickname){
-            victoryRankStatus.textContent='Върни предишното потребителско име, за да изпратиш този резултат.';
-            document.getElementById('retry-score').classList.remove('hidden');
-            failedScore=score;
+        document.getElementById('retry-score').classList.add('hidden');
+        if(pendingLocalScore){
+            const score=pendingLocalScore;
+            if(score.epoch!==victoryEpoch || !roundFinalized || assistedRun || !nameLocked ||
+               GAME_LAYOUTS[currentLayoutIdx]?.id!==score.layout || score.nickname!==nickname){
+                pendingLocalScore=null;
+                return;
+            }
+            // Reuse the finalized epoch so verified retries retain duplicate protection.
+            storeVictory(score.layout,score.moves,score.seconds,true);
             return;
         }
-        queueRodVictory(score.layout,score.moves,score.seconds,true);
+        if(!failedScore)return;
+        const layout=failedScore.layout;
+        failedScore=null;
+        queueRodVictory(layout,0,0,true);
     };
+    window.addEventListener('online',()=>{if(publicNameReady && allowPublicScores)syncOutstandingBests();});
+    let lastResumeSyncAt=0;
+    document.addEventListener('visibilitychange',()=>{
+        // Installed iOS PWAs often resume without firing an 'online' event.
+        // Retry on foreground, at most once per minute; never poll in the background.
+        if(!document.hidden && Date.now()-lastResumeSyncAt>60000){
+            lastResumeSyncAt=Date.now();
+            syncOutstandingBests();
+        }
+    });
     async function rodPublishVictory(layout,moves,seconds,isRetry=false,epoch=victoryEpoch,player=nickname){
        if(!HUARONG_PUBLIC_ENABLED)return;
-       if(!allowPublicScores || player!==nickname)return;
+       if(!allowPublicScores || !publicNameReady || player!==nickname)return;
        if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID)return;
        if(!nickname)return;
        // Eligibility was checked when queueRodVictory accepted this completed run.
@@ -3782,7 +4238,7 @@
           tx.outs[0].script=rodScriptForName('name_update',rodNameState.name,payload,rodIdentity.address);
           tx.addoutput(rodIndexAddress,ROD_MARKER_SATS/1e8);
           const hex=rodSignNameInput(tx,rodIdentity.wif,rodNameState.script);
-          if(!allowPublicScores || player!==nickname)throw Error('Public consent withdrawn or player changed');
+          if(!allowPublicScores || !publicNameReady || player!==nickname)throw Error('Public consent withdrawn or player changed');
           const txid=await rodBroadcast(hex);
           rodNameState={name:rodNameState.name,txid,vout:0,amount:remain,script:rodHex(tx.outs[0].script.buffer)};
           rodBest=next;
@@ -3864,6 +4320,7 @@
                rodIndexAddress=rodIssuer.address;
            }
            if(rodIndexAddress)await rodRefreshLeaderboard();
+           if(publicNameReady && allowPublicScores)syncOutstandingBests();
        }catch(e){console.warn('Leaderboard unavailable',e);}
     }
     window.addEventListener('DOMContentLoaded',rodStart);
@@ -3875,6 +4332,7 @@
       const LANG_KEY = 'huarong_ui_lang_v1';
       const strings = new Map(Object.entries({
         'Хуаронг Дао • Пъзел и класация':'Huarong Dao • Puzzle & Leaderboard',
+        'Бета 0.1.0-beta.1':'Beta 0.1.0-beta.1',
         'Хуаронг Дао':'Huarong Dao',
         'Класическа (横刀立马)':'Classic (横刀立马)',
         'Подредби':'Layouts', 'Ходове':'Moves', 'Инсталирай':'Install',
@@ -3885,11 +4343,11 @@
         '✕ С помощ · без запис':'✕ Assisted · no score',
         'Остават:':'Remaining:', 'Време':'Time', 'Цел':'Goal', 'Цао Цао ↓':'Cao Cao ↓',
         '↓ ИЗХОД ↓':'↓ EXIT ↓',
-        '💡 Препоръчителен ход: Плъзни':'💡 Suggested move: Slide',
-        'Рестарт':'Restart', 'Подскажи':'Hint', 'Ход ›':'Step ›',
+        '💡 Препоръчителен ход: Плъзни':'💡 Suggested move: Slide', '💡 Ход:':'💡 Move:',
+        'Рестарт':'Restart', 'Подскажи':'Hint', 'Следващ ›':'Next ›',
         'Авто AI':'Auto AI','Пауза':'Pause',
         'Звук: Вкл':'Sound: On','Звук: Изкл':'Sound: Off','Инсталиране':'Install',
-        'Скорост:':'Speed:',
+        'Скорост:':'Speed:', 'Скорост на възпроизвеждане':'Playback speed',
         'Легендата за Хуаронг':'The Legend of Huarong', 'Към играта':'Back to game',
         'Инсталиране на играта':'Install the game',
         'Добави играта на началния екран за бърз достъп — без магазин за приложения.':'Add the game to your home screen for quick access—no app store required.',
@@ -3943,6 +4401,7 @@
         '. Локалните данни са нужни за играта и се премахват чрез изчистване на данните за сайта. С твое съгласие името и резултатите се публикуват в публичния ROD блокчейн, където остават достъпни и не могат да се изтрият. Можеш да оттеглиш съгласието от „Класация“ за бъдещи записи. За зареждане на библиотеки и онлайн класиране се използват външни CDN услуги и ROD API.':'. Local data is needed for the game and can be removed by clearing this site’s data. With your consent, your username and scores are published on the public ROD blockchain, where they remain accessible and cannot be deleted. You can withdraw consent for future submissions in “Leaderboard”. External CDN services and the ROD API are used to load libraries and online scores.',
         'Публикувай резултата':'Publish score', 'Не сега · запази локално':'Not now · keep locally',
         'Добави в общата класация':'Submit to public leaderboard',
+        'Последните 5 локални резултата':'Last 5 local results',
         '🏆 Класация':'🏆 Leaderboard', 'Най-добрите резултати · само без помощ':'Best scores · unassisted only',
         'Потребителско име':'Username','Запази':'Save','Името може да се промени по всяко време.':'You can change your name anytime.',
         'Можеш да промениш името си по всяко време. Локалните ти резултати се запазват.':'You can change your name anytime. Your local scores are preserved.',
@@ -3959,9 +4418,17 @@
         'Използвана е помощ — резултатът не се записва.':'Assistance used — score not recorded.',
         'Запази потребителско име преди игра.':'Save a username before playing.',
         'Въведи име от 1 до 12 знака.':'Enter a name of 1–12 characters.',
+        'Името вече е заключено в друг раздел.':'The name was finalized in another tab.',
+        'Името не можа да се запази. Провери настройките за съхранение на данни.':'Could not save the name. Check browser storage settings.',
+        'Резултатът не можа да се запази. Провери дали браузърът разрешава съхранение на данни за този файл или сайт.':'Could not save the score. Check whether the browser allows storage for this file or site.',
         'Името трябва да е от 1 до 12 знака.':'Username must be 1–12 characters.',
         'Резултатът е запазен само на това устройство. Не се изпраща в общата класация.':'Score saved on this device only. It is not sent to the public leaderboard.',
         'Резултатът е добавен в локалната класация.':'Score added to the local leaderboard.',
+        'Резултатът е запазен в последните 5 локални резултата.':'Score saved in your last 5 local runs.',
+        'Последните 5 резултата · само на това устройство':'Last 5 results · on this device only',
+        'Все още нямаш личен рекорд за тази подредба.':'No personal best for this layout yet.',
+        'Няма публични резултати.':'No public scores yet.',
+        'Резултатът е запазен локално. Можеш да публикуваш най-добрия си резултат.':'Score saved locally. You can publish your personal best.',
         'Резултатът е запазен само на това устройство.':'Score saved on this device only.',
         'Резултатът е запазен локално. Можеш да го добавиш и в общата класация.':'Score saved locally. You can also submit it to the public leaderboard.',
         'Потвърди съгласието, за да публикуваш резултата.':'Please agree before publishing the score.',
@@ -3980,6 +4447,19 @@
         'Върни предишното потребителско име, за да изпратиш този резултат.':'Restore your previous username to submit this score.',
         'Тренировка':'Training','Първи стъпки':'First Steps',
         'Класическа (横刀立马)':'Classic (横刀立马)',
+        'Следващи стъпки':'Next Steps',
+        '50 хода':'50 moves',
+        'Преход към сложните пъзели: минимум 50 хода. Можеш да запазиш най-добрия резултат.':'A bridge to harder puzzles: minimum 50 moves. Save your personal best.',
+        '💡 Помощ и решение':'💡 Help & solve','💡 Помощ':'💡 Help','Инст.':'Install','Помощ и решение':'Help & solve',
+        'Използването на помощ изключва записването на резултат за този опит.':'Using assistance disables score saving for this attempt.',
+        'Как се играе?':'How to play?',
+        'Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започни с „Тренировка“ и избери следваща подредба чрез 🧩.':'Slide the pieces to guide the large red block through the bottom-center exit. Start with Training, then use 🧩 to choose another layout.',
+        '📜 Историята зад пъзела':'📜 The story behind the puzzle',
+        'Да играем':"Let's play",
+        'Инсталирай приложението':'Install the app',
+        'Отвори класацията и настройките на името':'Open leaderboard and username settings',
+        'Изключи звука':'Mute sound', 'Включи звука':'Unmute sound','Подскажи':'Hint',
+
         'Задна охрана (后卫)':'Rear Guard (后卫)','Преден отряд (前锋)':'Vanguard (前锋)',
         'Засада (伏兵)':'Ambush (伏兵)','Криле (左右翼)':'Wings (左右翼)',
         '24 хода':'24 moves','32 хода':'32 moves','82 хода':'82 moves','100 хода':'100 moves',
@@ -4017,7 +4497,8 @@
         if (translation === undefined) {
           let m;
           if ((m=s.match(/^Играеш като (.+)$/))) translation='Playing as '+m[1];
-          else if ((m=s.match(/^(\d+) хода · (\d+) сек$/))) translation=m[1]+' moves · '+m[2]+' sec';
+          else if ((m=s.match(/^Личен рекорд: (\d+) хода · (\d+) сек$/))) translation='Personal best: '+m[1]+' moves · '+m[2]+' sec';
+          else if ((m=s.match(/^(\d+) хода · (\d+) сек( ★)?$/))) translation=m[1]+' moves · '+m[2]+' sec'+(m[3]||'');
           else if ((m=s.match(/^(.+) \(([^()]+)\) (нагоре|надолу|наляво|надясно)$/)))
             translation=(strings.get(m[1])||m[1])+' ('+m[2]+') '+strings.get(m[3]);
           else return input;
@@ -4122,5 +4603,45 @@
     })();
     </script>
 
+    <script>
+    (() => {
+      'use strict';
+      const layoutButton=document.getElementById('btn-levels-menu');
+      const installButton=document.getElementById('btn-install-help');
+      const KEY='huarong_discovery_v1';
+      let known={layouts:false,install:false};
+      try { const stored=JSON.parse(localStorage.getItem(KEY)||'{}');
+        known.layouts=stored.layouts===true; known.install=stored.install===true;
+      } catch(e) {}
+      const installed=window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
+      if(installed)known.install=true;
+      let timer=null, n=0;
+      function stop() { if(timer){clearInterval(timer);timer=null;}
+        layoutButton.classList.remove('onboarding-glow');
+        installButton.classList.remove('onboarding-glow'); }
+      function save(){try{localStorage.setItem(KEY,JSON.stringify(known));}catch(e){}}
+      function tick(){
+        layoutButton.classList.remove('onboarding-glow');
+        installButton.classList.remove('onboarding-glow');
+        const targets=[];
+        if(!known.layouts)targets.push(layoutButton);
+        if(!targets.length){stop();return;}
+        targets[n++%targets.length].classList.add('onboarding-glow');
+      }
+      function start(){
+        if(timer)return;
+        if(!document.getElementById('game-story-modal').classList.contains('hidden'))return;
+        tick();
+        if(!known.layouts)timer=setInterval(tick,1700);
+      }
+      layoutButton.addEventListener('click',()=>{known.layouts=true;save();stop();start();});
+      installButton.addEventListener('click',()=>{known.install=true;save();stop();start();});
+      window.addEventListener('huarong:storyclosed',()=>{stop();start();});
+      window.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(start));
+      document.addEventListener('visibilitychange',()=>{
+        if(document.hidden)stop();else start();
+      });
+    })();
+    </script>
 </body>
 </html>
