@@ -1752,6 +1752,11 @@
             #quick-controls button { font-size:.56rem; }
         }
 
+    
+        /* Consent panel: independent of Tailwind-generated arbitrary utilities. */
+        #cookie-consent { position:fixed; left:50%; bottom:max(.75rem,env(safe-area-inset-bottom,0px) + .5rem); transform:translateX(-50%); width:calc(100% - 1rem); max-width:28rem; z-index:65; box-sizing:border-box; }
+        #cookie-consent.hidden { display:none !important; }
+        #cookie-consent button:focus-visible, #btn-cookie-settings:focus-visible { outline:2px solid #fbbf24; outline-offset:2px; }
     </style>
     <!-- Optional public scoreboard. Without a configured issuer WIF this HTML is strictly local-only. -->
     <script>
@@ -1768,17 +1773,21 @@
         }
       }
     </script>
+<!-- Analytics is optional: do not load GA until affirmative consent. -->
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-517WKR3J3V"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-517WKR3J3V');
-</script>
 <body class="h-full w-full flex flex-col justify-between items-center p-2 sm:p-4 select-none overflow-hidden">
+    <!-- Cookie choice is independent of public leaderboard consent. No analytics script
+         or third-party analytics cookies are loaded before affirmative choice. -->
+    <aside id="cookie-consent" role="dialog" aria-modal="false" aria-labelledby="cookie-heading" class="hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-1rem)] max-w-md rounded-2xl border border-amber-500/60 bg-slate-900 shadow-2xl p-4 text-slate-100">
+      <h2 id="cookie-heading" class="font-extrabold text-amber-300 text-sm">Поверителност и бисквитки</h2>
+      <p class="text-xs leading-relaxed text-slate-300 mt-2 mb-3">Играта използва локално съхранение за име, настройки и резултати. Анализът на посещенията чрез Google Analytics е незадължителен и се зарежда само с твое съгласие. Можеш да промениш избора от Класация.</p>
+      <p id="cookie-save-error" role="alert" class="hidden text-xs leading-relaxed text-amber-300 mb-3">Анализът е изключен в този раздел, но отказът не можа да се запази. След презареждане анализът може да се включи отново. Разреши съхранението на данни и избери „Само необходими“ отново.</p>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="cookie-reject" type="button" class="rounded-lg bg-slate-700 hover:bg-slate-600 px-2 py-2.5 text-xs font-bold">Само необходими</button>
+        <button id="cookie-accept" type="button" class="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-2.5 text-xs font-black">Приемам анализа</button>
+      </div>
+    </aside>
+
 
     <!-- Top Navigation Header -->
     <header class="w-full max-w-md flex flex-col gap-1.5 py-2 px-3 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg shrink-0">
@@ -1901,13 +1910,13 @@
                 <div class="flex items-center gap-2">
                     <span class="text-2xl" aria-hidden="true">📜</span>
                     <h2 id="game-story-title" class="font-extrabold text-lg text-amber-300">Легендата за Хуаронг</h2>
-                    <span id="beta-version" class="text-[10px] text-slate-400">Бета 0.1.0-beta.1</span>
+                    <span id="beta-version" class="text-[10px] text-slate-400">Бета 0.1.0-beta.2</span>
                 </div>
                 <button id="btn-close-game-story" type="button" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold" aria-label="Затвори историята">✕</button>
             </div>
             <div class="mb-3 bg-slate-800/80 border border-amber-500/30 rounded-xl p-3 text-sm leading-relaxed text-slate-100">
                 <p class="font-bold text-amber-300 mb-1">Как се играе?</p>
-                <p>Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започни с „Тренировка“ и избери следваща подредба чрез 🧩.</p>
+                <p>Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започваш с „Класическа“. За упражнения избери „Тренировка“ от 🧩 Подредби.</p>
             </div>
             <details id="story-literary-details" class="min-h-0 overflow-y-auto custom-scroll border border-slate-700 rounded-xl px-3 py-2">
               <summary class="cursor-pointer text-sm text-amber-300 font-bold">📜 Историята зад пъзела</summary>
@@ -1985,12 +1994,12 @@
     </div>
 
     <!-- LEVEL / LAYOUT SELECTOR MODAL ("Подредби") -->
-    <div id="levels-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
+    <div id="levels-modal" role="dialog" aria-modal="true" aria-labelledby="levels-modal-title" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
         <div class="bg-slate-900 border-2 border-amber-500/80 rounded-3xl max-w-md w-full max-h-[85vh] flex flex-col p-4 shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-amber-400 text-xl font-black">🧩</span>
-                    <h2 class="font-extrabold text-base text-slate-100">Избери Подредба (Layout)</h2>
+                    <h2 id="levels-modal-title" class="font-extrabold text-base text-slate-100">Избери Подредба (Layout)</h2>
                 </div>
                 <button id="btn-close-levels" class="text-slate-400 hover:text-white font-black text-lg px-2">✕</button>
             </div>
@@ -2004,12 +2013,12 @@
     </div>
 
     <!-- Recalculated Moves Drawer (Slide-Up Modal) -->
-    <div id="moves-drawer" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40 flex flex-col justify-end">
+    <div id="moves-drawer" role="dialog" aria-modal="true" aria-labelledby="moves-drawer-title" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-40 flex flex-col justify-end">
         <div class="bg-slate-900 border-t-2 border-amber-500/80 rounded-t-3xl max-h-[70vh] flex flex-col p-4 shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-amber-400 font-black text-lg">📋</span>
-                    <h3 class="font-bold text-sm text-slate-100">Преизчислени оптимални ходове</h3>
+                    <h3 id="moves-drawer-title" class="font-bold text-sm text-slate-100">Преизчислени оптимални ходове</h3>
                 </div>
                 <button id="btn-close-drawer" class="text-slate-400 hover:text-white font-black text-lg px-2">✕</button>
             </div>
@@ -2055,6 +2064,7 @@
           <div><h2 id="leaderboard-title" class="font-extrabold text-lg text-amber-300">🏆 Класация</h2><p class="text-xs text-slate-400">Най-добрите резултати · само без помощ</p></div>
           <button id="btn-close-leaderboard" class="bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold" aria-label="Затвори">✕</button>
         </div>
+        <div class="mb-3 flex justify-end"><button id="btn-cookie-settings" type="button" class="text-[11px] underline text-amber-300 hover:text-amber-200">Настройки на бисквитките</button></div>
         <div id="nickname-editor">
         <label class="text-xs text-slate-300 font-bold" for="nickname-input">Потребителско име</label>
         <div class="flex gap-2 mt-1 mb-3">
@@ -2472,7 +2482,8 @@
               }
           }
           // A committed username travels with its score history in the SAME atomic write.
-          const owner=raw && raw.v===2 && isValidStoredNick(raw.owner) ? safeNickname(raw.owner) : null;
+          const hasRankedBest=Object.keys(best).some(layout=>!(['training','first_steps','next_steps'].includes(layout)));
+          const owner=raw && raw.v===2 && hasRankedBest && isValidStoredNick(raw.owner) ? safeNickname(raw.owner) : null;
           return {best,recent,owner};
       }
       function readLocalScores(){
@@ -2488,7 +2499,7 @@
       try {
           const disk=readLocalScores();
           const previousFixed=safeNickname(localStorage.getItem(FIXED_NAME_KEY));
-          const hasCommittedBest=Object.values(disk.best).some(row=>row[0]===previousFixed);
+          const hasCommittedBest=Object.entries(disk.best).some(([layout,row])=>!(['training','first_steps','next_steps'].includes(layout)) && row[0]===previousFixed);
           const committed=disk.owner || (hasCommittedBest ? previousFixed : null);
           if(isValidStoredNick(committed)){
               nickname=committed;
@@ -2527,11 +2538,12 @@
       publicScoreConsent.checked=allowPublicScores;
       rankingPublicConsent.checked=allowPublicScores;
       const activePlayer=document.getElementById('active-player');
-      const UNRANKED_LAYOUT_ID = 'training';
-      const LOCAL_ONLY_LAYOUT_ID = 'first_steps';
+      const UNRANKED_LAYOUT_ID = 'training'; // compatibility; use isPracticeLayout for all checks
+      const LOCAL_ONLY_LAYOUT_ID = 'first_steps'; // retained stable ID for previous saves
       ({best:leaderboard,recent:recentScores}=readLocalScores());
       function bestForLayout(layout){return leaderboard[layout] || null;}
       function needsPublicUpdate(layout){
+          if(isPracticeLayout(layout))return false;
           const local=bestForLayout(layout), published=typeof rodBest!=='undefined' ? rodBest[layout] : null;
           return local && (!Array.isArray(published) ||
               local[1]<Number(published[0]) || (local[1]===Number(published[0]) && local[2]<Number(published[1])));
@@ -2543,7 +2555,7 @@
               triggerDynamicRecalculation();
           }
           assistedRun=true;
-          const practice = GAME_LAYOUTS[currentLayoutIdx]?.id === UNRANKED_LAYOUT_ID;
+          const practice = isPracticeLayout(GAME_LAYOUTS[currentLayoutIdx]?.id);
           document.getElementById('ranked-status').textContent=practice ? 'Тренировка · без класиране' : '✕ С помощ · без запис';
           document.getElementById('ranked-status').className=practice ? 'font-bold text-sky-300' : 'font-bold text-red-300';
           document.getElementById('solver-status').classList.remove('hidden');
@@ -2558,8 +2570,8 @@
           btnHint.classList.remove('bg-amber-500','text-slate-950');
           hintBanner.classList.add('hidden');
           badgeRemainingMovesEl.textContent='--';
-          const practice = GAME_LAYOUTS[currentLayoutIdx]?.id === UNRANKED_LAYOUT_ID;
-          const localOnly = GAME_LAYOUTS[currentLayoutIdx]?.id === LOCAL_ONLY_LAYOUT_ID || !HUARONG_PUBLIC_ENABLED;
+          const practice = isPracticeLayout(GAME_LAYOUTS[currentLayoutIdx]?.id);
+          const localOnly = !HUARONG_PUBLIC_ENABLED;
           document.getElementById('ranked-status').textContent=practice ? 'Тренировка · без класиране' : localOnly ? '★ Самостоятелна игра · локален резултат' : allowPublicScores ? '★ Самостоятелна игра · за класацията' : '★ Самостоятелна игра · само локално';
           document.getElementById('ranked-status').className=practice ? 'font-bold text-sky-300' : localOnly ? 'font-bold text-emerald-300' : 'font-bold text-amber-300';
           document.getElementById('solver-status').classList.add('hidden');
@@ -2587,7 +2599,7 @@
           try {localStorage.setItem(PRIVACY_KEY,JSON.stringify({v:1,allowed:allowPublicScores,at:Date.now()}));}catch(e){}
           if(!assistedRun && typeof GAME_LAYOUTS!=='undefined'){
               const layout = GAME_LAYOUTS[currentLayoutIdx]?.id;
-              if(layout!==UNRANKED_LAYOUT_ID && layout!==LOCAL_ONLY_LAYOUT_ID){
+              if(!isPracticeLayout(layout)){
                   document.getElementById('ranked-status').textContent=allowPublicScores
                       ? '★ Самостоятелна игра · за класацията'
                       : '★ Самостоятелна игра · само локално';
@@ -2616,7 +2628,7 @@
               // score/owner record may lock the name across tabs.
               const disk=readLocalScores();
               const marker=safeNickname(event.newValue);
-              const fixed=disk.owner || (Object.values(disk.best).some(row=>row[0]===marker) ? marker : null);
+              const fixed=disk.owner || (Object.entries(disk.best).some(([layout,row])=>!(['training','first_steps','next_steps'].includes(layout)) && row[0]===marker) ? marker : null);
               if(isValidNickname(fixed)){
                   nameLocked=true;
                   nickname=fixed;
@@ -2671,7 +2683,7 @@
           rankingPublicConsent.checked=allowed;
           if(!assistedRun && typeof GAME_LAYOUTS!=='undefined'){
               const layout=GAME_LAYOUTS[currentLayoutIdx]?.id;
-              if(layout!==UNRANKED_LAYOUT_ID && layout!==LOCAL_ONLY_LAYOUT_ID){
+              if(!isPracticeLayout(layout)){
                   document.getElementById('ranked-status').textContent=allowed
                       ? '★ Самостоятелна игра · за класацията'
                       : '★ Самостоятелна игра · само локално';
@@ -2690,7 +2702,7 @@
           // Re-read cross-tab commitment at the mutation boundary.
           try{
               const disk=readLocalScores();
-              const fixed=disk.owner || (Object.values(disk.best).some(row=>row[0]===safeNickname(localStorage.getItem(FIXED_NAME_KEY))) ? localStorage.getItem(FIXED_NAME_KEY) : null);
+              const fixed=disk.owner || (Object.entries(disk.best).some(([layout,row])=>!(['training','first_steps','next_steps'].includes(layout)) && row[0]===safeNickname(localStorage.getItem(FIXED_NAME_KEY))) ? localStorage.getItem(FIXED_NAME_KEY) : null);
               if(isValidNickname(fixed)){
                   nameLocked=true;
                   if(name!==safeNickname(fixed)){
@@ -2858,7 +2870,7 @@
               playerGate.classList.add('hidden');
               confirmFirstScoreBtn.classList.add('hidden');
               updateNameLockUI();
-              if(HUARONG_PUBLIC_ENABLED && first.layout!==LOCAL_ONLY_LAYOUT_ID && needsPublicUpdate(first.layout)) {
+              if(HUARONG_PUBLIC_ENABLED && !isPracticeLayout(first.layout) && needsPublicUpdate(first.layout)) {
                   const best=bestForLayout(first.layout);
                   pendingPublicScore={layout:first.layout,moves:best[1],seconds:best[2],epoch:victoryEpoch,nickname};
                   submitScoreBtn.classList.remove('hidden');
@@ -2900,7 +2912,7 @@
       });
       function storeVictory(layout,moves,seconds,afterNameConfirmation=false){
           if(!afterNameConfirmation)victoryEpoch++;
-          if(layout===UNRANKED_LAYOUT_ID){
+          if(isPracticeLayout(layout)){
               victoryRankStatus.textContent='Тренировъчна подредба — резултатът не се класира.';
               return;
           }
@@ -2946,10 +2958,10 @@
               pendingLocalScore=null;
               document.getElementById('retry-score').classList.add('hidden');
           }
-          victoryRankStatus.textContent=layout===LOCAL_ONLY_LAYOUT_ID
+          victoryRankStatus.textContent=isPracticeLayout(layout)
               ? 'Резултатът е запазен само на това устройство. Не се изпраща в общата класация.'
               : 'Резултатът е запазен в последните 5 локални резултата.';
-          if(layout!==LOCAL_ONLY_LAYOUT_ID && HUARONG_PUBLIC_ENABLED){
+          if(!isPracticeLayout(layout) && HUARONG_PUBLIC_ENABLED){
               // Only personal bests, never the most recent worse run, go on-chain.
               // Public opt-in remains explicit. Offline/failure recovery uses
               // the persistent local best rather than a transient victory object.
@@ -2968,9 +2980,9 @@
           return true;
       }
       function refreshRanking(){
-          const layout=rankLayout.value || (typeof GAME_LAYOUTS!=='undefined' ? GAME_LAYOUTS.find(x=>x.id!==UNRANKED_LAYOUT_ID)?.id : '');
+          const layout=rankLayout.value || (typeof GAME_LAYOUTS!=='undefined' ? GAME_LAYOUTS.find(x=>!isPracticeLayout(x.id))?.id : '');
           rankList.replaceChildren();
-          const showPublic=HUARONG_PUBLIC_ENABLED && layout!==LOCAL_ONLY_LAYOUT_ID && !!onlineLeaderboard;
+          const showPublic=HUARONG_PUBLIC_ENABLED && !isPracticeLayout(layout) && !!onlineLeaderboard;
           const localHistory=recentScores[layout]||[];
           const best=bestForLayout(layout);
           const historyWrap=document.getElementById('ranking-recent-wrap');
@@ -2983,7 +2995,7 @@
           document.getElementById('ranking-source').textContent=showPublic
               ? (window.huarongHistoryScanTruncated ? 'Обща класация · само скорошни резултати' : 'Обща класация')
               : 'Последните 5 резултата · само на това устройство';
-          document.getElementById('btn-refresh-scores').classList.toggle('hidden',layout===LOCAL_ONLY_LAYOUT_ID || !HUARONG_PUBLIC_ENABLED);
+          document.getElementById('btn-refresh-scores').classList.toggle('hidden',isPracticeLayout(layout) || !HUARONG_PUBLIC_ENABLED);
           function addRow(parent,name,moves,seconds,badge){
               const line=document.createElement('div');
               line.className='flex items-center justify-between gap-2 border border-slate-700 rounded-xl px-3 py-2 bg-slate-800/50 text-xs';
@@ -3017,9 +3029,9 @@
           rankingPreviousFocus=document.activeElement;
           if(typeof GAME_LAYOUTS!=='undefined'){
               rankLayout.replaceChildren();
-              GAME_LAYOUTS.filter(layout=>layout.id!==UNRANKED_LAYOUT_ID).forEach(layout=>{const opt=document.createElement('option');opt.value=layout.id;opt.textContent=layout.name;rankLayout.appendChild(opt);});
+              GAME_LAYOUTS.filter(layout=>!isPracticeLayout(layout.id)).forEach(layout=>{const opt=document.createElement('option');opt.value=layout.id;opt.textContent=layout.name;rankLayout.appendChild(opt);});
               const selected=GAME_LAYOUTS[currentLayoutIdx].id;
-              rankLayout.value=selected===UNRANKED_LAYOUT_ID ? GAME_LAYOUTS.find(x=>x.id!==UNRANKED_LAYOUT_ID).id : selected;
+              rankLayout.value=isPracticeLayout(selected) ? GAME_LAYOUTS.find(x=>!isPracticeLayout(x.id)).id : selected;
           }
           nickInput.value=nickname;
           updateNameLockUI();
@@ -3058,12 +3070,12 @@
           if(event.key==='Enter'){event.preventDefault();document.getElementById('btn-save-nickname').click();}
       });
       document.getElementById('btn-refresh-scores').onclick=async()=>{
-          if(!HUARONG_PUBLIC_ENABLED || rankLayout.value===LOCAL_ONLY_LAYOUT_ID){refreshRanking();return;}
+          if(!HUARONG_PUBLIC_ENABLED || isPracticeLayout(rankLayout.value)){refreshRanking();return;}
           const btn=document.getElementById('btn-refresh-scores');
           btn.disabled=true;
           btn.textContent='Обновяване…';
           try{await rodRefreshLeaderboard();}
-          catch(e){console.warn('Unable to refresh leaderboard',e); if(rankLayout.value!==LOCAL_ONLY_LAYOUT_ID)document.getElementById('ranking-source').textContent='Обновяването не успя · показани са наличните резултати';}
+          catch(e){console.warn('Unable to refresh leaderboard',e); if(!isPracticeLayout(rankLayout.value))document.getElementById('ranking-source').textContent='Обновяването не успя · показани са наличните резултати';}
           finally{btn.disabled=false; btn.textContent='Обнови класацията';}
       };
     </script>
@@ -3083,7 +3095,7 @@
             'S4': { nameBg: 'Войник 4', zh: '兵', w: 1, h: 1, class: 'tile-soldier' },
         };
 
-        // 8 Preset Board Layout Definitions
+        // 14 verified ten-piece layouts: 3 unranked practice and 11 competitive. Asymmetric layouts before Classic are deferred.
         const GAME_LAYOUTS = [
             {
                 id: 'training',
@@ -3109,7 +3121,7 @@
                 name: "Първи стъпки",
                 difficulty: "32 хода",
                 badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-                desc: "Първото ниво с локални резултати: минимум 32 хода. Само на устройството.",
+                desc: "Практика: минимум 32 хода. Няма записване на резултати.",
                 board: {
                     'CC': { x: 2, y: 2 },
                     'ZY': { x: 1, y: 0 },
@@ -3128,7 +3140,7 @@
                 name: "Следващи стъпки",
                 difficulty: "50 хода",
                 badgeColor: "bg-teal-500/20 text-teal-200 border-teal-500/40",
-                desc: "Преход към сложните пъзели: минимум 50 хода. Можеш да запазиш най-добрия резултат.",
+                desc: "Практика: минимум 50 хода. Няма записване на резултати.",
                 board: {
                     'CC': { x: 2, y: 0 },
                     'ZY': { x: 1, y: 1 },
@@ -3144,10 +3156,10 @@
             },
             {
                 id: 'wings',
-                name: "Криле (左右翼)",
+                name: "Класическа (横刀立马)",
                 difficulty: "116 хода",
                 badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-                desc: "Симетрична подредба с генерали по фланговете.",
+                desc: "Документираната класическа подредба 横刀立马 · минимум 116 единични хода.",
                 board: {
                     'CC': { x: 1, y: 0 },
                     'ZY': { x: 0, y: 0 },
@@ -3163,10 +3175,10 @@
             },
             {
                 id: 'heng_dao_li_ma',
-                name: "Класическа (横刀立马)",
+                name: "Четирима войници в редица",
                 difficulty: "118 хода",
                 badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
-                desc: "Традиционната световна подредба Heng Dao Li Ma.",
+                desc: "Симетрична подредба с четирима войници в долния ред. Описателно име.",
                 board: {
                     'CC': { x: 1, y: 0 },
                     'ZY': { x: 0, y: 0 },
@@ -3182,7 +3194,7 @@
             },
             {
                 id: 'rear_guard',
-                name: "Задна охрана (后卫)",
+                name: "Задна охрана",
                 difficulty: "82 хода",
                 badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
                 desc: "Защитна формация с четирима войници в центъра.",
@@ -3201,10 +3213,10 @@
             },
             {
                 id: 'small_obstacle',
-                name: "Преден отряд (前锋)",
+                name: "Уверено командване (指揮若定)",
                 difficulty: "100 хода",
                 badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-                desc: "Подредба с предни препятствия и ограничени проходи.",
+                desc: "Симетрична подредба с войници от двете страни на Гуан Ю и двама под него.",
                 board: {
                     'CC': { x: 1, y: 0 },
                     'ZY': { x: 0, y: 0 },
@@ -3220,10 +3232,10 @@
             },
             {
                 id: 'ambush',
-                name: "Засада (伏兵)",
+                name: "Засада",
                 difficulty: "110 хода",
                 badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-                desc: "Асиметрична тактическа засада около Цао Цао.",
+                desc: "Симетрична защитна подредба. Името е описателно.",
                 board: {
                     'CC': { x: 1, y: 0 },
                     'ZY': { x: 0, y: 0 },
@@ -3237,12 +3249,146 @@
                     'HZ': { x: 2, y: 3 }
                 }
             },
+            {
+                id: 'fayaa_sideBySide',
+                name: "Рамо до рамо (齊頭並進)",
+                difficulty: '85 хода',
+                badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+                desc: "Четирима войници в редица между Цао Цао и Гуан Ю.",
+                tier: 4,
+                board: {
+                    "CC": {"x": 1, "y": 0},
+                    "GY": {"x": 1, "y": 3},
+                    "ZF": {"x": 0, "y": 0},
+                    "ZY": {"x": 3, "y": 0},
+                    "MC": {"x": 0, "y": 3},
+                    "HZ": {"x": 3, "y": 3},
+                    "S1": {"x": 0, "y": 2},
+                    "S2": {"x": 1, "y": 2},
+                    "S3": {"x": 2, "y": 2},
+                    "S4": {"x": 3, "y": 2}
+                }
+            },
+            {
+                id: 'fayaa_threeRoads',
+                name: "Три пътя (兵分三路)",
+                difficulty: '92 хода',
+                badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
+                desc: "Войници в горните ъгли и двама в центъра под Гуан Ю.",
+                tier: 3,
+                board: {
+                    "CC": {"x": 1, "y": 0},
+                    "GY": {"x": 1, "y": 2},
+                    "ZF": {"x": 0, "y": 1},
+                    "ZY": {"x": 3, "y": 1},
+                    "MC": {"x": 0, "y": 3},
+                    "HZ": {"x": 3, "y": 3},
+                    "S1": {"x": 0, "y": 0},
+                    "S2": {"x": 3, "y": 0},
+                    "S3": {"x": 1, "y": 3},
+                    "S4": {"x": 2, "y": 3}
+                }
+            },
+            {
+                id: 'fayaa_peach',
+                name: "Сред прасковените цветове (桃花園中)",
+                difficulty: '100 хода',
+                badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                desc: "Двама генерали под Цао Цао, а Гуан Ю пази изхода.",
+                tier: 2,
+                board: {
+                    "CC": {"x": 1, "y": 0},
+                    "GY": {"x": 1, "y": 4},
+                    "ZF": {"x": 0, "y": 1},
+                    "ZY": {"x": 3, "y": 1},
+                    "MC": {"x": 1, "y": 2},
+                    "HZ": {"x": 2, "y": 2},
+                    "S1": {"x": 0, "y": 0},
+                    "S2": {"x": 3, "y": 0},
+                    "S3": {"x": 0, "y": 3},
+                    "S4": {"x": 3, "y": 3}
+                }
+            },
+            {
+                id: 'fayaa_rain2',
+                name: "Осемте формации на Джуге (諸葛八陣)",
+                difficulty: '119 хода',
+                badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
+                desc: "Гуан Ю вляво, двама генерали вдясно и трима войници в долния ред.",
+                tier: 1,
+                board: {
+                    "CC": {"x": 1, "y": 0},
+                    "GY": {"x": 0, "y": 2},
+                    "ZF": {"x": 0, "y": 0},
+                    "ZY": {"x": 2, "y": 2},
+                    "MC": {"x": 3, "y": 2},
+                    "HZ": {"x": 0, "y": 3},
+                    "S1": {"x": 3, "y": 1},
+                    "S2": {"x": 1, "y": 4},
+                    "S3": {"x": 2, "y": 4},
+                    "S4": {"x": 3, "y": 4}
+                }
+            },
+            {
+                id: 'fayaa_cannotStop',
+                name: "Невъзможно е да спреш (欲罷不能)",
+                difficulty: '126 хода',
+                badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
+                desc: "Гуан Ю под Цао Цао, с генерал под него и трима войници в долния ред.",
+                tier: 1,
+                board: {
+                    "CC": {"x": 1, "y": 0},
+                    "GY": {"x": 1, "y": 2},
+                    "ZF": {"x": 3, "y": 0},
+                    "ZY": {"x": 0, "y": 2},
+                    "MC": {"x": 3, "y": 2},
+                    "HZ": {"x": 1, "y": 3},
+                    "S1": {"x": 0, "y": 1},
+                    "S2": {"x": 0, "y": 4},
+                    "S3": {"x": 2, "y": 4},
+                    "S4": {"x": 3, "y": 4}
+                }
+            },
+            {
+                id: 'fayaa_highRisk',
+                name: "Без друг избор (別無選擇)",
+                difficulty: '126 хода',
+                badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
+                desc: "Цао Цао в горния ляв ъгъл, а Гуан Ю вдясно от централен генерал.",
+                tier: 1,
+                board: {
+                    "CC": {"x": 0, "y": 0},
+                    "GY": {"x": 2, "y": 2},
+                    "ZF": {"x": 2, "y": 0},
+                    "ZY": {"x": 1, "y": 2},
+                    "MC": {"x": 0, "y": 3},
+                    "HZ": {"x": 3, "y": 3},
+                    "S1": {"x": 0, "y": 2},
+                    "S2": {"x": 2, "y": 3},
+                    "S3": {"x": 1, "y": 4},
+                    "S4": {"x": 2, "y": 4}
+                }
+            }
 
         ];
 
-        // Game progression and layout picker share the same verified minimum-move ordering.
-        // Sort by the numeric move count; stable IDs preserve local records after reordering.
-        GAME_LAYOUTS.sort((a,b)=>parseInt(a.difficulty,10)-parseInt(b.difficulty,10));
+        // Preserve stable IDs: these IDs are local-score and public-index keys.
+        const PRACTICE_LAYOUT_IDS = new Set(['training','first_steps','next_steps']);
+        function isPracticeLayout(layoutId){return PRACTICE_LAYOUT_IDS.has(layoutId);}
+        function tierForLayout(layout){
+            if(isPracticeLayout(layout.id)) return 0;
+            const n=parseInt(layout.difficulty,10);
+            return n<90?4:n<100?3:n<116?2:1;
+        }
+        const tierOrder = {0:0,4:1,3:2,2:3,1:4};
+        GAME_LAYOUTS.forEach(layout=>{layout.tier=tierForLayout(layout);});
+        // Menu tiers progress easy-to-hard. Classic is the initial game, not artificially
+        // labeled as easy or placed in the wrong difficulty tier.
+        GAME_LAYOUTS.sort((a,b)=>tierOrder[a.tier]-tierOrder[b.tier] ||
+             parseInt(a.difficulty,10)-parseInt(b.difficulty,10) ||
+             (a.id==='wings'?-1:b.id==='wings'?1:0) || a.id.localeCompare(b.id));
+        const INITIAL_LAYOUT_INDEX=GAME_LAYOUTS.findIndex(x=>x.id==='wings');
+        window.huarongCatalog=GAME_LAYOUTS;
 
         const DIRECTIONS = [
             { dx: 0, dy: -1, bg: 'нагоре', symbol: '↑' },
@@ -3691,39 +3837,41 @@
          * Render Levels / Layout Selector Cards
          */
         function renderLevelsMenu() {
-            levelsList.innerHTML = '';
-            GAME_LAYOUTS.forEach((layout, idx) => {
-                const card = document.createElement('div');
-                const isActive = idx === currentLayoutIdx;
-                
-                card.className = `p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
-                    isActive 
-                        ? 'bg-amber-500/15 border-amber-500/80 shadow-lg' 
-                        : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700/80'
-                }`;
-
-                card.innerHTML = `
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h4 class="font-bold text-xs text-slate-100 truncate">${layout.name}</h4>
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-extrabold border ${layout.badgeColor}">${layout.difficulty}</span>
-                        </div>
-                        <p class="text-[11px] text-slate-400 leading-tight">${layout.desc}</p>
+            levelsList.replaceChildren();
+            const headings={
+                0:'Практика · без запис на резултати',
+                4:'Ниво 4 · Основни (80–89 хода)',
+                3:'Ниво 3 · Междинни (90–99 хода)',
+                2:'Ниво 2 · Майсторски (100–115 хода)',
+                1:'Ниво 1 · Легендарни (116+ хода)'
+            };
+            let lastTier=null;
+            GAME_LAYOUTS.forEach((layout,idx)=>{
+                if(lastTier!==layout.tier){
+                    lastTier=layout.tier;
+                    const heading=document.createElement('h3');
+                    heading.className='text-[11px] font-extrabold uppercase tracking-wider text-amber-300 mt-3 mb-2 px-1 border-b border-slate-700/80 pb-1';
+                    heading.textContent=headings[layout.tier];
+                    levelsList.appendChild(heading);
+                }
+                const card=document.createElement('div');
+                const isActive=idx===currentLayoutIdx;
+                const isClassic=layout.id==='wings';
+                card.className=`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
+                   isActive ? 'bg-amber-500/15 border-amber-500/80 shadow-lg' :
+                   'bg-slate-800/50 hover:bg-slate-800 border-slate-700/80'}`;
+                card.innerHTML=`
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1 min-w-0">
+                      <h4 class="font-bold text-xs text-slate-100 truncate">${layout.name}</h4>
+                      <span class="shrink-0 text-[9px] px-2 py-0.5 rounded-full font-extrabold border ${layout.badgeColor}">${layout.difficulty}</span>
                     </div>
-                    <div>
-                        <button class="px-3 py-1.5 rounded-xl text-xs font-black transition ${
-                            isActive ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-700 text-slate-200 hover:bg-amber-500 hover:text-slate-950'
-                        }">
-                            ${isActive ? 'Активна' : 'Играй'}
-                        </button>
-                    </div>
-                `;
-
-                card.onclick = () => {
-                    selectLayout(idx);
-                    levelsModal.classList.add('hidden');
-                };
-
+                    <p class="text-[11px] text-slate-400 leading-tight">${layout.desc}</p>
+                    ${isClassic?'<span class="text-[10px] text-amber-300 font-bold">★ Начална подредба</span>':''}
+                  </div>
+                  <div><button type="button" class="px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                    isActive?'bg-amber-500 text-slate-950 shadow':'bg-slate-700 text-slate-200 hover:bg-amber-500 hover:text-slate-950'}">${isActive?'Активна':'Играй'}</button></div>`;
+                card.onclick=()=>{selectLayout(idx);closeLevelsModal();};
                 levelsList.appendChild(card);
             });
         }
@@ -3865,15 +4013,54 @@
             syncSoundUI();
         };
 
-        btnDrawer.onclick = () => {setAssisted('solution-list'); movesDrawer.classList.remove('hidden');};
-        btnCloseDrawer.onclick = () => movesDrawer.classList.add('hidden');
+        function closeMovesDrawer(){
+            movesDrawer.classList.add('hidden');
+            btnDrawer.setAttribute('aria-expanded','false');
+            btnDrawer.focus();
+        }
+        function closeLevelsModal(){
+            levelsModal.classList.add('hidden');
+            btnLevelsMenu.setAttribute('aria-expanded','false');
+            btnLevelsMenu.focus();
+        }
+        // These dialogs previously left focus on the gameplay controls and ignored Escape.
+        function manageModalKeyboard(modal, closeModal){
+            modal.addEventListener('keydown',event=>{
+                if(event.key==='Escape'){event.preventDefault();closeModal();return;}
+                if(event.key!=='Tab')return;
+                const focusable=[...modal.querySelectorAll('button:not([disabled])')]
+                    .filter(el=>el.getClientRects().length);
+                if(!focusable.length)return;
+                const first=focusable[0],last=focusable[focusable.length-1];
+                if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus();}
+                else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}
+            });
+            modal.addEventListener('click',event=>{if(event.target===modal)closeModal();});
+        }
+        btnDrawer.setAttribute('aria-haspopup','dialog');
+        btnDrawer.setAttribute('aria-controls','moves-drawer');
+        btnDrawer.setAttribute('aria-expanded','false');
+        btnLevelsMenu.setAttribute('aria-haspopup','dialog');
+        btnLevelsMenu.setAttribute('aria-controls','levels-modal');
+        btnLevelsMenu.setAttribute('aria-expanded','false');
+        btnDrawer.onclick=()=>{
+            setAssisted('solution-list');
+            movesDrawer.classList.remove('hidden');
+            btnDrawer.setAttribute('aria-expanded','true');
+            btnCloseDrawer.focus();
+        };
+        btnCloseDrawer.onclick=closeMovesDrawer;
+        manageModalKeyboard(movesDrawer,closeMovesDrawer);
+        manageModalKeyboard(levelsModal,closeLevelsModal);
 
         document.getElementById('active-player').addEventListener('click',()=>document.getElementById('btn-leaderboard').click());
         btnLevelsMenu.onclick = () => {
             renderLevelsMenu();
             levelsModal.classList.remove('hidden');
+            btnLevelsMenu.setAttribute('aria-expanded','true');
+            btnCloseLevels.focus();
         };
-        btnCloseLevels.onclick = () => levelsModal.classList.add('hidden');
+        btnCloseLevels.onclick=closeLevelsModal;
 
         document.querySelectorAll('.speed-btn').forEach(btn => {
             btn.onclick = (e) => {
@@ -3910,7 +4097,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             syncSoundUI();
             renderLevelsMenu();
-            selectLayout(0);
+            selectLayout(INITIAL_LAYOUT_INDEX);
         });
     </script>
     <script>
@@ -4076,7 +4263,7 @@
     async function rodRegisterPlayer(name,layout,moves,seconds,epoch=victoryEpoch,player=nickname){
        if(!HUARONG_PUBLIC_ENABLED)throw Error('Public leaderboard is disabled');
        if(!allowPublicScores)throw Error('Public ranking is disabled');
-       if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID)return;
+       if(isPracticeLayout(layout))return;
        if(!rodIssuer)throw Error('No issuer configured');
        if(rodBusy)throw Error('Another submission is in progress');
        rodBusy=true;
@@ -4126,7 +4313,7 @@
     }
     function queueRodVictory(layout,moves,seconds,isRetry=false){
        if(!HUARONG_PUBLIC_ENABLED || !allowPublicScores || !publicNameReady || !nameLocked)return;
-       if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID)return;
+       if(isPracticeLayout(layout))return;
        if(!needsPublicUpdate(layout) || rodQueuedLayouts.has(layout))return;
        rodQueuedLayouts.add(layout);
        const context={layout,epoch:victoryEpoch,nickname};
@@ -4162,7 +4349,7 @@
     function syncOutstandingBests(){
         if(!HUARONG_PUBLIC_ENABLED || !allowPublicScores || !publicNameReady || !nameLocked)return;
         for(const layout of Object.keys(leaderboard)){
-            if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID || !GAME_LAYOUTS.some(x=>x.id===layout))continue;
+            if(isPracticeLayout(layout) || !GAME_LAYOUTS.some(x=>x.id===layout))continue;
             if(needsPublicUpdate(layout))queueRodVictory(layout,0,0,true);
         }
     }
@@ -4175,7 +4362,6 @@
                 pendingLocalScore=null;
                 return;
             }
-            // Reuse the finalized epoch so verified retries retain duplicate protection.
             storeVictory(score.layout,score.moves,score.seconds,true);
             return;
         }
@@ -4197,7 +4383,7 @@
     async function rodPublishVictory(layout,moves,seconds,isRetry=false,epoch=victoryEpoch,player=nickname){
        if(!HUARONG_PUBLIC_ENABLED)return;
        if(!allowPublicScores || !publicNameReady || player!==nickname)return;
-       if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID)return;
+       if(isPracticeLayout(layout))return;
        if(!nickname)return;
        // Eligibility was checked when queueRodVictory accepted this completed run.
        // Do not consult mutable assistedRun from a later game.
@@ -4296,7 +4482,7 @@
        for(const {value,txid}of latestByName.values()){
            const display=String(value.u||'anonymous').slice(0,24);
            for(const [layout,score] of Object.entries(value.b||{})){
-             if(layout===UNRANKED_LAYOUT_ID || layout===LOCAL_ONLY_LAYOUT_ID || !GAME_LAYOUTS.some(x=>x.id===layout) || !Array.isArray(score)||score.length!==2)continue;
+             if(isPracticeLayout(layout) || !GAME_LAYOUTS.some(x=>x.id===layout) || !Array.isArray(score)||score.length!==2)continue;
              const [m,t]=score.map(Number);
              if(!Number.isSafeInteger(m)||!Number.isSafeInteger(t)||m<=0||t<0)continue;
              (rank[layout]||(rank[layout]=[])).push([display,m,t]);
@@ -4331,9 +4517,60 @@
       'use strict';
       const LANG_KEY = 'huarong_ui_lang_v1';
       const strings = new Map(Object.entries({
+        "Четирима войници в редица":"Four Pawns in a Row",
+        "Задна охрана":"Rear Guard",
+        "Засада":"Ambush",
+        "Уверено командване (指揮若定)":"Command with Ease (指揮若定)",
+        "Осемте формации на Джуге (諸葛八陣)":"Zhuge's Eight Formations (諸葛八陣)",
+        "Документираната класическа подредба 横刀立马 · минимум 116 единични хода.":"The documented Classic Heng Dao Li Ma layout · minimum 116 single-cell moves.",
+        "Симетрична подредба с четирима войници в долния ред. Описателно име.":"Symmetric formation with four pawns along the bottom row. Descriptive name.",
+        "Симетрична подредба с войници от двете страни на Гуан Ю и двама под него.":"Symmetric formation with soldiers on either side of Guan Yu and two below him.",
+        "Симетрична защитна подредба. Името е описателно.":"Symmetric defensive formation. The name is descriptive.",
+        "Обкръжение без разгром (圍而不殲)":"Encircle Without Annihilating (圍而不殲)",
+        "Документирана подредба от каталога Fayaa · минимум 80 единични хода.":"Documented Fayaa layout · minimum 80 single-cell moves.",
+        "Настъпление по един път (一路進軍)":"Single-Route Advance (一路進軍)",
+        "Документирана подредба от каталога Fayaa · минимум 81 единични хода.":"Documented Fayaa layout · minimum 81 single-cell moves.",
+        "Рамо до рамо (齊頭並進)":"Advance Side by Side (齊頭並進)",
+        "Четирима войници в редица между Цао Цао и Гуан Ю.":"Four soldiers in a row between Cao Cao and Guan Yu.",
+        "Шестоъграмата на Фуси (伏羲八卦:雷地豫)":"Fuxi Hexagram: Thunder over Earth (伏羲八卦:雷地豫)",
+        "Документирана подредба от каталога Fayaa · минимум 89 единични хода.":"Documented Fayaa layout · minimum 89 single-cell moves.",
+        "Три пътя (兵分三路)":"Troops Along Three Routes (兵分三路)",
+        "Войници в горните ъгли и двама в центъра под Гуан Ю.":"Soldiers in the top corners and two in the center below Guan Yu.",
+        "Сред прасковените цветове (桃花園中)":"Peach Blossom Garden (桃花園中)",
+        "Двама генерали под Цао Цао, а Гуан Ю пази изхода.":"Two generals below Cao Cao, with Guan Yu guarding the exit.",
+        "Генерали около Цао Цао (將擁曹營)":"Generals Surround Cao Camp (將擁曹營)",
+        "Документирана подредба от каталога Fayaa · минимум 101 единични хода.":"Documented Fayaa layout · minimum 101 single-cell moves.",
+        "Източният път (屯兵東路)":"Troops on the Eastern Route (屯兵東路)",
+        "Документирана подредба от каталога Fayaa · минимум 102 единични хода.":"Documented Fayaa layout · minimum 102 single-cell moves.",
+        "Войници отляво, генерали отдясно (左兵右將)":"Soldiers Left, Generals Right (左兵右將)",
+        "Документирана подредба от каталога Fayaa · минимум 104 единични хода.":"Documented Fayaa layout · minimum 104 single-cell moves.",
+        "Падащи скали и облаци (亂石崩雲)":"Tumbling Rocks and Clouds (亂石崩雲)",
+        "Документирана подредба от каталога Fayaa · минимум 116 единични хода.":"Documented Fayaa layout · minimum 116 single-cell moves.",
+        "Изгряващо слънце (簷浮旭日)":"Rising Sun at the Eaves (簷浮旭日)",
+        "Гуан Ю вляво, двама генерали вдясно и трима войници в долния ред.":"Guan Yu on the left, two generals on the right, and three soldiers along the bottom row.",
+        "Невъзможно е да спреш (欲罷不能)":"Hard to Stop (欲罷不能)",
+        "Гуан Ю под Цао Цао, с генерал под него и трима войници в долния ред.":"Guan Yu below Cao Cao, with a general beneath him and three soldiers along the bottom row.",
+        "Цао Цао в горния ляв ъгъл, а Гуан Ю вдясно от централен генерал.":"Cao Cao in the top-left corner, with Guan Yu to the right of a central general.",
+        "Без друг избор (別無選擇)":"No Other Choice (別無選擇)",
+        "Практика: минимум 32 хода. Няма записване на резултати.":"Practice: minimum 32 moves. Scores are not recorded.",
+        "Практика: минимум 50 хода. Няма записване на резултати.":"Practice: minimum 50 moves. Scores are not recorded.",
+        "Практика · без запис на резултати":"Practice · unranked",
+        "Ниво 4 · Основни (80–89 хода)":"Tier 4 · Standard (80–89 moves)",
+        "Ниво 3 · Междинни (90–99 хода)":"Tier 3 · Intermediate (90–99 moves)",
+        "Ниво 2 · Майсторски (100–115 хода)":"Tier 2 · Master (100–115 moves)",
+        "Ниво 1 · Легендарни (116+ хода)":"Tier 1 · Legendary (116+ moves)",
+        "★ Начална подредба":"★ Starting layout",
+        "Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започваш с „Класическа“. За упражнения избери „Тренировка“ от 🧩 Подредби.":"Slide the pieces to move the large red block to the bottom-center exit. You start with Classic. For practice, select Training under 🧩 Layouts.",
+        "Започваш с „Класическа“. За упражнения избери „Тренировка“ от 🧩 Подредби.":"You start with Classic. For practice, choose Training under 🧩 Layouts.",
+        "Настройки на бисквитките":"Cookie settings",
+        "Поверителност и бисквитки":"Privacy and cookies",
+        "Играта използва локално съхранение за име, настройки и резултати. Анализът на посещенията чрез Google Analytics е незадължителен и се зарежда само с твое съгласие. Можеш да промениш избора от Класация.":"The game uses browser storage for your name, settings, and scores. Google Analytics is optional and loads only if you consent. You can change your choice under Leaderboard.",
+        "Само необходими":"Necessary only",
+        "Приемам анализа":"Accept analytics",
+        'Анализът е изключен в този раздел, но отказът не можа да се запази. След презареждане анализът може да се включи отново. Разреши съхранението на данни и избери „Само необходими“ отново.':'Analytics is off in this tab, but your rejection could not be saved. Analytics may turn on again after reload. Allow browser storage and choose “Necessary only” again.',
         'Хуаронг Дао • Пъзел и класация':'Huarong Dao • Puzzle & Leaderboard',
-        'Бета 0.1.0-beta.1':'Beta 0.1.0-beta.1',
         'Хуаронг Дао':'Huarong Dao',
+        'Бета 0.1.0-beta.2':'Beta 0.1.0-beta.2',
         'Класическа (横刀立马)':'Classic (横刀立马)',
         'Подредби':'Layouts', 'Ходове':'Moves', 'Инсталирай':'Install',
         '★ Самостоятелна игра · за класацията':'★ Unassisted · ranked',
@@ -4449,11 +4686,9 @@
         'Класическа (横刀立马)':'Classic (横刀立马)',
         'Следващи стъпки':'Next Steps',
         '50 хода':'50 moves',
-        'Преход към сложните пъзели: минимум 50 хода. Можеш да запазиш най-добрия резултат.':'A bridge to harder puzzles: minimum 50 moves. Save your personal best.',
         '💡 Помощ и решение':'💡 Help & solve','💡 Помощ':'💡 Help','Инст.':'Install','Помощ и решение':'Help & solve',
         'Използването на помощ изключва записването на резултат за този опит.':'Using assistance disables score saving for this attempt.',
         'Как се играе?':'How to play?',
-        'Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започни с „Тренировка“ и избери следваща подредба чрез 🧩.':'Slide the pieces to guide the large red block through the bottom-center exit. Start with Training, then use 🧩 to choose another layout.',
         '📜 Историята зад пъзела':'📜 The story behind the puzzle',
         'Да играем':"Let's play",
         'Инсталирай приложението':'Install the app',
@@ -4465,7 +4700,6 @@
         '24 хода':'24 moves','32 хода':'32 moves','82 хода':'82 moves','100 хода':'100 moves',
         '110 хода':'110 moves','116 хода':'116 moves','118 хода':'118 moves',
         'Тренировъчна подредба: минимум 24 хода. Без класиране и без регистрация.':'Training layout: minimum 24 moves. No scoring or registration.',
-        'Първото ниво с локални резултати: минимум 32 хода. Само на устройството.':'First level with local scores: minimum 32 moves. On this device only.',
         'Традиционната световна подредба Heng Dao Li Ma.':'Traditional Heng Dao Li Ma layout.',
         'Защитна формация с четирима войници в центъра.':'Defensive formation with four soldiers in the center.',
         'Подредба с предни препятствия и ограничени проходи.':'Layout with forward obstacles and restricted paths.',
@@ -4497,6 +4731,7 @@
         if (translation === undefined) {
           let m;
           if ((m=s.match(/^Играеш като (.+)$/))) translation='Playing as '+m[1];
+          else if ((m=s.match(/^(\d+) хода$/))) translation=m[1]+' moves';
           else if ((m=s.match(/^Личен рекорд: (\d+) хода · (\d+) сек$/))) translation='Personal best: '+m[1]+' moves · '+m[2]+' sec';
           else if ((m=s.match(/^(\d+) хода · (\d+) сек( ★)?$/))) translation=m[1]+' moves · '+m[2]+' sec'+(m[3]||'');
           else if ((m=s.match(/^(.+) \(([^()]+)\) (нагоре|надолу|наляво|надясно)$/)))
@@ -4641,6 +4876,107 @@
       document.addEventListener('visibilitychange',()=>{
         if(document.hidden)stop();else start();
       });
+    })();
+    </script>
+
+    <script>
+    (()=>{
+      'use strict';
+      const KEY='huarong_cookie_choice_v1';
+      const GA='G-517WKR3J3V';
+      const banner=document.getElementById('cookie-consent');
+      const settings=document.getElementById('btn-cookie-settings');
+      let analyticsLoaded=false;
+      const saveError=document.getElementById('cookie-save-error');
+      let state=readChoice();
+      function readChoice(value){
+        try{
+          const saved=JSON.parse(value===undefined?localStorage.getItem(KEY):value);
+          if(saved && saved.v===1 && typeof saved.analytics==='boolean')return saved.analytics;
+        }catch(e){}
+        return null;
+      }
+      function loadAnalytics(){
+        if(state!==true)return;
+        if(analyticsLoaded){
+          window['ga-disable-'+GA]=false;
+          if(typeof window.gtag==='function')window.gtag('consent','update',{analytics_storage:'granted'});
+          return;
+        }
+        analyticsLoaded=true;
+        window['ga-disable-'+GA]=false;
+        window.dataLayer=window.dataLayer||[];
+        window.gtag=window.gtag||function(){window.dataLayer.push(arguments);};
+        gtag('js',new Date());
+        gtag('config',GA,{anonymize_ip:true});
+        const tag=document.createElement('script');
+        tag.async=true;
+        tag.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(GA);
+        document.head.appendChild(tag);
+      }
+      function disableAnalytics(){
+        // Stop any additional events immediately. Already sent requests cannot be recalled.
+        window['ga-disable-'+GA]=true;
+        if(typeof window.gtag==='function') window.gtag('consent','update',{analytics_storage:'denied'});
+        // GA defaults to Path=/ and may use a parent domain rather than a host-only cookie.
+        try{
+          const domains=[''];
+          const labels=location.hostname.split('.');
+          for(let i=0;i<labels.length-1;i++)domains.push(labels.slice(i).join('.'));
+          for(const c of document.cookie.split(';')){
+            const name=c.split('=')[0].trim();
+            if(/^_ga($|_)/.test(name)||name==='_gid'){
+              for(const domain of domains){
+                document.cookie=name+'=; Max-Age=0; Path=/; SameSite=Lax'+(domain?'; Domain='+domain:'');
+              }
+            }
+          }
+        }catch(e){ /* file:// and opaque-origin browsers can deny cookie access. */ }
+      }
+      function choose(allowed){
+        state=allowed===true;
+        if(!state)disableAnalytics();
+        let saved=false;
+        try{
+          const value=JSON.stringify({v:1,analytics:state,at:Date.now()});
+          localStorage.setItem(KEY,value);
+          saved=localStorage.getItem(KEY)===value;
+        }catch(e){}
+        if(!state && !saved){
+          // Remove a stale grant if rejection could not be written, and verify removal too.
+          try{localStorage.removeItem(KEY);saved=localStorage.getItem(KEY)===null;}catch(e){}
+        }
+        saveError.classList.toggle('hidden',state || saved);
+        banner.classList.toggle('hidden',state || saved);
+        if(state)loadAnalytics();
+        else if(!saved)document.getElementById('cookie-reject').focus();
+      }
+      function recheckRevocation(){
+        // Only an explicit choice in this tab may grant analytics; peers can only revoke.
+        if(readChoice()!==true){state=false;disableAnalytics();}
+      }
+      window.addEventListener('storage',event=>{
+        if(event.storageArea===localStorage && (event.key===KEY || event.key===null) && readChoice(event.newValue)!==true){
+          state=false;disableAnalytics();
+        }
+      });
+      window.addEventListener('focus',recheckRevocation);
+      window.addEventListener('pageshow',recheckRevocation);
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden)recheckRevocation();});
+      function open(){banner.classList.remove('hidden');}
+      document.getElementById('cookie-reject').addEventListener('click',()=>choose(false));
+      document.getElementById('cookie-accept').addEventListener('click',()=>choose(true));
+      settings.addEventListener('click',()=>{
+        document.getElementById('btn-close-leaderboard').click();
+        open();
+        document.getElementById('cookie-reject').focus();
+      });
+      window.huarongPrivacy={get:()=>state,choose,open};
+      if(state===true)loadAnalytics();
+      else{
+        disableAnalytics();
+        if(state===null)open();
+      }
     })();
     </script>
 </body>
