@@ -1,6 +1,6 @@
 # Huarong Dao
 
-Beta **0.1.0-beta.2 candidate** — a browser sliding-block puzzle with Bulgarian and English UI, 14 layouts (3 unscored practice and 11 ranked), optional assistance, and on-device scores. Prepared and locally validated, not deployed. See [release notes](CHANGELOG.md).
+Beta **0.1.0-beta.3 candidate** — a browser sliding-block puzzle with Bulgarian and English UI, 14 layouts (3 unscored practice and 11 ranked), optional assistance, and on-device scores. Prepared and locally validated, not deployed. See [release notes](CHANGELOG.md).
 
 ## Safe default: local-only play
 
@@ -8,7 +8,7 @@ Open [the game](docs/index.html) in a browser, or serve the asset directory with
 
 The [issuer declaration](docs/index.html:1766) is empty by default. With no configured issuer, public-score controls are hidden: no wallet is created, no chain API calls are made, and no external crypto script is loaded. Scores and the player name stay in browser storage; clearing site data removes them.
 
-- Classic starts each load (116 single-cell moves minimum). The layout picker groups practice and four ranked difficulty tiers.
+- Training starts each load (24 single-cell moves minimum, unscored). **Choose Layout** opens the picker, which groups practice and four ranked difficulty tiers; Classic (116 moves minimum) is in the top tier.
 - Training, First Steps, and Next Steps are unscored practice: no score saves, nickname commitment, or public submissions. Legacy practice-only records do not lock the nickname; stored records for deferred layouts are retained but excluded from the current selector.
 - Assistance (hints, automatic steps/playback, or opening the solution list) excludes that run from scoring.
 - The first eligible score requires nickname confirmation. The verified score record locks the name across reloads; a failed save does not commit the name.
@@ -44,7 +44,7 @@ Public scoring requires explicit player consent, network access, and externally 
 
 Real broadcasts, mining/confirmation, public leaderboard integration, and live Cloudflare deployment remain untested. Local simulations and a deployment dry-run do not establish these paths work.
 
-For beta.2, Cloudflare is unauthenticated; no target URL, current deployment, or rollback ID has been verified. Authentication and recording those operator details remain prerequisites to a controlled rollout. No GitHub push is authorized or claimed.
+For beta.3, Cloudflare is unauthenticated; no target URL, current deployment, or rollback ID has been verified. Authentication and recording those operator details remain prerequisites to a controlled rollout. No GitHub push is authorized or claimed.
 
 ### Rollback
 
@@ -54,7 +54,7 @@ If a release fails, use Cloudflare's deployment/version history to roll back to 
 
 ## Validation evidence and limits
 
-The parent implementation task reported the following **initial local run** results for this beta; these counts are not totals for the later expanded suites. These checks were not rerun during documentation work:
+The parent implementation task reported the following **initial local run** results for beta.2 (beta.3's fresh local rerun is summarized in the [changelog](CHANGELOG.md)); these counts are not totals for the later expanded suites. These checks were not rerun during documentation work:
 
 | Check | Reported result |
 | --- | --- |
@@ -68,7 +68,7 @@ The parent implementation task reported the following **initial local run** resu
 
 The parent reports that all five on-disk QA suites passed across the workflow. After the later fixes, the affected edge, keyboard, accessibility, and locale/viewport matrix suites were rerun and each exited 0; the unaffected deep/BFS suite retains its initial pass. No later assertion totals are claimed here.
 
-Reported coverage includes Bulgarian/English responsive UI, the 320px beta badge, Classic startup, practice/assistance exclusions, cookie consent and host/domain-cookie withdrawal with startup cleanup, keyboard dialogs, and legal solver paths. Native-storage edge checks cover failed and silently lost writes, first-name rollback/readback, cross-tab nickname locking, reload, duplicate suppression, stale retry rejection, and permanent bests surviving the five-result history. Analytics requests are intercepted in QA; this is not live analytics verification.
+Reported coverage includes Bulgarian/English responsive UI, the 320px beta badge, Training startup, practice/assistance exclusions, cookie consent and host/domain-cookie withdrawal with startup cleanup, keyboard dialogs, and legal solver paths. Native-storage edge checks cover failed and silently lost writes, first-name rollback/readback, cross-tab nickname locking, reload, duplicate suppression, stale retry rejection, and permanent bests surviving the five-result history. Analytics requests are intercepted in QA; this is not live analytics verification.
 
 ### Available local QA commands
 

@@ -25,11 +25,11 @@ with sync_playwright() as p:
     nickname:document.getElementById('active-player').getBoundingClientRect().x,
     hintwidth:document.getElementById('hint-banner').getBoundingClientRect().width,
     overflow:document.documentElement.scrollWidth>innerWidth})''')
-   check(initial['id']=='wings' and initial['total']==14 and initial['ranked']==11,f'{locale} {w}: default VERIFIED Classic, 14 layouts, 11 ranked')
+   check(initial['id']=='training' and initial['total']==14 and initial['ranked']==11,f'{locale} {w}: default Training, 14 layouts, 11 ranked')
    check(initial['practices']==['training','first_steps','next_steps'],f'{locale} {w}: practice 3')
    check(initial['tiers']==[0,4,3,2,1],f'{locale} {w}: tiers ascending difficulty')
    check(not initial['overflow'] and initial['hintwidth']>50,f'{locale} {w}: fit and reserved hint')
-   check(page.locator('#beta-version').evaluate('(el)=>el.textContent.includes("0.1.0-beta.2") && el.getBoundingClientRect().height<20'),f'{locale} {w}: visible single-line beta.2 identifier')
+   check(page.locator('#beta-version').evaluate('(el)=>el.textContent.includes("0.1.0-beta.3") && el.getBoundingClientRect().height<20'),f'{locale} {w}: visible single-line beta.3 identifier')
    check(page.locator('#cookie-consent').is_visible(),f'{locale} {w}: cookie banner visible')
    check(not any('googletagmanager.com' in u for u in requests),f'{locale} {w}: no analytics before consent')
    check(not errors,f'{locale} {w}: no JS exceptions {errors[:2]}')
@@ -72,7 +72,7 @@ with sync_playwright() as p:
    page.route('https://www.googletagmanager.com/**',lambda route:route.abort())
    page.evaluate("""dump => {const m=new Map(Object.entries(dump));Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear(),dump:()=>Object.fromEntries(m)}})}""",dump)
    page.set_content(HTML,wait_until='domcontentloaded');page.wait_for_timeout(90)
-   check(page.evaluate('''() => nameLocked && nickname==='TestPlayer' && GAME_LAYOUTS[currentLayoutIdx].id==='wings' '''),f'{locale} {w}: reload preserves identity, starts Classic')
+   check(page.evaluate('''() => nameLocked && nickname==='TestPlayer' && GAME_LAYOUTS[currentLayoutIdx].id==='training' '''),f'{locale} {w}: reload preserves identity, starts Training')
    check(not page.locator('#cookie-consent').is_visible(),f'{locale} {w}: remembered cookie rejection')
    check(not errors,f'{locale} {w}: no JS exceptions final {errors[:2]}')
    if locale=='bg-BG' and os.environ.get('QA_OUTPUT_DIR'):page.screenshot(path=str(Path(os.environ['QA_OUTPUT_DIR'])/f'qa-{w}.png'),full_page=True)

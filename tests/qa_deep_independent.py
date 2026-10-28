@@ -88,7 +88,7 @@ with sync_playwright() as p:
  page.evaluate("""store => {const m=new Map(Object.entries(store));Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear(),dump:()=>Object.fromEntries(m)}})}""",store)
  page.set_content(html,wait_until='domcontentloaded');page.wait_for_timeout(80)
  assert page.evaluate('nameLocked && nickname === "GenuinePlaye"'), 'reload name mismatch'
- assert page.evaluate('GAME_LAYOUTS[currentLayoutIdx].id')=='wings','reload not classic'
+ assert page.evaluate('GAME_LAYOUTS[currentLayoutIdx].id')=='training','reload not training'
  # Assisted score run using legal path: board victory but no save to other rank.
  assisted=page.evaluate('''() => {
  selectLayout(GAME_LAYOUTS.findIndex(x=>x.id==='fayaa_highRisk'));

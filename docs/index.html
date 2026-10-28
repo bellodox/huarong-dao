@@ -1800,7 +1800,7 @@
                 <div class="flex items-center gap-1 min-w-0">
                     <h1 class="text-sm font-extrabold text-slate-100 leading-none truncate">Хуаронг Дао</h1>
                 </div>
-                <span id="header-layout-name" class="text-[10px] text-amber-400/90 font-medium truncate max-w-[130px] inline-block">Класическа (横刀立马)</span>
+                <span id="header-layout-name" class="text-[10px] text-amber-400/90 font-medium truncate max-w-[130px] inline-block">Тренировка</span>
             </div>
         </div>
 
@@ -1847,8 +1847,8 @@
             </div>
 
             <div class="text-right flex items-center justify-end">
-                <button id="btn-levels-menu" type="button" aria-label="Подредби" title="Подредби" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">
-                    🧩 <span>Подредби</span>
+                <button id="btn-levels-menu" type="button" aria-label="Избери подредба" title="Избери подредба" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">
+                    🧩 <span>Избери подредба</span>
                 </button>
             </div>
         </div>
@@ -1910,13 +1910,13 @@
                 <div class="flex items-center gap-2">
                     <span class="text-2xl" aria-hidden="true">📜</span>
                     <h2 id="game-story-title" class="font-extrabold text-lg text-amber-300">Легендата за Хуаронг</h2>
-                    <span id="beta-version" class="text-[10px] text-slate-400">Бета 0.1.0-beta.2</span>
+                    <span id="beta-version" class="text-[10px] text-slate-400">Бета 0.1.0-beta.3</span>
                 </div>
                 <button id="btn-close-game-story" type="button" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold" aria-label="Затвори историята">✕</button>
             </div>
             <div class="mb-3 bg-slate-800/80 border border-amber-500/30 rounded-xl p-3 text-sm leading-relaxed text-slate-100">
                 <p class="font-bold text-amber-300 mb-1">Как се играе?</p>
-                <p>Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започваш с „Класическа“. За упражнения избери „Тренировка“ от 🧩 Подредби.</p>
+                <p>Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започваш с „Тренировка“. За други подредби отвори 🧩 Избери подредба.</p>
             </div>
             <details id="story-literary-details" class="min-h-0 overflow-y-auto custom-scroll border border-slate-700 rounded-xl px-3 py-2">
               <summary class="cursor-pointer text-sm text-amber-300 font-bold">📜 Историята зад пъзела</summary>
@@ -3156,7 +3156,7 @@
             },
             {
                 id: 'wings',
-                name: "Класическа (横刀立马)",
+                name: "Класическа",
                 difficulty: "116 хода",
                 badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/40",
                 desc: "Документираната класическа подредба 横刀立马 · минимум 116 единични хода.",
@@ -3213,7 +3213,7 @@
             },
             {
                 id: 'small_obstacle',
-                name: "Уверено командване (指揮若定)",
+                name: "Уверено командване",
                 difficulty: "100 хода",
                 badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
                 desc: "Симетрична подредба с войници от двете страни на Гуан Ю и двама под него.",
@@ -3251,7 +3251,7 @@
             },
             {
                 id: 'fayaa_sideBySide',
-                name: "Рамо до рамо (齊頭並進)",
+                name: "Рамо до рамо",
                 difficulty: '85 хода',
                 badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
                 desc: "Четирима войници в редица между Цао Цао и Гуан Ю.",
@@ -3271,7 +3271,7 @@
             },
             {
                 id: 'fayaa_threeRoads',
-                name: "Три пътя (兵分三路)",
+                name: "Три пътя",
                 difficulty: '92 хода',
                 badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
                 desc: "Войници в горните ъгли и двама в центъра под Гуан Ю.",
@@ -3291,7 +3291,7 @@
             },
             {
                 id: 'fayaa_peach',
-                name: "Сред прасковените цветове (桃花園中)",
+                name: "Сред прасковените цветове",
                 difficulty: '100 хода',
                 badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
                 desc: "Двама генерали под Цао Цао, а Гуан Ю пази изхода.",
@@ -3311,7 +3311,7 @@
             },
             {
                 id: 'fayaa_rain2',
-                name: "Осемте формации на Джуге (諸葛八陣)",
+                name: "Осемте формации на Джуге",
                 difficulty: '119 хода',
                 badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
                 desc: "Гуан Ю вляво, двама генерали вдясно и трима войници в долния ред.",
@@ -3331,7 +3331,7 @@
             },
             {
                 id: 'fayaa_cannotStop',
-                name: "Невъзможно е да спреш (欲罷不能)",
+                name: "Невъзможно е да спреш",
                 difficulty: '126 хода',
                 badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
                 desc: "Гуан Ю под Цао Цао, с генерал под него и трима войници в долния ред.",
@@ -3351,7 +3351,7 @@
             },
             {
                 id: 'fayaa_highRisk',
-                name: "Без друг избор (別無選擇)",
+                name: "Без друг избор",
                 difficulty: '126 хода',
                 badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
                 desc: "Цао Цао в горния ляв ъгъл, а Гуан Ю вдясно от централен генерал.",
@@ -3382,12 +3382,12 @@
         }
         const tierOrder = {0:0,4:1,3:2,2:3,1:4};
         GAME_LAYOUTS.forEach(layout=>{layout.tier=tierForLayout(layout);});
-        // Menu tiers progress easy-to-hard. Classic is the initial game, not artificially
+        // Menu tiers progress easy-to-hard. Training is the initial game, and Classic is not artificially
         // labeled as easy or placed in the wrong difficulty tier.
         GAME_LAYOUTS.sort((a,b)=>tierOrder[a.tier]-tierOrder[b.tier] ||
              parseInt(a.difficulty,10)-parseInt(b.difficulty,10) ||
              (a.id==='wings'?-1:b.id==='wings'?1:0) || a.id.localeCompare(b.id));
-        const INITIAL_LAYOUT_INDEX=GAME_LAYOUTS.findIndex(x=>x.id==='wings');
+        const INITIAL_LAYOUT_INDEX=GAME_LAYOUTS.findIndex(x=>x.id==='training');
         window.huarongCatalog=GAME_LAYOUTS;
 
         const DIRECTIONS = [
@@ -3856,7 +3856,7 @@
                 }
                 const card=document.createElement('div');
                 const isActive=idx===currentLayoutIdx;
-                const isClassic=layout.id==='wings';
+                const isStart=layout.id==='training';
                 card.className=`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
                    isActive ? 'bg-amber-500/15 border-amber-500/80 shadow-lg' :
                    'bg-slate-800/50 hover:bg-slate-800 border-slate-700/80'}`;
@@ -3867,7 +3867,7 @@
                       <span class="shrink-0 text-[9px] px-2 py-0.5 rounded-full font-extrabold border ${layout.badgeColor}">${layout.difficulty}</span>
                     </div>
                     <p class="text-[11px] text-slate-400 leading-tight">${layout.desc}</p>
-                    ${isClassic?'<span class="text-[10px] text-amber-300 font-bold">★ Начална подредба</span>':''}
+                    ${isStart?'<span class="text-[10px] text-amber-300 font-bold">★ Начална подредба</span>':''}
                   </div>
                   <div><button type="button" class="px-3 py-1.5 rounded-xl text-xs font-black transition ${
                     isActive?'bg-amber-500 text-slate-950 shadow':'bg-slate-700 text-slate-200 hover:bg-amber-500 hover:text-slate-950'}">${isActive?'Активна':'Играй'}</button></div>`;
@@ -4520,8 +4520,8 @@
         "Четирима войници в редица":"Four Pawns in a Row",
         "Задна охрана":"Rear Guard",
         "Засада":"Ambush",
-        "Уверено командване (指揮若定)":"Command with Ease (指揮若定)",
-        "Осемте формации на Джуге (諸葛八陣)":"Zhuge's Eight Formations (諸葛八陣)",
+        "Уверено командване":"Command with Ease",
+        "Осемте формации на Джуге":"Zhuge's Eight Formations",
         "Документираната класическа подредба 横刀立马 · минимум 116 единични хода.":"The documented Classic Heng Dao Li Ma layout · minimum 116 single-cell moves.",
         "Симетрична подредба с четирима войници в долния ред. Описателно име.":"Symmetric formation with four pawns along the bottom row. Descriptive name.",
         "Симетрична подредба с войници от двете страни на Гуан Ю и двама под него.":"Symmetric formation with soldiers on either side of Guan Yu and two below him.",
@@ -4530,13 +4530,13 @@
         "Документирана подредба от каталога Fayaa · минимум 80 единични хода.":"Documented Fayaa layout · minimum 80 single-cell moves.",
         "Настъпление по един път (一路進軍)":"Single-Route Advance (一路進軍)",
         "Документирана подредба от каталога Fayaa · минимум 81 единични хода.":"Documented Fayaa layout · minimum 81 single-cell moves.",
-        "Рамо до рамо (齊頭並進)":"Advance Side by Side (齊頭並進)",
+        "Рамо до рамо":"Advance Side by Side",
         "Четирима войници в редица между Цао Цао и Гуан Ю.":"Four soldiers in a row between Cao Cao and Guan Yu.",
         "Шестоъграмата на Фуси (伏羲八卦:雷地豫)":"Fuxi Hexagram: Thunder over Earth (伏羲八卦:雷地豫)",
         "Документирана подредба от каталога Fayaa · минимум 89 единични хода.":"Documented Fayaa layout · minimum 89 single-cell moves.",
-        "Три пътя (兵分三路)":"Troops Along Three Routes (兵分三路)",
+        "Три пътя":"Troops Along Three Routes",
         "Войници в горните ъгли и двама в центъра под Гуан Ю.":"Soldiers in the top corners and two in the center below Guan Yu.",
-        "Сред прасковените цветове (桃花園中)":"Peach Blossom Garden (桃花園中)",
+        "Сред прасковените цветове":"Peach Blossom Garden",
         "Двама генерали под Цао Цао, а Гуан Ю пази изхода.":"Two generals below Cao Cao, with Guan Yu guarding the exit.",
         "Генерали около Цао Цао (將擁曹營)":"Generals Surround Cao Camp (將擁曹營)",
         "Документирана подредба от каталога Fayaa · минимум 101 единични хода.":"Documented Fayaa layout · minimum 101 single-cell moves.",
@@ -4548,10 +4548,10 @@
         "Документирана подредба от каталога Fayaa · минимум 116 единични хода.":"Documented Fayaa layout · minimum 116 single-cell moves.",
         "Изгряващо слънце (簷浮旭日)":"Rising Sun at the Eaves (簷浮旭日)",
         "Гуан Ю вляво, двама генерали вдясно и трима войници в долния ред.":"Guan Yu on the left, two generals on the right, and three soldiers along the bottom row.",
-        "Невъзможно е да спреш (欲罷不能)":"Hard to Stop (欲罷不能)",
+        "Невъзможно е да спреш":"Hard to Stop",
         "Гуан Ю под Цао Цао, с генерал под него и трима войници в долния ред.":"Guan Yu below Cao Cao, with a general beneath him and three soldiers along the bottom row.",
         "Цао Цао в горния ляв ъгъл, а Гуан Ю вдясно от централен генерал.":"Cao Cao in the top-left corner, with Guan Yu to the right of a central general.",
-        "Без друг избор (別無選擇)":"No Other Choice (別無選擇)",
+        "Без друг избор":"No Other Choice",
         "Практика: минимум 32 хода. Няма записване на резултати.":"Practice: minimum 32 moves. Scores are not recorded.",
         "Практика: минимум 50 хода. Няма записване на резултати.":"Practice: minimum 50 moves. Scores are not recorded.",
         "Практика · без запис на резултати":"Practice · unranked",
@@ -4560,8 +4560,8 @@
         "Ниво 2 · Майсторски (100–115 хода)":"Tier 2 · Master (100–115 moves)",
         "Ниво 1 · Легендарни (116+ хода)":"Tier 1 · Legendary (116+ moves)",
         "★ Начална подредба":"★ Starting layout",
-        "Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започваш с „Класическа“. За упражнения избери „Тренировка“ от 🧩 Подредби.":"Slide the pieces to move the large red block to the bottom-center exit. You start with Classic. For practice, select Training under 🧩 Layouts.",
-        "Започваш с „Класическа“. За упражнения избери „Тренировка“ от 🧩 Подредби.":"You start with Classic. For practice, choose Training under 🧩 Layouts.",
+        "Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започваш с „Тренировка“. За други подредби отвори 🧩 Избери подредба.":"Slide the pieces to move the large red block to the bottom-center exit. You start with Training. For other layouts, open 🧩 Choose Layout.",
+        "Започваш с „Тренировка“. За други подредби отвори 🧩 Избери подредба.":"You start with Training. For other layouts, open 🧩 Choose Layout.",
         "Настройки на бисквитките":"Cookie settings",
         "Поверителност и бисквитки":"Privacy and cookies",
         "Играта използва локално съхранение за име, настройки и резултати. Анализът на посещенията чрез Google Analytics е незадължителен и се зарежда само с твое съгласие. Можеш да промениш избора от Класация.":"The game uses browser storage for your name, settings, and scores. Google Analytics is optional and loads only if you consent. You can change your choice under Leaderboard.",
@@ -4570,9 +4570,9 @@
         'Анализът е изключен в този раздел, но отказът не можа да се запази. След презареждане анализът може да се включи отново. Разреши съхранението на данни и избери „Само необходими“ отново.':'Analytics is off in this tab, but your rejection could not be saved. Analytics may turn on again after reload. Allow browser storage and choose “Necessary only” again.',
         'Хуаронг Дао • Пъзел и класация':'Huarong Dao • Puzzle & Leaderboard',
         'Хуаронг Дао':'Huarong Dao',
-        'Бета 0.1.0-beta.2':'Beta 0.1.0-beta.2',
-        'Класическа (横刀立马)':'Classic (横刀立马)',
-        'Подредби':'Layouts', 'Ходове':'Moves', 'Инсталирай':'Install',
+        'Бета 0.1.0-beta.3':'Beta 0.1.0-beta.3',
+        'Класическа':'Classic',
+        'Подредби':'Layouts', 'Избери подредба':'Choose Layout', 'Ходове':'Moves', 'Инсталирай':'Install',
         '★ Самостоятелна игра · за класацията':'★ Unassisted · ranked',
         '★ Самостоятелна игра · само локално':'★ Unassisted · local only',
         '★ Самостоятелна игра · локален резултат':'★ Unassisted · local score',
@@ -4683,7 +4683,7 @@
         'Резултатът е запазен на устройството, но изпращането не успя.':'Score saved on this device, but submission failed.',
         'Върни предишното потребителско име, за да изпратиш този резултат.':'Restore your previous username to submit this score.',
         'Тренировка':'Training','Първи стъпки':'First Steps',
-        'Класическа (横刀立马)':'Classic (横刀立马)',
+        'Класическа':'Classic',
         'Следващи стъпки':'Next Steps',
         '50 хода':'50 moves',
         '💡 Помощ и решение':'💡 Help & solve','💡 Помощ':'💡 Help','Инст.':'Install','Помощ и решение':'Help & solve',

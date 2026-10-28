@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-beta.3 — locally validated candidate
+
+Prepared locally; not deployed, committed, tagged, or pushed. The Worker is unchanged.
+
+### Changed
+- Training is now the startup layout (24 single-cell-move minimum, unscored). Classic remains available in the layout picker. The "Starting layout" marker, header label, and bilingual onboarding text follow Training.
+- The header button formerly labeled Layouts is now **Choose Layout** (Bulgarian: "Избери подредба"), including its tooltip and accessible name.
+- Layout names no longer carry Chinese glyph suffixes (for example "Classic" instead of "Classic (横刀立马)"), in both Bulgarian and English. Layout IDs are unchanged, so stored scores are unaffected.
+- The beta badge reads 0.1.0-beta.3.
+
+### Validation and limitations
+- Freshly run locally for this candidate: all five Python Playwright scripts ([edge](tests/qa_edge.py), [matrix](tests/qa_v14.py) with 159 checks and 0 failures, [dialog keyboard](tests/qa_dialog_keyboard.py), [accessibility](tests/qa_accessibility.py), and [deep independent](tests/qa_deep_independent.py) with independent BFS for all 14 layouts) exited 0; inline scripts parse (13/13) and the Worker passes a syntax check. The edge, matrix, and deep scripts were updated for Training startup, the beta.3 badge, the Choose Layout label, and glyph-free names.
+- Live analytics, real public-score broadcasts/confirmations, public leaderboard integration, and deployment remain unverified. No deployment, authentication probe, commit, tag, or push was performed.
+
 ## 0.1.0-beta.2 — locally validated candidate
 
 Prepared locally; not deployed or pushed. Cloudflare is unauthenticated, and no target URL, current deployment, or known-good rollback ID has been verified.

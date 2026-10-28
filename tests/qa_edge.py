@@ -123,13 +123,13 @@ with sync_playwright() as p, ExitStack() as cleanup:
      return {start:GAME_LAYOUTS[currentLayoutIdx].id, startName:GAME_LAYOUTS[currentLayoutIdx].name,shownName:document.getElementById('header-layout-name').textContent,startMoves:GAME_LAYOUTS[currentLayoutIdx].difficulty,
        total:GAME_LAYOUTS.length,ranked:ranked.map(x=>x.id),before:before.map(x=>[x.id,sym(x)]),after:after.map(x=>[x.id,sym(x)]),scoreKeys:Object.keys(stored.best), owner:stored.owner, locked:nameLocked};
   }''')
-  assert r['start']=='wings' and r['startMoves']=='116 хода',r
+  assert r['start']=='training' and r['startMoves']=='24 хода',r
   assert r['total']==14 and len(r['ranked'])==11,r
   assert all(v for id,v in r['before']),(locale,'preclassic asymmetric',r['before'])
   assert set(id for id,v in r['after'])==EXPECTED_AFTER,r['after']
   assert r['scoreKeys']==list(MOCK_BEST) and r['owner']=='Alice' and r['locked'],r
   assert not REMOVED.intersection(r['ranked']),r
-  assert ('Classic' in r['shownName'] if locale=='en-US' else 'Класическа' in r['shownName']),r
+  assert ('Training' in r['shownName'] if locale=='en-US' else 'Тренировка' in r['shownName']),r
   page.locator('#btn-levels-menu').click()
   text=page.locator('#levels-list').inner_text()
   if locale=='en-US':
@@ -139,6 +139,9 @@ with sync_playwright() as p, ExitStack() as cleanup:
   assert ('Command with Ease' in text if locale=='en-US' else 'Уверено командване' in text),text
   assert ('Four Pawns in a Row' in text if locale=='en-US' else 'Четирима войници в редица' in text),text
   assert all('fayaa_' not in t for t in text.split('\n'))
+  names=page.locator('#levels-list h4').all_inner_texts()
+  assert len(names)==14 and not any(re.search(r'[⺀-鿿豈-﫿]',n) for n in names),('layout names contain CJK glyphs',names)
+  assert page.locator('#btn-levels-menu').inner_text().strip().endswith('Choose Layout' if locale=='en-US' else 'Избери подредба'),page.locator('#btn-levels-menu').inner_text()
   page.locator('#btn-close-levels').click()
   page.locator('#btn-leaderboard').click()
   opts=page.locator('#ranking-layout option').evaluate_all('(els)=>els.map(x=>x.value)')
@@ -160,8 +163,8 @@ with sync_playwright() as p, ExitStack() as cleanup:
  defects=[]
  if 'Save your personal best' in texts or 'First level with local scores' in texts: defects.append('English practice descriptions promise scores')
  onboarding=page.locator('#game-story-modal').text_content()
- if 'You start with Classic' not in onboarding or 'Start with Training, then use' in onboarding: defects.append('English onboarding contradicts Classic startup')
- assert page.locator('#beta-version').inner_text()=='Beta 0.1.0-beta.2'
+ if 'You start with Training' not in onboarding or 'Choose Layout' not in onboarding: defects.append('English onboarding contradicts Training startup')
+ assert page.locator('#beta-version').inner_text()=='Beta 0.1.0-beta.3'
  page.locator('#btn-close-levels').click()
  ctx.add_cookies([
   {'name':'_ga','value':'parent','domain':'.example.test','path':'/'},
@@ -179,9 +182,9 @@ with sync_playwright() as p, ExitStack() as cleanup:
  resumed=page.evaluate('({choice:huarongPrivacy.get(),disabled:window["ga-disable-G-517WKR3J3V"]===true,tags:document.querySelectorAll("script[src*=googletagmanager]").length})')
  if resumed!={'choice':False,'disabled':True,'tags':0}: defects.append('Reload does not enforce remembered analytics rejection: '+str(resumed))
  if any(c['name'].startswith('_ga') or c['name']=='_gid' for c in ctx.cookies()): defects.append('Reload retains stale analytics cookies')
- print('beta.2 regression defects:',json.dumps(defects))
+ print('beta.3 regression defects:',json.dumps(defects))
  assert not defects,defects
- print('PASS beta.2 translation and real parent-domain/root/reload cookie regressions')
+ print('PASS beta.3 translation and real parent-domain/root/reload cookie regressions')
  # Native storage, real navigation, two tabs, and controlled write failures.
  page.evaluate('localStorage.clear()');page.reload()
  page.locator('#btn-game-story-done').click();page.locator('#cookie-reject').click()
@@ -202,7 +205,7 @@ with sync_playwright() as p, ExitStack() as cleanup:
  assert page.evaluate('storeVictory("rear_guard",84,0,true);recentScores.rear_guard.length')==1
  print('PASS durable first-score commit, cross-tab identity lock, duplicate result idempotency')
  page.reload()
- assert page.evaluate('nameLocked && nickname==="BetaPlayer" && GAME_LAYOUTS[currentLayoutIdx].id==="wings"')
+ assert page.evaluate('nameLocked && nickname==="BetaPlayer" && GAME_LAYOUTS[currentLayoutIdx].id==="training"')
  page.evaluate("window.originalSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===SCORE_STORE_V2_KEY)throw Error('QA quota');return originalSet.call(this,k,v)};selectLayout(GAME_LAYOUTS.findIndex(x=>x.id==='rear_guard'));currentState.CC={x:1,y:3};userMovesCount=83;checkVictory()")
  assert page.evaluate('pendingLocalScore!==null && bestForLayout("rear_guard")[1]===84')
  page.evaluate('Storage.prototype.setItem=originalSet;void 0');page.locator('#retry-score').click()
