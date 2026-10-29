@@ -2,11 +2,15 @@
 
 Beta **0.1.0-beta.3 candidate** — a browser sliding-block puzzle with Bulgarian and English UI, 14 layouts (3 unscored practice and 11 ranked), optional assistance, and on-device scores. Prepared and locally validated, not deployed. See [release notes](CHANGELOG.md).
 
+## Planned leaderboard architecture
+
+The [single normative plan](tasks/plan.md) (hd1-plan-2) incorporates the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md). Supabase operational reservations/outbox and derived rankings, complete inline ROD receipts and independent confirmed-chain reconstruction are planned, not implemented. The [original snapshot plan](docs/Huarong_Dao_Public_Leaderboard_Cloudflare_Supabase_MVP.md) is historical. P1 remains unresolved; restricted E1 deployment gathers live evidence before a separate public-use gate. No deployment is authorized by documentation.
+
 ## Safe default: local-only play
 
-Open [the game](docs/index.html) in a browser, or serve the asset directory with a local static HTTP server. Browser storage restrictions can prevent saving when opening a local file; use a local HTTP origin if needed. No package installation or build is required for the static game.
+Open [the game](public/index.html) in a browser, or serve the asset directory with a local static HTTP server. Browser storage restrictions can prevent saving when opening a local file; use a local HTTP origin if needed. No package installation or build is required for the static game.
 
-The [issuer declaration](docs/index.html:1766) is empty by default. With no configured issuer, public-score controls are hidden: no wallet is created, no chain API calls are made, and no external crypto script is loaded. Scores and the player name stay in browser storage; clearing site data removes them.
+The [issuer declaration](public/index.html:1766) is empty by default. With no configured issuer, public-score controls are hidden: no wallet is created, no chain API calls are made, and no external crypto script is loaded. Scores and the player name stay in browser storage; clearing site data removes them.
 
 - Training starts each load (24 single-cell moves minimum, unscored). **Choose Layout** opens the picker, which groups practice and four ranked difficulty tiers; Classic (116 moves minimum) is in the top tier.
 - Training, First Steps, and Next Steps are unscored practice: no score saves, nickname commitment, or public submissions. Legacy practice-only records do not lock the nickname; stored records for deferred layouts are retained but excluded from the current selector.
@@ -30,7 +34,7 @@ From the repository root, with Wrangler available and Cloudflare authentication 
 
     npx wrangler deploy
 
-The [Wrangler configuration](wrangler.jsonc:6) serves assets from **./docs**, not the former public directory. It binds assets to the [Worker](worker.js:5), which intercepts GET requests for the root and index page. Without an issuer secret, deployment retains local-only behavior.
+The [Wrangler configuration](wrangler.jsonc:6) still points at **./docs**, while the checkout asset is now in **public/**. This pre-existing mismatch must be aligned under future implementation authorization; deployment instructions below are not a claim this checkout is deployable. It binds assets to the [Worker](worker.js:5), which intercepts GET requests for the root and index page. Without an issuer secret, deployment retains local-only behavior.
 
 ### Optional public scoring — experimental and unverified live
 
@@ -72,7 +76,7 @@ Reported coverage includes Bulgarian/English responsive UI, the 320px beta badge
 
 ### Available local QA commands
 
-The five supplied scripts resolve the checkout relative to their own location. With Python, the Python Playwright package, and its Chromium browser installed, run each from the repository root:
+The five supplied scripts resolve the checkout relative to their own location. Their sources still target the absent old asset; future plan T1/T2 must align them before a fresh pass can establish application health. With Python, the Python Playwright package, and its Chromium browser installed, run each from the repository root:
 
     python.exe tests/qa_edge.py
     python.exe tests/qa_v14.py
@@ -84,7 +88,7 @@ The deep script includes the independent Python BFS oracle. Optional screenshot/
 
 ## Source layout
 
-- [Single HTML asset](docs/index.html): ordered inline game, scoring, solver, signing, and translation scripts.
+- [Single HTML asset](public/index.html): ordered inline game, scoring, solver, signing, and translation scripts.
 - [Worker](worker.js): optional issuer injection and asset passthrough.
 - [Deployment configuration](wrangler.jsonc): asset directory and routing.
 - [Agent guidance](AGENTS.md): hidden contracts to preserve.

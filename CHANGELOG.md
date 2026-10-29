@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — documentation only, 2026-10-29
+
+- [hd1-plan-2](tasks/plan.md) reconciles the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md): Supabase transactional operational reservations and exact raw outbox replace the planned launch Durable Object, preserving complete inline chain receipts and independent confirmed ranking. Stale-owner safety fails closed after the signing barrier.
+- The original snapshot plan is historical; P1 remains unresolved. Restricted E1 deployment gathers live evidence before a separate public-use decision. No implementation, application validation or deployment is claimed; the documentation-only review verdict and limits are recorded in the [planning-only completion checklist](tasks/todo.md#planning-only-completion).
+
 ## 0.1.0-beta.3 — locally validated candidate
 
 Prepared locally; not deployed, committed, tagged, or pushed. The Worker is unchanged.
@@ -46,7 +51,7 @@ Prepared for initial release; not yet deployed.
 
 ### Added
 - Bulgarian/English puzzle UI, eight layouts, optional solver assistance, story, and install guidance.
-- [next_steps (50 moves)](docs/index.html:3139) layout.
+- [next_steps (50 moves)](public/index.html:3139) layout.
 - Local-only default with nickname confirmation, persistent personal bests, and the last five results. Training and assisted runs are unscored; First steps remains local-only.
 - Optional experimental public scoring with explicit consent. The disposable issuer key is exposed in delivered HTML; it is not a private backend credential.
 
