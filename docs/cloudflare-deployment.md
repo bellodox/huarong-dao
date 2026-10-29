@@ -17,7 +17,7 @@ The [production adapter](../leaderboard/relay-entry.js:72) always supplies avail
 
 The existing GitHub remote is **bellodox/huarong-dao**. Normal deployment is an authorized operator's push to the connected production branch, followed by Cloudflare Workers Builds. No GitHub Actions workflow, Cloudflare Pages project or local Wrangler login/deploy is needed. This guide does not authorize agents to commit, push or deploy.
 
-Open **Workers & Pages → huarong-rod-experiment → Settings → Build**:
+Open **Workers & Pages → huarong-dao → Settings → Build**:
 
 | Dashboard setting | Value |
 | --- | --- |
@@ -41,7 +41,7 @@ Installation is explicit in the build command; there is no separate install-comm
 
 The [manifest build](../package.json:7) regenerates both the [relay](../relay.js) and [browser signing bundle](../public/leaderboard-client.js), then checks relay bytes. Tests check the relay again. The [lockfile](../package-lock.json) pins Wrangler **4.155.0**; [LF rules](../.gitattributes) preserve reproducible distribution bytes. Wrangler's [custom build](../wrangler.jsonc:5) rejects stale relay output rather than silently repairing it during deployment.
 
-The [configured Worker name](../wrangler.jsonc:2), **huarong-rod-experiment**, must match the connected Worker. Configuration selects the [thin Worker](../worker.js), public assets and Worker-first root/index/API routes. This is Workers with assets: no dist/output-directory dashboard field is needed. Never substitute the test fixture or bypass custom builds. Do not change a non-production version-upload command into a production deploy; preview builds require separate isolation review if later wanted.
+The [configured Worker name](../wrangler.jsonc:2), **huarong-dao**, must match the connected Worker. Configuration selects the [thin Worker](../worker.js), public assets and Worker-first root/index/API routes. This is Workers with assets: no dist/output-directory dashboard field is needed. Never substitute the test fixture or bypass custom builds. Do not change a non-production version-upload command into a production deploy; preview builds require separate isolation review if later wanted.
 
 The operator must confirm GitHub App repository access and build token/account permissions for the intended Worker; these external settings were not inspected here. Record a prior safe deployment/version ID, routes/domains and binding names securely, never secret values. Review account usage/billing limits without assuming spending authorization.
 
