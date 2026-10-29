@@ -1,0 +1,47 @@
+
+> huarong-leaderboard-experiment@0.1.0-beta.3 test
+> node --test --test-concurrency=1 tests/*.test.js
+
+✔ legacy register/update fixtures use complete name scripts and low-S SIGHASH_ALL (222.6672ms)
+✔ authenticated prevouts and experimental fee ceilings reject hostile adapter metadata (6.2634ms)
+✔ integer funds/dust, dedicated marker and reserved ownership fail closed (1.8194ms)
+✔ walletless default, consent-only identity and canonical evidence signing; withdrawal no sign (559.8131ms)
+✔ legacy uncompressed mainnet WIF is retained byte-for-byte; failed storage no signature (95.2101ms)
+✔ atomic projection rebuild from chain, failed rebuild rollback, journal retained, stale cursor (17086.3983ms)
+✔ reorg projection rollback reconsiders unsigned identical claims but never re-signs a signed claim (9434.8039ms)
+✔ SQL + signer + mock transport: persistence precedes fetch, timeout retries same bytes after restart (8651.5606ms)
+✔ hostile fees and unauthenticated amounts never enter preparation or signing_started (30741.461ms)
+✔ lost begin/finalize response and database outage never authorize a second signing/fetch (10354.9266ms)
+✔ public SQL reads are bounded whitelists, read-only, separately routed and snapshot paginated (13931.3039ms)
+✔ public storage rejects oversized streamed responses without JSON parsing (6.1097ms)
+✔ all frozen catalog paths replay with exact optima and rectangular boards (26.5332ms)
+✔ strict improvement is lifetime OR weekly; inclusion epoch uses lower median (0.8591ms)
+✔ both canonical signature domains bind all evidence, normalize compressed identities (224.2519ms)
+✔ canonical bytes reject alternate JSON, fields, escapes and invalid scalars (2.4376ms)
+✔ invalid/post-solution moves and arbitrary boards fail (1.3928ms)
+✔ 1536 actual moves sign and replay; exact 2048 byte boundary never truncates (48.3949ms)
+✔ legacy WIF compression flag retained, normalized identity unchanged (16.9722ms)
+✔ complete raw lineage reconstructs overwritten values with both signatures and replay, no database (307.803ms)
+✔ six confirmations, crossing week hints, reorg rollback and external spend fail closed (567.9891ms)
+✔ all pages are exhausted, deduplicated and completeness is enforced (3.6384ms)
+✔ no local journal: reconstructed five-confirmation receipt durably pauses admission, six safely resumes (14248.115ms)
+✔ reconstructed pending lineage blocks queued preparation and an existing unsigned signing lease (12353.954ms)
+✔ all eleven ranked layouts roundtrip both signatures and pass Worker verification; three practice layouts remain excluded (1893.1498ms)
+✔ PostgreSQL admission: strict OR, byte idempotency, reconsideration revision, queue uniqueness (11667.661ms)
+✔ fenced unsigned lease, non-expiring signing barrier and immutable exact-raw outbox (8896.0208ms)
+✔ disk-backed PostgreSQL restart preserves decisions and safe rollback retains the journal (25170.6255ms)
+✔ SQL grants deny browser and direct service table writes; RPC rate bound is durable (13287.2652ms)
+✔ Worker independently derives points and player identity (120.7574ms)
+✔ invalid claims have stable errors before admission (1326.1371ms)
+✔ origin, content-type, declared and streamed payload bounds precede crypto (481.8604ms)
+✔ Worker ignores legacy secret, serves unchanged assets, disabled API creates no identity (167.2512ms)
+✔ admission rejects missing HMAC binding/IP and checks per-IP before global budget (320.4242ms)
+✔ Worker + actual SQL RPC: queued only after commit, exact retry/status, no privileged response (16940.1212ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 213924.6729

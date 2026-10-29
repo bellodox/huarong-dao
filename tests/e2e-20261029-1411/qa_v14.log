@@ -1,0 +1,160 @@
+PASS bg-BG 320: default Training, 14 layouts, 11 ranked
+PASS bg-BG 320: practice 3
+PASS bg-BG 320: tiers ascending difficulty
+PASS bg-BG 320: fit and reserved hint
+PASS bg-BG 320: visible single-line beta.3 identifier
+PASS bg-BG 320: cookie banner visible
+PASS bg-BG 320: no analytics before consent
+PASS bg-BG 320: no JS exceptions []
+PASS bg-BG 320: tier headings
+PASS bg-BG 320: Bulgarian tiers
+PASS bg-BG 320: reject saves
+PASS bg-BG 320: reject prevents GA
+PASS bg-BG 320: consent can reopen
+PASS bg-BG 320: GA only after accept
+PASS bg-BG 320: revoke analytics
+PASS bg-BG 320: training no identity gate
+PASS bg-BG 320: training no saved scores
+PASS bg-BG 320: first_steps no identity gate
+PASS bg-BG 320: first_steps no saved scores
+PASS bg-BG 320: next_steps no identity gate
+PASS bg-BG 320: next_steps no saved scores
+PASS bg-BG 320: first ranked score requires name
+PASS bg-BG 320: atomic first ranked save
+PASS bg-BG 320: reload preserves identity, starts Training
+PASS bg-BG 320: remembered cookie rejection
+PASS bg-BG 320: no JS exceptions final []
+PASS bg-BG 390: default Training, 14 layouts, 11 ranked
+PASS bg-BG 390: practice 3
+PASS bg-BG 390: tiers ascending difficulty
+PASS bg-BG 390: fit and reserved hint
+PASS bg-BG 390: visible single-line beta.3 identifier
+PASS bg-BG 390: cookie banner visible
+PASS bg-BG 390: no analytics before consent
+PASS bg-BG 390: no JS exceptions []
+PASS bg-BG 390: tier headings
+PASS bg-BG 390: Bulgarian tiers
+PASS bg-BG 390: reject saves
+PASS bg-BG 390: reject prevents GA
+PASS bg-BG 390: consent can reopen
+PASS bg-BG 390: GA only after accept
+PASS bg-BG 390: revoke analytics
+PASS bg-BG 390: training no identity gate
+PASS bg-BG 390: training no saved scores
+PASS bg-BG 390: first_steps no identity gate
+PASS bg-BG 390: first_steps no saved scores
+PASS bg-BG 390: next_steps no identity gate
+PASS bg-BG 390: next_steps no saved scores
+PASS bg-BG 390: first ranked score requires name
+PASS bg-BG 390: atomic first ranked save
+PASS bg-BG 390: reload preserves identity, starts Training
+PASS bg-BG 390: remembered cookie rejection
+PASS bg-BG 390: no JS exceptions final []
+PASS bg-BG 1366: default Training, 14 layouts, 11 ranked
+PASS bg-BG 1366: practice 3
+PASS bg-BG 1366: tiers ascending difficulty
+PASS bg-BG 1366: fit and reserved hint
+PASS bg-BG 1366: visible single-line beta.3 identifier
+PASS bg-BG 1366: cookie banner visible
+PASS bg-BG 1366: no analytics before consent
+PASS bg-BG 1366: no JS exceptions []
+PASS bg-BG 1366: tier headings
+PASS bg-BG 1366: Bulgarian tiers
+PASS bg-BG 1366: reject saves
+PASS bg-BG 1366: reject prevents GA
+PASS bg-BG 1366: consent can reopen
+PASS bg-BG 1366: GA only after accept
+PASS bg-BG 1366: revoke analytics
+PASS bg-BG 1366: training no identity gate
+PASS bg-BG 1366: training no saved scores
+PASS bg-BG 1366: first_steps no identity gate
+PASS bg-BG 1366: first_steps no saved scores
+PASS bg-BG 1366: next_steps no identity gate
+PASS bg-BG 1366: next_steps no saved scores
+PASS bg-BG 1366: first ranked score requires name
+PASS bg-BG 1366: atomic first ranked save
+PASS bg-BG 1366: reload preserves identity, starts Training
+PASS bg-BG 1366: remembered cookie rejection
+PASS bg-BG 1366: no JS exceptions final []
+PASS en-US 320: default Training, 14 layouts, 11 ranked
+PASS en-US 320: practice 3
+PASS en-US 320: tiers ascending difficulty
+PASS en-US 320: fit and reserved hint
+PASS en-US 320: visible single-line beta.3 identifier
+PASS en-US 320: cookie banner visible
+PASS en-US 320: no analytics before consent
+PASS en-US 320: no JS exceptions []
+PASS en-US 320: tier headings
+PASS en-US 320: English tiers
+PASS en-US 320: English cookie text
+PASS en-US 320: reject saves
+PASS en-US 320: reject prevents GA
+PASS en-US 320: consent can reopen
+PASS en-US 320: GA only after accept
+PASS en-US 320: revoke analytics
+PASS en-US 320: training no identity gate
+PASS en-US 320: training no saved scores
+PASS en-US 320: first_steps no identity gate
+PASS en-US 320: first_steps no saved scores
+PASS en-US 320: next_steps no identity gate
+PASS en-US 320: next_steps no saved scores
+PASS en-US 320: first ranked score requires name
+PASS en-US 320: atomic first ranked save
+PASS en-US 320: reload preserves identity, starts Training
+PASS en-US 320: remembered cookie rejection
+PASS en-US 320: no JS exceptions final []
+PASS en-US 390: default Training, 14 layouts, 11 ranked
+PASS en-US 390: practice 3
+PASS en-US 390: tiers ascending difficulty
+PASS en-US 390: fit and reserved hint
+PASS en-US 390: visible single-line beta.3 identifier
+PASS en-US 390: cookie banner visible
+PASS en-US 390: no analytics before consent
+PASS en-US 390: no JS exceptions []
+PASS en-US 390: tier headings
+PASS en-US 390: English tiers
+PASS en-US 390: English cookie text
+PASS en-US 390: reject saves
+PASS en-US 390: reject prevents GA
+PASS en-US 390: consent can reopen
+PASS en-US 390: GA only after accept
+PASS en-US 390: revoke analytics
+PASS en-US 390: training no identity gate
+PASS en-US 390: training no saved scores
+PASS en-US 390: first_steps no identity gate
+PASS en-US 390: first_steps no saved scores
+PASS en-US 390: next_steps no identity gate
+PASS en-US 390: next_steps no saved scores
+PASS en-US 390: first ranked score requires name
+PASS en-US 390: atomic first ranked save
+PASS en-US 390: reload preserves identity, starts Training
+PASS en-US 390: remembered cookie rejection
+PASS en-US 390: no JS exceptions final []
+PASS en-US 1366: default Training, 14 layouts, 11 ranked
+PASS en-US 1366: practice 3
+PASS en-US 1366: tiers ascending difficulty
+PASS en-US 1366: fit and reserved hint
+PASS en-US 1366: visible single-line beta.3 identifier
+PASS en-US 1366: cookie banner visible
+PASS en-US 1366: no analytics before consent
+PASS en-US 1366: no JS exceptions []
+PASS en-US 1366: tier headings
+PASS en-US 1366: English tiers
+PASS en-US 1366: English cookie text
+PASS en-US 1366: reject saves
+PASS en-US 1366: reject prevents GA
+PASS en-US 1366: consent can reopen
+PASS en-US 1366: GA only after accept
+PASS en-US 1366: revoke analytics
+PASS en-US 1366: training no identity gate
+PASS en-US 1366: training no saved scores
+PASS en-US 1366: first_steps no identity gate
+PASS en-US 1366: first_steps no saved scores
+PASS en-US 1366: next_steps no identity gate
+PASS en-US 1366: next_steps no saved scores
+PASS en-US 1366: first ranked score requires name
+PASS en-US 1366: atomic first ranked save
+PASS en-US 1366: reload preserves identity, starts Training
+PASS en-US 1366: remembered cookie rejection
+PASS en-US 1366: no JS exceptions final []
+FAIL COUNT 0

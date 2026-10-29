@@ -1,0 +1,2 @@
+PASS browser outbox offline 116 exact-byte retry + newer 1536 evidence; asynchronous withdrawal blocks all retries; 0 page errors
+PASS browser outbox ambiguous 116 exact-byte retry + newer 1536 evidence; asynchronous withdrawal blocks all retries; 0 page errors

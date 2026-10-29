@@ -1,0 +1,146 @@
+PASS independent BFS training 24 moves 940 states 0.159 seconds
+PASS independent BFS first_steps 32 moves 1839 states 0.232 seconds
+PASS independent BFS next_steps 50 moves 3863 states 0.854 seconds
+PASS independent BFS rear_guard 82 moves 23978 states 2.333 seconds
+PASS independent BFS fayaa_sideBySide 85 moves 23885 states 1.241 seconds
+PASS independent BFS fayaa_threeRoads 92 moves 16056 states 0.777 seconds
+PASS independent BFS fayaa_peach 100 moves 23678 states 1.082 seconds
+PASS independent BFS small_obstacle 100 moves 23751 states 2.217 seconds
+PASS independent BFS ambush 110 moves 24108 states 1.546 seconds
+PASS independent BFS wings 116 moves 24099 states 1.339 seconds
+PASS independent BFS heng_dao_li_ma 118 moves 24154 states 1.909 seconds
+PASS independent BFS fayaa_rain2 119 moves 22158 states 1.678 seconds
+PASS independent BFS fayaa_cannotStop 126 moves 22177 states 1.095 seconds
+PASS independent BFS fayaa_highRisk 126 moves 22177 states 0.789 seconds
+{
+  "layoutCount": 14,
+  "moves": [
+    [
+      "training",
+      24,
+      36,
+      false
+    ],
+    [
+      "first_steps",
+      32,
+      67,
+      false
+    ],
+    [
+      "next_steps",
+      50,
+      80,
+      false
+    ],
+    [
+      "rear_guard",
+      82,
+      369,
+      true
+    ],
+    [
+      "fayaa_sideBySide",
+      85,
+      296,
+      true
+    ],
+    [
+      "fayaa_threeRoads",
+      92,
+      211,
+      true
+    ],
+    [
+      "fayaa_peach",
+      100,
+      312,
+      true
+    ],
+    [
+      "small_obstacle",
+      100,
+      329,
+      true
+    ],
+    [
+      "ambush",
+      110,
+      302,
+      true
+    ],
+    [
+      "wings",
+      116,
+      280,
+      true
+    ],
+    [
+      "heng_dao_li_ma",
+      118,
+      269,
+      true
+    ],
+    [
+      "fayaa_rain2",
+      119,
+      275,
+      false
+    ],
+    [
+      "fayaa_cannotStop",
+      126,
+      412,
+      false
+    ],
+    [
+      "fayaa_highRisk",
+      126,
+      532,
+      false
+    ]
+  ],
+  "classic": {
+    "ok": 116,
+    "total": 116,
+    "finalized": true,
+    "assisted": false,
+    "gate": true,
+    "moves": 116
+  },
+  "assisted": {
+    "ok": 126,
+    "total": 126,
+    "won": true,
+    "assisted": true,
+    "rank": null
+  },
+  "geometry": [
+    {
+      "viewport": "320x480",
+      "overflow": false,
+      "down": []
+    },
+    {
+      "viewport": "320x568",
+      "overflow": false,
+      "down": []
+    },
+    {
+      "viewport": "375x500",
+      "overflow": false,
+      "down": []
+    },
+    {
+      "viewport": "390x844",
+      "overflow": false,
+      "down": []
+    },
+    {
+      "viewport": "1366x630",
+      "overflow": false,
+      "down": []
+    }
+  ],
+  "errors": []
+}

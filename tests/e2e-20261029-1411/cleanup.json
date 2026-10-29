@@ -1,0 +1,22 @@
+{
+  "removed_only_task_owned_paths": [
+    "tests/.runtime-prod",
+    "tests/.runtime-fixture",
+    ".wrangler/tmp/bundle-WySMDQ",
+    ".wrangler/tmp/dev-BzqWSb",
+    "tests/.wrangler/tmp/bundle-RZMk1b",
+    "tests/.wrangler/tmp/dev-Bkx9LD",
+    "tests/runtime-0.log",
+    "tests/runtime-1.log",
+    "tests/runtime-2.log",
+    "tests\\e2e-20261029-1411\\active.json",
+    "tests\\e2e-20261029-1411\\runner-pid.json"
+  ],
+  "tracked_diff_exit": 1,
+  "cached_diff_exit": 0,
+  "whitespace_exit": 0,
+  "final_status": "?? tests/e2e-20261029-1411/complete.json\n?? tests/e2e-20261029-1411/core.log\n?? tests/e2e-20261029-1411/local-disabled-bg-BG.png\n?? tests/e2e-20261029-1411/local-disabled-en-US.png\n?? tests/e2e-20261029-1411/owned-process-check.json\n?? tests/e2e-20261029-1411/pointer-exit.json\n?? tests/e2e-20261029-1411/pointer-result.json\n?? tests/e2e-20261029-1411/pointer-start.png\n?? tests/e2e-20261029-1411/pointer-victory.png\n?? tests/e2e-20261029-1411/pointer.log\n?? tests/e2e-20261029-1411/pointer_completion.py\n?? tests/e2e-20261029-1411/public-fixture-bg-BG.png\n?? tests/e2e-20261029-1411/public-fixture-en-US.png\n?? tests/e2e-20261029-1411/qa_accessibility.log\n?? tests/e2e-20261029-1411/qa_deep_independent.log\n?? tests/e2e-20261029-1411/qa_dialog_keyboard.log\n?? tests/e2e-20261029-1411/qa_edge.log\n?? tests/e2e-20261029-1411/qa_evidence.log\n?? tests/e2e-20261029-1411/qa_outbox_retry.log\n?? tests/e2e-20261029-1411/qa_public_ui.log\n?? tests/e2e-20261029-1411/qa_ranked_worker.log\n?? tests/e2e-20261029-1411/qa_reconstruct.log\n?? tests/e2e-20261029-1411/qa_release.log\n?? tests/e2e-20261029-1411/qa_v14.log\n?? tests/e2e-20261029-1411/results.json\n?? tests/e2e-20261029-1411/runner.log\n?? tests/e2e-20261029-1411/runtime-raw-oracle-exit.json\n?? tests/e2e-20261029-1411/runtime-raw-oracle.log\n?? tests/e2e-20261029-1411/runtime_raw_oracle.py\n?? tests/e2e-20261029-1411/stop-result.json\n?? tests/e2e-20261029-1411/stop.log\n?? tests/e2e-20261029-1411/worker-fixture-public.json\n",
+  "no_memory_writes": true,
+  "no_live_broadcasts": true,
+  "real_spend_ROD": 0
+}

@@ -1,0 +1,4 @@
+PASS real workerd browser 8787 en-US walletless view, consent boundary, errors 0
+PASS real workerd browser 8787 bg-BG walletless view, consent boundary, errors 0
+PASS real workerd browser 8788 en-US walletless view, consent boundary, errors 0
+PASS real workerd browser 8788 bg-BG walletless view, consent boundary, errors 0

@@ -1,0 +1,124 @@
+[
+  {
+    "command": [
+      "cmd.exe",
+      "/d",
+      "/c",
+      "npm test"
+    ],
+    "started": "2026-10-29T14:12:03.694974+00:00",
+    "seconds": 217.658,
+    "exit": 0,
+    "log": "core.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_deep_independent.py"
+    ],
+    "started": "2026-10-29T14:15:41.354814+00:00",
+    "seconds": 27.743,
+    "exit": 0,
+    "log": "qa_deep_independent.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_evidence.py"
+    ],
+    "started": "2026-10-29T14:16:09.099229+00:00",
+    "seconds": 17.45,
+    "exit": 0,
+    "log": "qa_evidence.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_public_ui.py"
+    ],
+    "started": "2026-10-29T14:16:26.551753+00:00",
+    "seconds": 64.257,
+    "exit": 0,
+    "log": "qa_public_ui.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_outbox_retry.py"
+    ],
+    "started": "2026-10-29T14:17:30.831351+00:00",
+    "seconds": 20.66,
+    "exit": 0,
+    "log": "qa_outbox_retry.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_ranked_worker.py"
+    ],
+    "started": "2026-10-29T14:17:51.493176+00:00",
+    "seconds": 59.993,
+    "exit": 0,
+    "log": "qa_ranked_worker.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_reconstruct.py"
+    ],
+    "started": "2026-10-29T14:18:51.489466+00:00",
+    "seconds": 0.93,
+    "exit": 0,
+    "log": "qa_reconstruct.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_release.py"
+    ],
+    "started": "2026-10-29T14:18:52.421719+00:00",
+    "seconds": 0.176,
+    "exit": 0,
+    "log": "qa_release.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_edge.py"
+    ],
+    "started": "2026-10-29T14:18:52.601113+00:00",
+    "seconds": 17.319,
+    "exit": 0,
+    "log": "qa_edge.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_v14.py"
+    ],
+    "started": "2026-10-29T14:19:09.922947+00:00",
+    "seconds": 47.974,
+    "exit": 0,
+    "log": "qa_v14.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_dialog_keyboard.py"
+    ],
+    "started": "2026-10-29T14:19:57.899246+00:00",
+    "seconds": 11.768,
+    "exit": 0,
+    "log": "qa_dialog_keyboard.log"
+  },
+  {
+    "command": [
+      "C:\\Python313\\python.exe",
+      "tests/qa_accessibility.py"
+    ],
+    "started": "2026-10-29T14:20:09.668841+00:00",
+    "seconds": 8.679,
+    "exit": 0,
+    "log": "qa_accessibility.log"
+  }
+]

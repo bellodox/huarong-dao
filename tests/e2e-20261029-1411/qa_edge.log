@@ -1,0 +1,13 @@
+analytics withdrawal defects: []
+PASS bilingual analytics peer revoke/no-auto-grant, remove/clear, focus/pageshow/visibility resume, thrown/dropped writes, reload and durable-failure feedback/retry; all network intercepted
+bg-BG PASS Тренировка symmetric pre-classic 6 postclassic 4 retained hidden scores 3
+en-US PASS Тренировка symmetric pre-classic 6 postclassic 4 retained hidden scores 3
+beta.3 regression defects: []
+PASS beta.3 translation and real parent-domain/root/reload cookie regressions
+PASS first-score quota failure rolls nickname back without lock
+PASS silent score-write loss fails readback verification without lock
+PASS durable first-score commit, cross-tab identity lock, duplicate result idempotency
+PASS native reload and failed locked-score retry preserves best/history
+PASS stale retry rejected and permanent best survives rolling five-result history
+PASS legacy practice-only scores do not commit an owner or fixed name
+PASS all edge tests

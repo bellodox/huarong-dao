@@ -1,0 +1,12 @@
+core exit 0
+qa_deep_independent exit 0
+qa_evidence exit 0
+qa_public_ui exit 0
+qa_outbox_retry exit 0
+qa_ranked_worker exit 0
+qa_reconstruct exit 0
+qa_release exit 0
+qa_edge exit 0
+qa_v14 exit 0
+qa_dialog_keyboard exit 0
+qa_accessibility exit 0

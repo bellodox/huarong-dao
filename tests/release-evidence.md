@@ -4,7 +4,62 @@
 
 2026-10-29. Explicit user instructions authorize experimental T1–T12 implementation and local validation, not production changes, unrestricted spending, restricted secret-file reads, commits or pushes. The [design](../tasks/plan.md) remains normative with its experimental authorization/capacity clarification. This is the **single current implementation/review handoff**; older documentation-only approvals do not approve these changes.
 
-**Local experimental implementation approved; not public launch or live MVP acceptance.** Parent-supplied final Code Reviewer verdict is **APPROVE, local experimental only**; final Vulnerability Checker verdict is **NO BLOCKING FINDINGS, disabled-production scope only**, following delta reassessment. T10/C5 live E1 remains blocked. T11 is local/fixture-only. T12/C6 local review and evidence are complete; administrative persistence is recorded below. The parent owns final status and authorized this documentation/OSG execution proxy. No implementation edits or application tests were performed by this closeout proxy.
+**Fresh evidence/utilities received bounded final reviews.** Parent-supplied final Vulnerability Checker outcome: **NO BLOCKING FINDINGS**; Code Reviewer: **APPROVE**, bounded to this handoff, saved execution evidence and the two supplemental Python utilities. Neither verdict approves the MVP as a whole, live chain/hosted operation or production enablement. T10/C5 live E1 remains blocked; T11 is local/fixture-only. Earlier implementation approvals, T12/C6 closeout and persistence remain historical evidence, not current approval. The parent owns final task status. This delegated administrative closeout changes only this handoff and performs authorized existing-store OSG persistence; no implementation edits or application reruns.
+
+## Fresh experimental run — 2026-10-29
+
+Executor-produced evidence at revision **6a86d9d29106ee84e37a8942464e2132961659df**, independently inspected by this documentation proxy on main at that same revision. Before this edit, tracked files were unchanged and only the new run directory was untracked. Results below are saved executor runs, not tests rerun by the proxy. Exact command arrays, start times, durations, exits and log names are in [results.json](e2e-20261029-1411/results.json); [completion record](e2e-20261029-1411/complete.json) reports 12 commands, zero failed.
+
+| Saved command / log | Exit | Observed result |
+| --- | ---: | --- |
+| npm test — [core log](e2e-20261029-1411/core.log) | 0 | 35 passed; zero failed, cancelled or skipped. |
+| [Deep independent suite](qa_deep_independent.py) — [log](e2e-20261029-1411/qa_deep_independent.log) | 0 | Independent BFS for all 14 layouts; legal unassisted 116-move completion, assisted exclusion, five viewport geometries, no page errors. |
+| [Evidence suite](qa_evidence.py) — [log](e2e-20261029-1411/qa_evidence.log) | 0 | All 14 browser paths independently replayed; exact capture/reset/assistance/atomic evidence; weekly-only 84-move candidate versus lifetime 82; no page errors. |
+| [Public UI suite](qa_public_ui.py) — [log](e2e-20261029-1411/qa_public_ui.log) | 0 | Four EN/BG × disabled/fixture runtime cases on actual loopback workerd; walletless view and consent boundary; no page errors. |
+| [Outbox retry suite](qa_outbox_retry.py) — [log](e2e-20261029-1411/qa_outbox_retry.log) | 0 | Offline/ambiguous exact-byte 116-move retry despite newer 1,536-move evidence; withdrawal blocks retries; no page errors. |
+| [Ranked Worker suite](qa_ranked_worker.py) — [log](e2e-20261029-1411/qa_ranked_worker.log) | 0 | All 11 ranked layouts signed/verified/app-signed and persisted before ambiguous fixture broadcast; three practice layouts rejected; no page errors. |
+| [Independent reconstruction](qa_reconstruct.py) — [log](e2e-20261029-1411/qa_reconstruct.log) | 0 | Two raw lineage transactions, full previous-script DER signatures, four compact receipt signatures, 1,536/116-move replay and 1,160-point lifetime/week reconstruction; no Supabase/JS/network. |
+| [Release boundary suite](qa_release.py) — [log](e2e-20261029-1411/qa_release.log) | 0 | Offline routing, fail-closed production issuance, no key substitution, retained rollback journal and no Durable Object. |
+| [Edge suite](qa_edge.py) — [log](e2e-20261029-1411/qa_edge.log) | 0 | Consent/cookie/translation, nickname rollback/readback, cross-tab ownership, duplicate/stale retries and permanent-best regressions. Analytics network intercepted, not live analytics proof. |
+| [v14 suite](qa_v14.py) — [log](e2e-20261029-1411/qa_v14.log) | 0 | 159 passing checks, zero failures; EN/BG at three widths, practice/identity/consent matrix. |
+| [Dialog keyboard suite](qa_dialog_keyboard.py) — [log](e2e-20261029-1411/qa_dialog_keyboard.log) | 0 | EN/BG keyboard navigation passed. |
+| [Accessibility suite](qa_accessibility.py) — [log](e2e-20261029-1411/qa_accessibility.log) | 0 | Eight locale/dialog cases: close visible, expected focus, Escape closes. Not a comprehensive accessibility audit. |
+
+Thus all **11 existing Python suites passed**, separately from the 35 Node tests.
+
+### Supplemental pointer and newly produced raw evidence
+
+- [Pointer utility](e2e-20261029-1411/pointer_completion.py), [result](e2e-20261029-1411/pointer-result.json), [log](e2e-20261029-1411/pointer.log) and [exit record](e2e-20261029-1411/pointer-exit.json): exit 0; **82 actual mouse drags** captured as the exact path, saved locally and retained after reload, unassisted with solver disabled; no player identity created, zero score POSTs, no page errors. This is automated pointer interaction, not a claim of human play.
+- [Runtime raw oracle](e2e-20261029-1411/runtime_raw_oracle.py), [log](e2e-20261029-1411/runtime-raw-oracle.log) and [exit record](e2e-20261029-1411/runtime-raw-oracle-exit.json): exit 0; independently verified a newly produced loopback fixture transaction: **126 moves, 1,260 points, 686 bytes**, one input signature, both receipt signatures and replay. Fixture state was broadcast-unknown after one attempt, generation 1. No synthetic transaction ID is presented as a live txid.
+- These results exercise fixture transport, local persistence and indexing only. They establish neither live consensus/confirmation nor hosted database behavior or real-network publication.
+
+Six retained screenshots (links verified; no new visual-review claim by this proxy): [disabled EN](e2e-20261029-1411/local-disabled-en-US.png), [disabled BG](e2e-20261029-1411/local-disabled-bg-BG.png), [fixture EN](e2e-20261029-1411/public-fixture-en-US.png), [fixture BG](e2e-20261029-1411/public-fixture-bg-BG.png), [pointer start](e2e-20261029-1411/pointer-start.png), [pointer victory](e2e-20261029-1411/pointer-victory.png).
+
+### Live boundary and remaining prerequisites
+
+**Real broadcasts: 0. Spend: 0 ROD.** Secure inherited WIF signing input was unavailable; no key access is fabricated and no restricted secret files were read. No key or wallet linkage is recorded here. Production issuance remains intentionally disabled, with no bypass, cloud authentication/status probes, deployment, cloud resource creation, transfers, rewards, commits or pushes.
+
+Live work still requires secure signing input; a verified network/name target and bootstrap; authenticated prevouts, complete canonical history and header ancestry; verified documented transport, current fees and minimum name amount; a tiny explicit fee/locked-output budget; and an authorized backend with durable exact raw outbox and non-expiring signing barriers. **1 ROD is a ceiling, not an approved spending budget.** This evidence does not satisfy those prerequisites or authorize production enablement.
+
+### Cleanup, preservation and review boundary
+
+Executor reports that the runtime helper's help option unexpectedly started guarded runtimes; those runtimes were reused for the tests and then stopped. The [stop result](e2e-20261029-1411/stop-result.json) reports helper exit 0; the [stop log](e2e-20261029-1411/stop.log) retains individual saved-PID stop exits **255/0/0**, not three successful stop exits. The separate [owned-process check](e2e-20261029-1411/owned-process-check.json) found all saved PIDs absent. [Final verification](e2e-20261029-1411/final-verification.json) reports ports **8787/8788/8790/9230/9231 closed** and all **65 HEAD blobs matched** before this handoff edit; prior tracked source/configuration was untouched and only the new evidence directory remained. [Cleanup](e2e-20261029-1411/cleanup.json) retains a transient tracked-diff exit 1; later [Git diagnostic](e2e-20261029-1411/git-final-diagnostic.json) and final verification show tracked diff exit 0. Do not describe every historical diagnostic as passing. Only task-owned runtime artifacts were cleaned.
+
+**Parent-supplied final reviews for the new evidence scope:** Vulnerability Checker reported **NO BLOCKING FINDINGS**; the preexisting [runtime helper](runtime_servers.py) help-option launch behavior was a **Low, outside-scope** finding. Code Reviewer reported **APPROVE**, bounded to this handoff, saved execution evidence, [pointer utility](e2e-20261029-1411/pointer_completion.py) and [raw oracle utility](e2e-20261029-1411/runtime_raw_oracle.py). Both inspected saved execution evidence rather than rerunning the full suites. Code Reviewer additionally reported fresh syntax, JSON, local-link, hash and port checks passed. Neither verdict approves the MVP as a whole, live chain/hosted operation or production enablement; prior implementation approvals below remain historical. Administrative persistence transcription does not extend these review scopes or restart reviews.
+
+Bounded OSG context and history succeeded without warnings, resolving the existing related [Worker/browser plan heading](../tasks/plan.md:100), current and not stale; its heading and source SHA-256 were verified directly.
+
+### Fresh evidence OSG closeout — 2026-10-29
+
+Every command used the public OSG command launcher and the explicit authorized target workspace. All sequence commands exited 0 with successful envelopes; no initialization, repair, migration, dependency or source/ignore changes occurred.
+
+- Sync: 25 changes across 47 files; graph **ca078864d78ed21e37aeda0bb1ae2327373b2d2c4715bae8481f467784898fc6e**. The saved full envelope contained **659 AMBIGUOUS_DECLARATION warnings** (declarations skipped); indexing is not exhaustive.
+- First embed: Xenova/all-MiniLM-L6-v2@q8; **908 total, 6 embedded, 902 reused, 1 removed, 0 remaining/skipped**, complete=true, no warnings.
+- The stable related heading was rechecked after sync, stale=false. Remember resolved one actual entity: **doc:doc:tasks/plan.md#8-worker-api-and-browser-integration**. Episode **agent:episode:a028300c06ceb24b0c579647**; graph **cf61b051c8fb15afee32c3d4213310dae2f8b35cbc5fa42b9616074a5b076faf0**. **POLICY_REFS_UNAVAILABLE**: host-loaded rule hashes were not verified/recorded; historical provenance is not current approval.
+- Post-remember embed: **909 total, 1 embedded, 908 reused, 0 removed/remaining/skipped**, complete=true, no warnings. Counts cover eligible indexed text, not skipped declarations or measured general recall quality.
+- Verify: **24 commits, 2,615 elements**, no warnings. Representative bounded context returned the new episode with anchors ok, main/revision 6a86d9d29106ee84e37a8942464e2132961659df and blended retrieval; the supplemental raw-oracle source citation was current. Graph integrity/retrieval does not certify application correctness or live readiness.
+
+The episode records saved executor results and attributed bounded reviews, not administrative-proxy application reruns. No secrets, wallet linkage or raw transactions were stored. This factual IDs/limits transcription follows persistence; it is not recursively remembered or claimed reindexed. The parent retains final status ownership.
 
 ## T1–T12 outcomes
 
@@ -134,7 +189,7 @@ Proxy documentation check: 118 local links, fragments and citation bounds across
 
 Fresh loopback probes found ports 8787/8788/8790 closed; this proxy started no servers. Only its three temporary hash/embed/exit records were removed after transcription. Existing deterministic fixtures, screenshots, tests and unrelated ignored runtime directories are preserved. Final Git inspection: main at HEAD 8c86d0a631790122302536463a89f1b9d328786c; implementation and documentation remain uncommitted, cached diff empty, new implementation/evidence files remain untracked. No commit, push, deploy, reset or unrelated cleanup. Parent retains final status ownership.
 
-## Parent closeout checklist
+## Prior implementation closeout checklist (historical)
 
 - [x] Final scoped Code Reviewer/security verdicts attributed above.
 - [x] Substantive fixes and affected final validation supplied by parent; no new implementation here.

@@ -1,0 +1,46 @@
+[
+  {
+    "command": [
+      "git",
+      "diff",
+      "--exit-code",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "git",
+      "diff",
+      "--no-ext-diff",
+      "--exit-code",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "git",
+      "status",
+      "--short",
+      "--untracked-files=all"
+    ],
+    "exit": 0,
+    "stdout": " A tests/e2e-20261029-1411/cleanup.json\n A tests/e2e-20261029-1411/complete.json\n A tests/e2e-20261029-1411/core.log\n A tests/e2e-20261029-1411/local-disabled-bg-BG.png\n A tests/e2e-20261029-1411/local-disabled-en-US.png\n A tests/e2e-20261029-1411/owned-process-check.json\n A tests/e2e-20261029-1411/pointer-exit.json\n A tests/e2e-20261029-1411/pointer-result.json\n A tests/e2e-20261029-1411/pointer-start.png\n A tests/e2e-20261029-1411/pointer-victory.png\n A tests/e2e-20261029-1411/pointer.log\n A tests/e2e-20261029-1411/pointer_completion.py\n A tests/e2e-20261029-1411/public-fixture-bg-BG.png\n A tests/e2e-20261029-1411/public-fixture-en-US.png\n A tests/e2e-20261029-1411/qa_accessibility.log\n A tests/e2e-20261029-1411/qa_deep_independent.log\n A tests/e2e-20261029-1411/qa_dialog_keyboard.log\n A tests/e2e-20261029-1411/qa_edge.log\n A tests/e2e-20261029-1411/qa_evidence.log\n A tests/e2e-20261029-1411/qa_outbox_retry.log\n A tests/e2e-20261029-1411/qa_public_ui.log\n A tests/e2e-20261029-1411/qa_ranked_worker.log\n A tests/e2e-20261029-1411/qa_reconstruct.log\n A tests/e2e-20261029-1411/qa_release.log\n A tests/e2e-20261029-1411/qa_v14.log\n A tests/e2e-20261029-1411/results.json\n A tests/e2e-20261029-1411/runner.log\n A tests/e2e-20261029-1411/runtime-raw-oracle-exit.json\n A tests/e2e-20261029-1411/runtime-raw-oracle.log\n A tests/e2e-20261029-1411/runtime_raw_oracle.py\n A tests/e2e-20261029-1411/stop-result.json\n A tests/e2e-20261029-1411/stop.log\n A tests/e2e-20261029-1411/worker-fixture-public.json\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "6a86d9d29106ee84e37a8942464e2132961659df\n",
+    "stderr": ""
+  }
+]

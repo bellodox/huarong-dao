@@ -1,0 +1,66 @@
+[
+  {
+    "locale": "bg-BG",
+    "modal": "btn-drawer",
+    "close_visible": true,
+    "focus": "btn-close-drawer",
+    "escape_closed": true,
+    "close_button_bounds": null
+  },
+  {
+    "locale": "bg-BG",
+    "modal": "btn-levels-menu",
+    "close_visible": true,
+    "focus": "btn-close-levels",
+    "escape_closed": true,
+    "close_button_bounds": null
+  },
+  {
+    "locale": "bg-BG",
+    "modal": "btn-install-help",
+    "close_visible": true,
+    "focus": "btn-close-install-help",
+    "escape_closed": true,
+    "close_button_bounds": null
+  },
+  {
+    "locale": "bg-BG",
+    "modal": "btn-leaderboard",
+    "close_visible": true,
+    "focus": "btn-close-leaderboard",
+    "escape_closed": true,
+    "close_button_bounds": null
+  },
+  {
+    "locale": "en-US",
+    "modal": "btn-drawer",
+    "close_visible": true,
+    "focus": "btn-close-drawer",
+    "escape_closed": true,
+    "close_button_bounds": null
+  },
+  {
+    "locale": "en-US",
+    "modal": "btn-levels-menu",
+    "close_visible": true,
+    "focus": "btn-close-levels",
+    "escape_closed": true,
+    "close_button_bounds": null
+  },
+  {
+    "locale": "en-US",
+    "modal": "btn-install-help",
+    "close_visible": true,
+    "focus": "btn-close-install-help",
+    "escape_closed": true,
+    "close_button_bounds": null
+  },
+  {
+    "locale": "en-US",
+    "modal": "btn-leaderboard",
+    "close_visible": true,
+    "focus": "btn-close-leaderboard",
+    "escape_closed": true,
+    "close_button_bounds": null
+  }
+]

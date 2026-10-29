@@ -1,0 +1,1 @@
+PASS {"fixture": true, "live": false, "pointer_moves": 82, "local_score_moves": 82, "exact_path": true, "solver_enabled": false, "assisted": false, "reload_persisted": true, "player_identity_created": false, "score_posts": 0, "page_errors": []}
