@@ -4,7 +4,43 @@
 
 2026-10-29. Explicit user instructions authorize experimental T1–T12 implementation and local validation, not production changes, unrestricted spending, restricted secret-file reads, commits or pushes. The [design](../tasks/plan.md) remains normative with its experimental authorization/capacity clarification. This is the **single current implementation/review handoff**; older documentation-only approvals do not approve these changes.
 
-**Current D7/D6 bounded local scope is complete and reviewed for disabled/static packaging and optional explicitly configured read-only operation only.** Final parent-supplied verdicts and limits are recorded below. Full live-public MVP acceptance remains blocked by numerical D5 policy, authenticated live adapter/complete history, funding/E1 and hosted tests. The parent retains final status ownership; this explicitly authorized proxy performs factual documentation closeout and final OSG persistence only, without implementation edits or application reruns. No deployment, authentication, spend, secret reads, commits or pushes occurred.
+**Current GitHub → Workers Builds preparation has supplied final scoped reviews; authorized memory closeout is recorded below**, as scoped below. Earlier D7/D6 reviews remain valid only for their recorded historical scope, not these later build/configuration/documentation changes. Full live-public MVP acceptance remains blocked by numerical D5 policy, authenticated live adapter/complete history, funding/E1 and hosted tests. No deployment, authentication, spend, secret reads, commits or pushes occurred.
+
+## GitHub Workers Builds current scope
+
+Baseline: **c947c6d8eeb60cbe9d6ba038d7597e83b538bc05**, branch **leaderboard**, locally verified remote **bellodox/huarong-dao**. Starting documentation-subtask status had only the executor's changes to [manifest](../package.json), [LF rules](../.gitattributes) and new [Node version file](../.nvmrc). Aggregate build regenerates both artifacts then checks the relay; deploy invokes pinned Wrangler. Lockfile, bundles, Worker configuration and disabled production behavior are unchanged.
+
+The [operator guide](../docs/cloudflare-deployment.md#2-primary-workflow-github-push-to-workers-builds) now uses the existing connected Worker and GitHub push-triggered production build. The operator still needs to confirm dashboard values, GitHub App access, build token/account permissions and remote runtime binding names without exposing values. Production-only previews stay disabled; no non-production version upload is redirected to production. No wallet/Supabase is required for disabled/static mode. Optional reads still require 001 then 002 and separate runtime secrets; deployment never enables issuance.
+
+### Supplied code-executor evidence, not documentation reruns
+
+The parent reports a disposable LF Git archive with no initial dependencies, controlled environment, explicit empty env-file and telemetry/devdotenv disabled. This was a **Windows simulation of the hosted commands**, not an Ubuntu or remote Cloudflare run:
+
+| Check | Supplied result |
+| --- | --- |
+| Node 24.14.1 / npm 10.9.2 locked dev install | 41 packages; exit 0 |
+| Aggregate build | Exit 0; both regenerated artifacts exactly match committed bytes |
+| npm test | 49 passed; zero failures/skips; exit 0 |
+| Deploy script with local dry-run | Pinned Wrangler 4.155.0; exit 0; only ASSETS binding; 141.24 KiB / 40.95 KiB gzip |
+| Intentionally stale relay dry-run | Expected exit 1; guard rejected stale bytes without repairing them |
+
+An archive CRLF comparison issue was corrected to LF without reinstalling; no application defect was found. The executor reports all owned temporary outputs removed and only three source/configuration files changed. Official Builds configuration/image/branch guidance was verified by that executor. No real cloud/auth/secrets/commit/push or OSG writes occurred.
+
+Documentation changes are limited to this handoff, the guide, README, agent guidance and changelog. Fresh documentation validation: **206 local links/anchors/line bounds, zero errors; 102 starting non-document raw SHA-256 values unchanged**, exit 0. Scoped document whitespace check exited 0 with LF/CRLF conversion warnings only. No application tests were rerun. Temporary validation/hash files were removed after the final recheck; no servers were started. Final parent-supplied Code Reviewer: **APPROVE** the entire eight-file scope against the baseline above. Fresh reviewer checks on Node 24.14.1 / npm 11.11 covered two focused stale/reproducible-build and disabled secret-isolation cases; both bundles matched exactly in memory. Final parent-supplied Security: **NO BLOCKING FINDINGS** across the same eight files, based on static checks and official documentation. No required fix; residual risks are existing locked dependency lifecycle scripts, token least privilege and no online audit. These are attributed reviewer results, not this proxy's reruns. No implementation changed after reviews. Parent retains final status ownership; historical approvals are not reused for this scope. Hosted Builds, actual deployment and external permissions remain unverified.
+
+### GitHub Workers Builds administrative validation and OSG persistence
+
+Parent-authorized factual closeout only: no implementation or substantive dashboard instructions changed after the supplied reviews. Fresh proxy checks passed **207 local links/anchors/line bounds**, **103 starting non-document raw SHA-256 values unchanged** (including the new Node version file), and whole working-tree whitespace (exit 0; line-ending conversion warnings only). No application rerun was needed. Only stale pending-status references outside this handoff were reconciled. Task-owned temporary validation/hash/sync files were removed after final recheck; no servers were started.
+
+Public OSG used the explicit target workspace for bounded context/history and sync → embed → remember → embed → verify → representative context. All commands exited 0 with successful envelopes; no initialization, repair, migration or dependency installation occurred. The related [README](../README.md) entity resolved through history and was directly reverified after sync with stale=false.
+
+- Sync: **67 changes / 58 files / zero renames**, graph **ca15a2c3aba56afc23e415ae3b25114972b2f6c562168bafdabef42b4fd4d1c39**; **1,173 AMBIGUOUS_DECLARATION warnings**, declarations skipped, not exhaustive indexing.
+- First embed: Xenova/all-MiniLM-L6-v2@q8, **1,731 total / six embedded / 1,725 reused / three removed / zero remaining or skipped**, complete=true, no warnings.
+- Remember: one resolved related entity; episode **agent:episode:133c8935922ebb6c202d9799**, graph **cd629326e1fd7fd0e381c00c87b94a5e0dd49aa9e5535e70b42cb143a3fbd18ef**. **POLICY_REFS_UNAVAILABLE** means host-loaded rule hashes were not verified/recorded, not authenticated approval provenance.
+- Post-remember embed: **1,732 total / one embedded / 1,731 reused / zero removed, remaining or skipped**, complete=true, no warnings.
+- Verify: **30 commits / 5,530 elements**, no warnings. Representative blended context returned the new episode with anchors ok, actual leaderboard/baseline Git provenance and no warnings.
+
+Graph branch main remains separate from actual Git leaderboard at **c947c6d8eeb60cbe9d6ba038d7597e83b538bc05**. The existing eight-file working-tree scope is preserved, uncommitted. Integrity and eligible-text embedding completion are not exhaustive coverage, measured general recall quality or hosted/live proof. These factual IDs are transcribed once after persistence, not recursively remembered or claimed reindexed. Parent retains final status ownership. Dashboard settings, GitHub App access, token/account permissions, Node override, disabled previews, remote runtime binding-name review, hosted Ubuntu Builds and post-push actual endpoint checks remain external operator gates; no deployment or new rollout authority is claimed.
 
 ## D7/D6 current local scope
 

@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "npm run build:relay && npm run build:client && npm run check:relay",
+    "deploy": "wrangler deploy",
     "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
     "pretest": "npm run check:relay",
     "test": "node --test --test-concurrency=1 tests/*.test.js",

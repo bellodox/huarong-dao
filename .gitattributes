@@ -1,2 +1,3 @@
 # Preserve reproducible distribution bytes even with Windows core.autocrlf enabled.
 relay.js text eol=lf
+public/leaderboard-client.js text eol=lf

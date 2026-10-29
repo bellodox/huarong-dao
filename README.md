@@ -10,7 +10,7 @@ The [normative plan](tasks/plan.md) incorporates the [decision delta](docs/Huaro
 
 The [combined D5–D7 delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) is incorporated into the [binding design revision](tasks/plan.md#d5d7-binding-revision). It requires a published versioned ranked limit (numerical ceilings remain unresolved), successor publication after one canonical confirmation and lineage reconciliation, six-confirmation result finalization and twelve-confirmation weekly close.
 
-The [self-contained relay](relay.js), built from [relay source](leaderboard/relay-entry.js), is now shared by a thin same-process Cloudflare adapter and a direct, non-listening Node 24.2+ CLI. Offline verification/reconstruction needs no network, database or project dependencies; status requires configured server reads. Build/test still needs locked project packages. Executable packaging and a live publication CLI are not implemented. [Migration 002](supabase/migrations/002_d6_included_successor.sql) adds durable included state and retained raw lineage for one-confirmation reconciled successor eligibility. Included predecessors never re-sign or rebroadcast. Current evidence and pending independent reviews belong only in the [handoff](tests/release-evidence.md#d7d6-current-local-scope).
+The [self-contained relay](relay.js), built from [relay source](leaderboard/relay-entry.js), is now shared by a thin same-process Cloudflare adapter and a direct, non-listening Node 24.2+ CLI. Offline verification/reconstruction needs no network, database or project dependencies; status requires configured server reads. Build/test still needs locked project packages. Executable packaging and a live publication CLI are not implemented. [Migration 002](supabase/migrations/002_d6_included_successor.sql) adds durable included state and retained raw lineage for one-confirmation reconciled successor eligibility. Included predecessors never re-sign or rebroadcast. Current evidence and independent review status belong only in the [handoff](tests/release-evidence.md#d7d6-current-local-scope).
 
 ## Safe default: local-only play
 
@@ -36,7 +36,7 @@ Rejection is read back to verify persistence. If saving it fails, the game tries
 
 ## Cloudflare deployment (operator action; candidate not deployed)
 
-Follow the [step-by-step Windows CMD deployment guide](docs/cloudflare-deployment.md). Disabled/static mode is locally packaged and needs no app WIF; optional server-only reads need both migrations. No deployment, cloud authentication probe or remote publishing was performed. A restricted funded E1 additionally needs a configured chain, limited-funded wallet, spend envelope, pinned bootstrap and live adapter/history evidence. Deploying does not enable issuance. This is not full live MVP acceptance.
+Follow the [GitHub push → Workers Builds guide](docs/cloudflare-deployment.md#2-primary-workflow-github-push-to-workers-builds): the existing repository is bellodox/huarong-dao, with leaderboard as the current intended production branch. Cloudflare installs locked dev dependencies, builds both bundles, tests, then deploys; normal operation requires no GitHub Actions, Pages or local Wrangler login/deploy. Exact dashboard commands/variables and external permission checks are in the guide; local dry-run/CLI recovery is secondary. Disabled/static mode needs no wallet or Supabase; optional server-only reads need both migrations. Current scope and final review status are in the [handoff](tests/release-evidence.md#github-workers-builds-current-scope). No hosted build/deployment, cloud authentication probe or remote publishing was performed. Funded E1 and full live acceptance remain separate; deployment never enables issuance.
 
 ### Optional public scoring — experimental and unverified live
 
@@ -88,6 +88,7 @@ The deep script independently BFS-checks all 14 layouts. Optional screenshots/re
 
 The [manifest](package.json) and [lockfile](package-lock.json) pin the local experiment tools. Node 24.14.1, Python 3.13.5 and Wrangler 4.155.0 were exercised. After installing the locked packages locally, available commands are:
 
+    npm run build
     npm run build:relay
     npm run check:relay
     npm test

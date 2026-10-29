@@ -1,6 +1,6 @@
 # Cloudflare deployment guide — disabled by design
 
-Operator runbook, 2026-10-29. Commands below are **instructions for later human execution**, not evidence of deployment or permission to deploy. Current measured results, scoped completed independent reviews and remaining gaps are centralized in the [execution handoff](../tests/release-evidence.md#d7d6-current-local-scope). No cloud login, account probe, deploy, funding, secret read, commit or push was performed for this guide.
+Operator runbook, 2026-10-29. Commands below are **instructions for later operator execution**, not evidence of deployment or permission to deploy. Current scope, supplied evidence and final review status are centralized in the [execution handoff](../tests/release-evidence.md#github-workers-builds-current-scope). No cloud login, account probe, deploy, funding, secret read, commit or push was performed for this guide.
 
 ## 1. Choose the readiness tier
 
@@ -13,18 +13,53 @@ Operator runbook, 2026-10-29. Commands below are **instructions for later human 
 
 The [production adapter](../leaderboard/relay-entry.js:72) always supplies availability false. Adding credentials, an HMAC key or a legacy issuer binding does not enable signing. Never deploy the [loopback fixture](../tests/runtime-worker.js), its configuration or publicly known test keys. Never reuse an exposed issuer key. The [frozen decision delta](Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) is not rewritten by this runbook.
 
-## 2. Prepare locally in Windows CMD
+## 2. Primary workflow: GitHub push to Workers Builds
 
-Run from the repository root with Node 24.2+ (executor exercised 24.14.1) and npm. The [manifest](../package.json) and [lockfile](../package-lock.json) pin Wrangler **4.155.0**. Use the installed local launcher below, not a global/latest package. Package installation can download locked dependencies; it is not a Cloudflare login. No lint, typecheck or CI command exists.
+The existing GitHub remote is **bellodox/huarong-dao**. Normal deployment is an authorized operator's push to the connected production branch, followed by Cloudflare Workers Builds. No GitHub Actions workflow, Cloudflare Pages project or local Wrangler login/deploy is needed. This guide does not authorize agents to commit, push or deploy.
+
+Open **Workers & Pages → huarong-rod-experiment → Settings → Build**:
+
+| Dashboard setting | Value |
+| --- | --- |
+| Connected repository | bellodox/huarong-dao |
+| Production branch | leaderboard — current intended branch; choose the branch the operator actually pushes for production, not an assumed main |
+| Root directory | / |
+| Build command | npm ci --include=dev --no-audit --no-fund && npm run build && npm test |
+| Deploy command | npm run deploy |
+| Preview/non-production builds | Disabled for this production-only scope |
+
+Configure these **build variables**, separately from Worker runtime secrets:
+
+| Build variable | Value |
+| --- | --- |
+| SKIP_DEPENDENCY_INSTALL | 1 |
+| NODE_VERSION | 24.14.1 |
+| WRANGLER_SEND_METRICS | false |
+| CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV | false |
+
+Installation is explicit in the build command; there is no separate install-command field to configure. Dev dependencies are required for builds/tests. The Node override must match [the version file](../.nvmrc); override any conflicting dashboard setting. The currently documented default image is Ubuntu 24.04 x86_64 with npm 10.9.2. Node 24.14.1 is an explicitly supported override, not a claim that this exact version is preinstalled. No hosted Ubuntu build was run here.
+
+The [manifest build](../package.json:7) regenerates both the [relay](../relay.js) and [browser signing bundle](../public/leaderboard-client.js), then checks relay bytes. Tests check the relay again. The [lockfile](../package-lock.json) pins Wrangler **4.155.0**; [LF rules](../.gitattributes) preserve reproducible distribution bytes. Wrangler's [custom build](../wrangler.jsonc:5) rejects stale relay output rather than silently repairing it during deployment.
+
+The [configured Worker name](../wrangler.jsonc:2), **huarong-rod-experiment**, must match the connected Worker. Configuration selects the [thin Worker](../worker.js), public assets and Worker-first root/index/API routes. This is Workers with assets: no dist/output-directory dashboard field is needed. Never substitute the test fixture or bypass custom builds. Do not change a non-production version-upload command into a production deploy; preview builds require separate isolation review if later wanted.
+
+The operator must confirm GitHub App repository access and build token/account permissions for the intended Worker; these external settings were not inspected here. Record a prior safe deployment/version ID, routes/domains and binding names securely, never secret values. Review account usage/billing limits without assuming spending authorization.
+
+Build variables do **not sanitize existing remote runtime bindings**. Review binding names through Worker settings and remove obsolete issuer credentials. For disabled/static mode leave optional reads disabled and remove unnecessary read credentials. No wallet, app WIF, Supabase or HMAC key is required. Do not use keep-vars to preserve unknown configuration. Deployment credentials never enable issuance.
+
+After saving settings, the authorized operator pushes the intended production branch and inspects the Cloudflare build log. Install, build and tests must succeed before deployment. Record the actual commit, deployed version and reported URL, then perform section 6 checks. A local simulation is not proof that the GitHub integration, hosted build or deployment succeeded.
+
+## 3. Secondary: local checks and dry-run in Windows CMD
+
+For troubleshooting, run from the repository root with Node 24.14.1 and the locked local tools. Package installation is not a Cloudflare login. No lint/typecheck command or checked-in CI workflow exists.
 
 ```bat
-npm ci
-npm run build:relay
-npm run check:relay
+npm ci --include=dev --no-audit --no-fund
+npm run build
 npm test
 ```
 
-Stop on a nonzero exit before continuing. Build regenerates the [relay distribution](../relay.js) from [source](../leaderboard/relay-entry.js) and dependencies. Check compares exact bytes; the [Wrangler custom build](../wrangler.jsonc) checks rather than silently repairs a stale artifact. Rebuild the [browser signing bundle](../public/leaderboard-client.js) with the manifest's build:client command only if its source changed. Do not rewrite generated bundles manually.
+Stop on a nonzero exit before continuing. The aggregate build regenerates both distributions; do not rewrite generated bundles manually.
 
 ### Secret-safe local packaging
 
@@ -48,34 +83,21 @@ rmdir /s /q tests\cloudflare-doc-dryrun
 
 Recreate the empty file before subsequent commands that reference it. Keep it until all intended operator commands finish, then clean it. Do not kill unrelated servers or remove other test evidence.
 
-## 3. Create/select the Cloudflare target — later operator action
+## 4. Secondary: manual CLI recovery only
 
-1. Sign in to the Cloudflare dashboard, select the intended account and confirm its Workers entitlement, usage limits and billing policy. Approve only the intended disabled/static rollout. No paid plan or domain purchase is required by this code, and this guide does not authorize spending.
-2. Review the [deployment configuration](../wrangler.jsonc): Worker name is **huarong-rod-experiment**, entry is the [thin Worker](../worker.js), assets are the public directory, and root/index/API paths run Worker-first. There is no named deployment environment or fixture route. Explicitly confirm the target account and whether an existing Worker of that name would be replaced. With multiple accounts, set the intended account ID in authorized configuration or select it when prompted; do not rely on an accidental default.
-3. Record any existing deployment/version ID, routes/domains and binding names securely before changing them. Never capture secret values in evidence. A previous version containing exposed-key injection is not a safe rollback target.
-4. Authenticate only after separate operator authorization. Recreate the task-owned empty file as above, then use the pinned launcher:
+Normal push-triggered Builds needs no local authentication. Manual remote CLI operations are optional recovery tools for an already authorized operator with the intended account/Worker verified, not normal setup prerequisites. This guide adds no login requirement. After local checks, with the task-owned empty env-file still present, a separately authorized manual deployment uses:
 
 ```bat
-node_modules\.bin\wrangler.cmd login --env-file tests\cloudflare-doc-empty.tmp
+npm run deploy -- --config wrangler.jsonc --env-file tests\cloudflare-doc-empty.tmp
 ```
 
-Complete the browser OAuth flow for the intended account. This step is external interaction, not a local-play prerequisite. Do not export tokens or copy credentials into the repository. Cloudflare authentication grants no ROD spending or publication authorization.
-
-## 4. Deploy disabled/static mode — later operator action
-
-Run the local checks first. With the empty env-file still present and intended target verified:
-
-```bat
-node_modules\.bin\wrangler.cmd deploy --config wrangler.jsonc --env-file tests\cloudflare-doc-empty.tmp
-```
-
-Use the production configuration exactly; do not pass the test fixture entry, bypass custom builds or add an imagined enablement flag. Record the actual deployed version and URL returned by Cloudflare. For a first release, use the intended Workers endpoint; add a custom domain only as a separately approved routing change. Do not invent a target URL or assume an existing deployment is known-good.
+Do not run this in parallel with an automatic production build. Use the production configuration exactly; do not pass the test fixture entry, bypass custom builds or add an imagined enablement flag. Record the actual deployed version and URL returned by Cloudflare. For a first release, use the intended Workers endpoint; add a custom domain only as a separately approved routing change. Do not invent a target URL or assume an existing deployment is known-good.
 
 Deployments retain existing secrets, so an empty env-file does **not** sanitize remote bindings. On a reused Worker, inspect binding **names** securely through the dashboard and remove obsolete issuer credentials. For disabled/static mode ensure optional reads are not enabled, and remove unnecessary read credentials. Do not use keep-vars to preserve unknown configuration. No app WIF, rate HMAC or Supabase secret is needed for this mode.
 
 ## 5. Optional server-only Supabase reads
 
-This is a separate operator decision, not a prerequisite for the game. Hosted setup/testing has not been completed here.
+This is a separate operator decision, not a prerequisite for the game. Hosted setup/testing has not been completed here. Configure these as **Worker runtime bindings/secrets**, separately from Build variables, through the authorized dashboard; the CLI prompts below are optional equivalents for authorized recovery.
 
 1. Select an authorized Supabase project. Preserve an appropriate backup and existing journal/outbox; never use a reset or table deletion as migration/retry recovery.
 2. In the project's secure SQL editor, apply all of [migration 001](../supabase/migrations/001_leaderboard.sql), then all of [migration 002](../supabase/migrations/002_d6_included_successor.sql) for a fresh database. If 001 is already installed, apply **all of 002 atomically**, including its transaction boundaries; do not cherry-pick function fragments or rerun 001 over existing operational data.
@@ -139,6 +161,8 @@ node_modules\.bin\wrangler.cmd rollback SAFE_RECORDED_VERSION_ID --config wrangl
 5. Remove only owned temporary files/output, close the dedicated shell and retain non-secret deployment/version/check evidence. No need to launch or stop local fixtures for this runbook.
 
 ## 9. References and remaining gates
+
+Workers Builds references verified by the prior code executor on **2026-10-29**: [configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/), [build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/) and [branch builds](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/). These rolling official sources support dashboard guidance, not a hosted execution claim.
 
 Official Cloudflare references consulted **2026-10-29**: [Workers commands: deploy, secrets and rollback](https://developers.cloudflare.com/workers/wrangler/commands/workers/), [general commands: login](https://developers.cloudflare.com/workers/wrangler/commands/general/) and [command index](https://developers.cloudflare.com/workers/wrangler/commands/). Their Markdown endpoints were retrieved successfully; the HTML command index returned 403 in this environment. These are rolling official references, not version-pinned documentation. Command support was cross-checked against the repository-pinned Wrangler 4.155.0 local help for deploy, login, secret put/delete and rollback; only help was executed, not those remote operations. Do not upgrade dependencies merely to follow a rolling example.
 
