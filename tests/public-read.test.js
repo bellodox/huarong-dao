@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
+import { migrations } from './schema.js';
 import { SupabaseStorage } from '../leaderboard/storage.js';
 import { handleApi } from '../worker.js';
 import { leaderboardPage } from '../leaderboard/index.js';
 
 test('public SQL reads are bounded whitelists, read-only, separately routed and snapshot paginated',async()=>{
   const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role;');
-  await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+  await db.exec(migrations());
   const history=JSON.parse(readFileSync(new URL('./fixtures/history.json',import.meta.url)));
   const { reconstruct }=await import('../leaderboard/reconcile.js');const snapshot={...reconstruct(history),stale:false};
   const calls=[];
@@ -21,7 +22,7 @@ test('public SQL reads are bounded whitelists, read-only, separately routed and 
   const get=path=>handleApi(new Request('https://game.test'+path),{storage,available:true,issuer:new Proxy({},{get(){throw Error('GET must not issue');}})});
   try {
     const rpc=async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value;
-    await rpc('rebuild',{revision:0,epoch:2900,head:snapshot.head,snapshot});
+    await rpc('rebuild',{revision:(await db.query('select revision from public.hd1_coordinator')).rows[0].revision,epoch:2900,head:snapshot.head,snapshot});
     await db.exec("insert into public.hd1_claims(id,bytes,player,nickname,layout,epoch,moves,points,state,evaluation_revision,raw,txid) values(repeat('a',64),'PRIVATE-BYTES','02'||repeat('1',64),'Private','wings',2900,120,1,'broadcast_unknown',0,'00',repeat('b',64));");
     const first=await get('/api/leaderboard');assert.equal(first.status,200);
     const page=await first.json();assert.equal(page.rows[0].points,1160);assert.equal(page.pending.length,1);

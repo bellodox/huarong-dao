@@ -6,11 +6,11 @@ Beta **0.1.0-beta.3 candidate** — a browser sliding-block puzzle with Bulgaria
 
 The [normative plan](tasks/plan.md) incorporates the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md). Its local implementation includes player-signed actual-path evidence, independent Worker replay, Supabase SQL operational reservations/exact raw outbox, transaction serialization and independent raw-history reconstruction. The [execution handoff](tests/release-evidence.md) is the single current source for completion, measured validation and review status. The [original snapshot plan](docs/Huarong_Dao_Public_Leaderboard_Cloudflare_Supabase_MVP.md) is historical. No launch Durable Object, player transaction, rewards or transfers are introduced. Live ROD transport, exhaustive chain discovery and hosted Supabase remain unverified; production issuance is disabled.
 
-### Required next architecture (not implemented)
+### D7/D6 local implementation and remaining policy
 
 The [combined D5–D7 delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) is incorporated into the [binding design revision](tasks/plan.md#d5d7-binding-revision). It requires a published versioned ranked limit (numerical ceilings remain unresolved), successor publication after one canonical confirmation and lineage reconciliation, six-confirmation result finalization and twelve-confirmation weekly close.
 
-The target is one self-contained relay distribution shared by a thin same-process Cloudflare adapter and a direct, non-listening Node CLI. Offline verification must work without network/database access for complete evidence; operational commands still require Supabase and ROD endpoints. The current modular Worker is not that distribution. No portable CLI, clean-environment parity or executable packaging pass is claimed. Existing local tests/reviews predate this target; see the [current handoff](tests/release-evidence.md#d5d7-documentation-reconciliation).
+The [self-contained relay](relay.js), built from [relay source](leaderboard/relay-entry.js), is now shared by a thin same-process Cloudflare adapter and a direct, non-listening Node 24.2+ CLI. Offline verification/reconstruction needs no network, database or project dependencies; status requires configured server reads. Build/test still needs locked project packages. Executable packaging and a live publication CLI are not implemented. [Migration 002](supabase/migrations/002_d6_included_successor.sql) adds durable included state and retained raw lineage for one-confirmation reconciled successor eligibility. Included predecessors never re-sign or rebroadcast. Current evidence and pending independent reviews belong only in the [handoff](tests/release-evidence.md#d7d6-current-local-scope).
 
 ## Safe default: local-only play
 
@@ -36,15 +36,15 @@ Rejection is read back to verify persistence. If saving it fails, the game tries
 
 ## Cloudflare deployment (operator action; candidate not deployed)
 
-No deployment, cloud authentication probe or remote publishing was performed. The [Wrangler configuration](wrangler.jsonc) serves the public asset directory and routes API paths through the [Worker](worker.js). Local development does not authorize deployment. A future controlled rollout needs an explicitly configured target, disposable limited-funded server wallet, spend envelope and pinned issuer/name bootstrap, plus the live E1 evidence in the [plan](tasks/plan.md#10-gates-verification-and-rollback).
+Follow the [step-by-step Windows CMD deployment guide](docs/cloudflare-deployment.md). Disabled/static mode is locally packaged and needs no app WIF; optional server-only reads need both migrations. No deployment, cloud authentication probe or remote publishing was performed. A restricted funded E1 additionally needs a configured chain, limited-funded wallet, spend envelope, pinned bootstrap and live adapter/history evidence. Deploying does not enable issuance. This is not full live MVP acceptance.
 
 ### Optional public scoring — experimental and unverified live
 
 Publication requires explicit independent public-score consent. Only then does the browser create/reuse a player identity and sign complete evidence; it does not create a player chain transaction. The application signs and funds the receipt transaction server-side. A complete receipt must fit 2,048 UTF-8 bytes; oversized evidence remains intact and local. The tested technical choice is not public-policy approval; see [capacity evidence](tests/release-evidence.md#capacity-choice).
 
-Optional server-side read access requires HD1_READS set to the literal true, an HTTPS SUPABASE_URL and server-only SUPABASE_SERVICE_KEY, as defined in [the Worker](worker.js:64) and [storage boundary](leaderboard/storage.js:4). Never put binding values in browser code, logs or documentation, or inspect restricted secret files to configure this experiment. Apply the [revised SQL migration](supabase/migrations/001_leaderboard.sql), including its public-read grants, before separately authorized hosted use. Merely configuring reads never enables issuance: the production entry hardcodes availability false. There is no live chain adapter or production enablement switch.
+Optional server-side read access requires HD1_READS set to the literal true, an HTTPS SUPABASE_URL and server-only SUPABASE_SERVICE_KEY, as defined in [relay bindings](leaderboard/relay-entry.js:72) and [storage boundary](leaderboard/storage.js:4). Never put binding values in browser code, logs or documentation, or inspect restricted secret files to configure this experiment. Fresh installs apply [001](supabase/migrations/001_leaderboard.sql) then [002](supabase/migrations/002_d6_included_successor.sql); existing 001 installs apply all of 002 atomically. The upgrade pauses/increments revision, retains journals/ownership/reservations and requires fresh authenticated reconciliation. Merely configuring reads never enables issuance: the production entry hardcodes availability false. There is no live chain adapter or production enablement switch.
 
-The [admission boundary](worker.js:30) additionally requires a server-only HD1_RATE_HMAC_KEY of 32–256 UTF-8 bytes and trusted platform-provided client IP for any future separately authorized adapter. It fails closed without either, uses domain-separated HMAC buckets and checks per-IP before global capacity; stale-rate cleanup is traffic-triggered after ten minutes, not scheduled. Never trust a client-supplied IP header outside the trusted platform boundary. Do not reuse the publicly known fixture key for live use. The [public-read boundary](leaderboard/storage.js:11) is lock-free STABLE SQL, bounded to 100 rank rows plus 20 pending rows and 256 KiB. Leaderboard cache lifetime is five seconds; GET/status requests never advance signing or broadcast.
+The [admission boundary](leaderboard/relay-entry.js:38) additionally requires a server-only HD1_RATE_HMAC_KEY of 32–256 UTF-8 bytes and trusted platform-provided client IP for any future separately authorized adapter. It fails closed without either, uses domain-separated HMAC buckets and checks per-IP before global capacity; stale-rate cleanup is traffic-triggered after ten minutes, not scheduled. Never trust a client-supplied IP header outside the trusted platform boundary. Do not reuse the publicly known fixture key for live use. The [public-read boundary](leaderboard/storage.js:11) is lock-free STABLE SQL, bounded to 100 rank rows plus 20 pending rows and 256 KiB. Leaderboard cache lifetime is five seconds; GET/status requests never advance signing or broadcast.
 
 The separate [loopback fixture entry](tests/runtime-worker.js) demonstrates the end-to-end flow with publicly known test keys and a mock transport, not spendable funding. Never deploy it. Any former exposed issuer must be treated as compromised and never reused.
 
@@ -56,7 +56,7 @@ Before any future live change, record a known-good deployment/version and preser
 
 ## Validation evidence and limits
 
-Fresh experimental implementation evidence is recorded in the [execution handoff](tests/release-evidence.md#executed-validation). It includes core/SQL tests, all five rerun browser regressions, evidence replay, real loopback workerd EN/BG flows and an independent Python raw-transaction/signature/replay oracle. It does not establish live analytics, hosted Supabase concurrency, chain mining or deployment. Older results below retain their historical attribution.
+Current and historical experimental evidence is recorded in the [execution handoff](tests/release-evidence.md#d7d6-current-local-scope). Earlier scope includes core/SQL tests, all five browser regressions, evidence replay, real loopback workerd EN/BG flows and an independent Python raw-transaction/signature/replay oracle. The five original browser suites have not yet been rerun for current D7/D6 changes. Neither scope establishes live analytics, hosted Supabase concurrency, chain mining or deployment. Older results below retain their historical attribution.
 
 The parent implementation task reported the following **initial local run** results for beta.2 (beta.3's fresh local rerun is summarized in the [changelog](CHANGELOG.md)); these counts are not totals for the later expanded suites. These checks were not rerun during documentation work:
 
@@ -88,6 +88,8 @@ The deep script independently BFS-checks all 14 layouts. Optional screenshots/re
 
 The [manifest](package.json) and [lockfile](package-lock.json) pin the local experiment tools. Node 24.14.1, Python 3.13.5 and Wrangler 4.155.0 were exercised. After installing the locked packages locally, available commands are:
 
+    npm run build:relay
+    npm run check:relay
     npm test
     npm run build:client
     npm run dev
@@ -108,9 +110,10 @@ The [fixture launcher](tests/runtime_servers.py) binds loopback ports 8787/8788/
 ## Source layout
 
 - [HTML asset](public/index.html): ordered inline game/scoring/solver/translation logic and actual run evidence.
-- [Worker](worker.js): API validation, disabled production issuer and unchanged asset passthrough.
+- [Worker](worker.js): thin same-process adapter and static asset passthrough.
+- [Relay source](leaderboard/relay-entry.js) and [distribution](relay.js): shared API/CLI entry and bundled verification/state machine.
 - [Leaderboard modules](leaderboard/profile.js): frozen replay rules, signatures, serialization, issuer, storage and reconstruction.
 - [Public UI](public/leaderboard-ui.js) and [local signing source](leaderboard/client.js): consent boundary, exact signed retries and identity backup.
-- [SQL migration](supabase/migrations/001_leaderboard.sql): server-only atomic operational state and derived index.
+- [SQL migration 001](supabase/migrations/001_leaderboard.sql) and [002](supabase/migrations/002_d6_included_successor.sql): atomic operational state, derived index and durable reconciled inclusion/successor guards.
 - [Deployment configuration](wrangler.jsonc): asset directory and routing.
 - [Agent guidance](AGENTS.md): hidden contracts to preserve.

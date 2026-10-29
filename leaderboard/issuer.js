@@ -27,7 +27,8 @@ export async function broadcastStored(storage,chain,claim) {
 export async function advance(storage,chain,secret,markerKey,id) {
   let state=await storage.read(), claim=state.claims.find(row=>row.id===id);
   if(!claim)return {code:'not_found'};
-  if(['confirmed','reorged','conflicted'].includes(claim.state))return claim;
+  // Included (1-5 confirmations) is reconciled from chain history, never rebroadcast or re-signed.
+  if(['confirmed','included','reorged','conflicted','failed_closed'].includes(claim.state))return claim;
   if(claim.raw)return broadcastStored(storage,chain,claim);
   if(!['queued','unsigned_preparing'].includes(claim.state))return claim;
   const observation=structuredClone(await chain.prepare(claim));

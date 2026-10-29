@@ -26,7 +26,7 @@
   }
   /** Status is distinct from confirmed ranking; arbitrary backend strings are never rendered as HTML. */
   function showStatus(row) {
-    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално'};
+    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално'};
     status.textContent=text[row.status||row.code]||'Публичното изпращане не е достъпно · резултатът е локален';
   }
   /** Viewing is walletless. Availability contains no secret or binding value. */

@@ -115,8 +115,17 @@ for observed in sorted(history['transactions'],key=lambda row:(row['height'],row
  assert names.setdefault(player,receipt['n'])==receipt['n'] and receipt['b']==paths[receipt['l']]['b']
  moves,points=replay(receipt,paths[receipt['l']]['optimum'])
  stamps=sorted(h['time'] for h in history['headers'][max(0,observed['height']-10):observed['height']+1]);week=(stamps[(len(stamps)-1)//2]-345600)//604800
- rows.append({'player':player,'layout':receipt['l'],'moves':moves,'points':points,'week':week})
+ rows.append({'player':player,'layout':receipt['l'],'moves':moves,'points':points,'week':week,'height':observed['height']})
  head=tx['id']+':'+str(output);previous[tx['id']]=tx
 assert [row['moves'] for row in rows]==[1536,116]
 assert min(rows,key=lambda row:row['moves'])['points']==1160
-print('PASS independent Python: 2 raw lineage transactions, full previous-script DER signatures, 4 compact receipt signatures, actual paths 1536/116, lifetime/week 1160 points; no Supabase/JS/network')
+# Publication can use the authenticated included head before either score is finalized.
+for confirmations in range(1,7):
+ tip_length=2+confirmations
+ included=[row for row in rows if tip_length-row['height']>=1]
+ finalized=[row for row in included if tip_length-row['height']>=6]
+ assert len(included)==2
+ assert len(finalized)==(0 if confirmations<5 else 1 if confirmations==5 else 2)
+ assert (rows[1] in finalized)==(confirmations==6)
+assert head==transaction(history['transactions'][-1]['raw'])['id']+':0'
+print('PASS independent Python: 2 raw lineage transactions, full previous-script DER signatures, 4 compact receipt signatures, actual paths 1536/116, lifetime/week 1160 points; one-confirmation head separate from six-finalized receipts; no Supabase/JS/network')

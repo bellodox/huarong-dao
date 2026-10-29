@@ -2,12 +2,14 @@
 
 ## D5–D7 follow-up
 
-The [combined delta](../docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) supersedes conflicting earlier requirements. Checked T1–T12 items below describe the prior local implementation, not these additions. Current status remains in the [handoff](../tests/release-evidence.md#d5d7-documentation-reconciliation).
+The [combined delta](../docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) supersedes conflicting earlier requirements. Checked T1–T12 items below describe the prior local implementation, not automatic evidence for these additions. Current status remains in the [handoff](../tests/release-evidence.md#d7d6-current-local-scope).
 
 - [ ] Freeze/publish numerical versioned ranked limits; align browser, authoritative verification, policy and reconstruction; test worst-case complete receipt bytes, boundaries and version mismatches. No ceiling is selected here.
-- [ ] Implement one-confirmation reconciled successor publication; retain six-confirmation rankings/twelve-confirmation weekly close and test reorg/restart/concurrency/exact retries.
-- [ ] Produce one self-contained relay distribution with thin Worker adaptation and direct non-listening Node CLI; test parity, offline verification and clean execution without project dependencies. Test packaging when added.
-- [ ] Complete affected implementation/validation and scoped final reviews before separately authorized enablement. Preserve E1/public-use gates.
+- [x] Implement local one-confirmation reconciled successor eligibility with durable included state/retained lineage; six-confirmation rankings/twelve-confirmation close unchanged. Local validation and live limits are in the handoff.
+- [x] Produce shared self-contained relay with thin Worker and direct non-listening Node CLI; executor-reported parity/offline/no-project-dependency probes are in the handoff.
+- [ ] Test executable packaging when implemented; no executable distribution exists.
+- [x] Write [Windows deployment guide](../docs/cloudflare-deployment.md) for disabled/static and optional read-only modes, migration order and rollback; no remote action performed.
+- [x] Complete affected local implementation/validation and scoped final reviews; see the [authoritative closeout](../tests/release-evidence.md#d7d6-current-local-scope). E1, hosted validation and public-use gates remain open; no enablement is authorized.
 
 The [normative plan](plan.md) defines the contracts. Later explicit user instructions authorize experimental implementation/local validation. This checklist distinguishes local evidence from unavailable live checks. **Current completion, review scope and remaining gaps are centralized in the [execution handoff](../tests/release-evidence.md)**; the parent owns final reviews and memory persistence.
 

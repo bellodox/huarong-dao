@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
+    "pretest": "npm run check:relay",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "build:relay": "node tests/build-relay.js",
+    "check:relay": "node tests/build-relay.js --check",
     "build:client": "esbuild leaderboard/client.js --bundle --format=esm --platform=browser --target=es2022 --minify --outfile=public/leaderboard-client.js"
   },
   "dependencies": {

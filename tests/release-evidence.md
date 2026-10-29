@@ -4,13 +4,67 @@
 
 2026-10-29. Explicit user instructions authorize experimental T1–T12 implementation and local validation, not production changes, unrestricted spending, restricted secret-file reads, commits or pushes. The [design](../tasks/plan.md) remains normative with its experimental authorization/capacity clarification. This is the **single current implementation/review handoff**; older documentation-only approvals do not approve these changes.
 
-**Fresh evidence/utilities received bounded final reviews.** Parent-supplied final Vulnerability Checker outcome: **NO BLOCKING FINDINGS**; Code Reviewer: **APPROVE**, bounded to this handoff, saved execution evidence and the two supplemental Python utilities. Neither verdict approves the MVP as a whole, live chain/hosted operation or production enablement. T10/C5 live E1 remains blocked; T11 is local/fixture-only. Earlier implementation approvals, T12/C6 closeout and persistence remain historical evidence, not current approval. The parent owns final task status. This delegated administrative closeout changes only this handoff and performs authorized existing-store OSG persistence; no implementation edits or application reruns.
+**Current D7/D6 bounded local scope is complete and reviewed for disabled/static packaging and optional explicitly configured read-only operation only.** Final parent-supplied verdicts and limits are recorded below. Full live-public MVP acceptance remains blocked by numerical D5 policy, authenticated live adapter/complete history, funding/E1 and hosted tests. The parent retains final status ownership; this explicitly authorized proxy performs factual documentation closeout and final OSG persistence only, without implementation edits or application reruns. No deployment, authentication, spend, secret reads, commits or pushes occurred.
+
+## D7/D6 current local scope
+
+Baseline: branch leaderboard, revision **6640b8537eb858c75c06c3973d420e31d207bc35**, with pre-existing uncommitted D7/D6 implementation. Direct source inspection confirms the [relay entry](../leaderboard/relay-entry.js), [self-contained distribution](../relay.js), [thin Worker](../worker.js), [build/check](build-relay.js), [Wrangler stale-artifact guard](../wrangler.jsonc) and [D6 migration](../supabase/migrations/002_d6_included_successor.sql). D7 supports direct non-listening Node 24.2+ verify/reconstruct/status; no publication CLI or executable packaging exists. Offline evidence verification/reconstruction needs no project packages; build/test uses locked dependencies, status requires explicit server reads. D6 adds durable included state, retained raw lineage and one-canonical-confirmation **plus reconciliation** successor eligibility. Included 1–5 predecessors never re-sign/rebroadcast; six finalizes rankings and twelve closes a week. Fresh databases apply 001 then 002; existing 001 installs apply all of 002 atomically, pause/increment revision and require fresh authenticated reconciliation while preserving ownership/journals/reservations.
+
+### Executor-reported validation — not documentation-subtask reruns
+
+The parent supplied the following prior executor results; counts are distinct run snapshots, not additive totals. Source contracts were checked by this writer, but runtime results below were **not independently rerun** here:
+
+| Check | Reported result |
+| --- | --- |
+| D7 npm tests | 42 passed |
+| D6 npm tests | 46 passed, zero failed/skipped; final focused seven tests passed |
+| Relay build/check | Both exit 0 |
+| Portable relay | 44 Node/workerd probes passed |
+| D6 successor, public UI, ranked Worker | Successor suite passed; four locale/runtime UI cases; 11 ranked accepted/three practice rejected |
+| Outbox retry, independent reconstruction oracle, release boundary | All reported exit 0 |
+| Simplification / affected regressions | No simplifier changes; fresh 17 relay/Worker/regression plus two public-read tests passed |
+| Local network-denied Wrangler dry-run | Wrangler 4.155.0 / Node 24.14.1, explicit empty env-file, telemetry/devdotenv off: stale artifact exit 1/no package; restored artifact exit 0/no network attempts |
+
+Executor-reported package measures: Worker **144,630 bytes**, SHA-256 **a92f096bf37775d2fd4b3773080e42ebe6c83cd403e9c1fe01106663eb980d72**; source map **254,434 bytes**; assets **3,141.24 KiB / 40.95 KiB gzip**; only assets binding, no fixture route, disabled issuance. Relay **143,199 bytes**, SHA-256 **eb1372481fe6a65bc9841db68936566afe003b93f17ff2246a1d2b243303ea1e**. These are prior executor artifact measurements, not fresh raw-checkout hashes; line endings may differ. Executor reported owned processes/ports closed and temporary proof artifacts removed.
+
+### Final supplied implementation, independent tests and reviews
+
+The following are **parent-supplied completed-subtask results, not this proxy's reruns**. The review baseline is revision 6640b8537eb858c75c06c3973d420e31d207bc35 on leaderboard; the bounded uncommitted scope contains 34 files, including the reviewed guide. Counts are run snapshots, not additive totals.
+
+- Independent Test Engineer: npm tests **46 passed**; twelve Python suites each exited 0. Coverage included the original five (edge; v14 matrix 159 checks; dialog keyboard; accessibility eight cases; deep independent BFS all 14), portable relay 44 probes, public UI four cases, ranked 11 accepted plus three exclusions, outbox, D6 successor, independent reconstruction (two raw transactions, four compact signatures, 1,160 points) and release boundaries. Cleanup found all three saved PIDs absent and ports 8787/8788/8790/9230/9231 closed; screenshots restored and 115 protected file hashes unchanged.
+- Subsequent Code Reviewer found a migration-002 uniqueness collision: six-to-five confirmation demotion for the same player/layout/week with a queued improvement produced SQL23505. The advanced fix changed only [migration 002](../supabase/migrations/002_d6_included_successor.sql) and [regressions](review-regressions.test.js), excluding historical included claims from the unique outstanding index. Serialized name/best/week reservations and global signing barrier remain unchanged. Red: three failures; green: three passes. Final executor npm tests: **49 passed, zero failed/skipped**. The SQL-only fix left packaged artifacts unchanged; no repack was needed.
+- Final Code Reviewer: **APPROVE** the whole bounded 34-file local scope, carrying prior review only for unchanged files. Fresh ten regressions, actual SQL reservation/global-guard probes and browser-bundle check passed (bundle exit 0).
+- Final Vulnerability Checker: **NO BLOCKING FINDINGS** across all 34 files; fresh 32 focused Node tests passed, bundle and release checks exited 0. Offline npm audit reported zero findings; this is not current advisory freshness, and no online audit ran. No findings require fixes. This verdict does not approve live/funded operation, deployment or public enablement.
+
+Earlier simplifier made no source changes. Network-denied pinned Wrangler packaging and artifact measurements above remain valid supplied evidence, not new execution by this proxy. Earlier reviews and episodes below remain historical and do not supersede this bounded closeout.
+
+### Documentation scope and readiness limits
+
+The [Windows CMD guide](../docs/cloudflare-deployment.md) separates (1) locally packaged disabled/static mode, (2) optional server-only Supabase reads after both migrations, (3) restricted funded E1 with missing prerequisites, and (4) public issuance, which has no enablement flag. Active README, agent guidance, plan, checklist and changelog now distinguish local D7/D6 implementation from unresolved D5 numerical ranked ceilings and unverified live adapters/authenticated complete history, funding, hosted tests and deployment. Combined decision delta and historical snapshots/PDF remain untouched. This is not full live MVP acceptance.
+
+Fresh documentation validation: **224 local links/anchors/line bounds, zero errors**, exit 0 across seven active documents including the new guide; **101 non-document files retain identical raw SHA-256 values** against this subtask's starting working tree, including pre-existing uncommitted implementation. Scoped tracked-document whitespace check exited 0 with LF/CRLF conversion warnings only. Official Cloudflare Markdown command references returned HTTP 200; HTML command index returned 403, so Markdown references and pinned local help were used. Local Wrangler 4.155.0 deploy/login/secret put/secret delete/rollback **help only** exited 0, confirming command/argument support without executing remote operations. Temporary validation utilities are removed after final recheck; no permanent tooling added. No application tests or packaging were rerun for this documentation-only scope.
+
+OSG bounded context/history was read successfully; retrieved historical documentation evidence has stale citations, so directly verified current source governs. Graph branch main differs from actual Git leaderboard; no branch repair is attempted. Authorized final persistence results are recorded below; older persistence records remain historical.
+
+### Final D7/D6 administrative validation and OSG persistence
+
+The parent-authorized proxy edited only this handoff, the [checklist](../tasks/todo.md) and the guide's status reference. Fresh checks passed **116 local links/anchors/citation bounds**, **102 unchanged raw non-document SHA-256 values**, and scoped document whitespace (exit 0; line-ending warnings only). An initial inline link expression matched zero links and was rejected; the corrected temporary validator checked 114 before persistence and 116 after this transcription. No application tests were rerun. Temporary validator/hash/sync records were removed; no servers were started. Actual Git remains leaderboard at **6640b8537eb858c75c06c3973d420e31d207bc35**, with the existing 34-file added/modified uncommitted scope preserved; no commit or push.
+
+Public OSG commands all used the explicit target workspace and exited 0 with successful envelopes, in order: sync → embed → remember → embed → verify → representative context. No initialization, repair, migration or dependency installation occurred.
+
+- Sync: **2,564 changes / 57 files / seven renames**, graph **ce820f9a5d5076bec55279aff455cdfe3619a23f831d7584fc338c9bb8f1678e3**; **1,173 AMBIGUOUS_DECLARATION warnings**, skipped declarations, not exhaustive indexing.
+- First embed: Xenova/all-MiniLM-L6-v2@q8, **1,727 total / 830 embedded / 897 reused / 26 removed / zero remaining or skipped**, complete=true, no warnings.
+- Immediately before remember, the existing related [binding-plan heading](../tasks/plan.md:7) was directly rechecked and retrieved stale=false. Remember resolved one entity; episode **agent:episode:d6eeda3875e09ee3e5cb0ed1**, graph **c6784512b30253644282fdb38ad4afc7dcf014f2082c7813b38e66fbcd2598709**. POLICY_REFS_UNAVAILABLE means host-loaded rule hashes were not verified/recorded, not authenticated approval provenance.
+- Post-remember embed: **1,728 total / one embedded / 1,727 reused / zero removed, remaining or skipped**, complete=true, no warnings.
+- Verify: **28 commits / 5,461 elements**, no warnings. Representative blended context returned the new episode with anchors ok, actual leaderboard/baseline Git provenance and the related plan citation stale=false; no warnings.
+
+Graph main still differs from actual Git leaderboard. Integrity and eligible-text embedding completion do not prove exhaustive indexing, general recall quality, application correctness or live readiness. Supplied implementation/testing/review provenance and remaining gates are preserved in the episode. These factual IDs are transcribed once after persistence, not recursively remembered or claimed reindexed. The parent retains final ownership; D5 numerical policy, authenticated live adapter/history, funding/E1, hosted tests and separate public-use authority remain unresolved.
 
 ## D5–D7 documentation reconciliation
 
-The [combined delta](../docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) is incorporated into design revision hd1-plan-3 and active guidance. **Documentation reconciled; D5–D7 implementation and validation pending.** Numerical ranked ceilings remain unresolved. One canonical confirmation plus lineage reconciliation is the new successor-publication target; six-confirmation finalized ranking and twelve-confirmation weekly close remain distinct. The single self-contained portable relay shared by thin Worker and direct non-listening Node CLI is not implemented. No packaging or parity pass is claimed.
+Historical documentation-only reconciliation: the [combined delta](../docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) was incorporated into design revision hd1-plan-3 before D7/D6 implementation. At that boundary implementation/validation were pending and no portable relay/parity pass was claimed. Current implementation is described in [D7/D6 scope](#d7d6-current-local-scope); numerical ranked ceilings remain unresolved.
 
-Earlier implementation/evidence reviews below cover only their recorded scopes, not these new requirements or this substantive documentation revision. Production issuance remains disabled; E1 and hosted-operation gaps remain open. This reconciliation changes documentation only; no application rerun or new runtime approval is claimed. Memory-refresh evidence will be reported only after successful execution, separately from historical closeouts below.
+Earlier implementation/evidence reviews below cover only their recorded scopes, not current D7/D6 changes or this substantive documentation revision. Production issuance remains disabled; E1 and hosted-operation gaps remain open. Historical memory-refresh results below are not persistence for the current scope.
 
 ### D5–D7 refresh validation and memory
 

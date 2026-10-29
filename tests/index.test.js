@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
+import { migrations } from './schema.js';
 import { readFileSync } from 'node:fs';
 import { reconcile } from '../leaderboard/reconcile.js';
 import { leaderboardPage } from '../leaderboard/index.js';
 import { advance } from '../leaderboard/issuer.js';
 test('atomic projection rebuild from chain, failed rebuild rollback, journal retained, stale cursor',async()=>{
   const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role;');
-  await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+  await db.exec(migrations());
   const rpc=async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value;
   const storage={rpc,read:()=>rpc('read')};
   const history=JSON.parse(readFileSync(new URL('./fixtures/history.json',import.meta.url)));
@@ -32,7 +33,7 @@ test('atomic projection rebuild from chain, failed rebuild rollback, journal ret
 
 test('reorg projection rollback reconsiders unsigned identical claims but never re-signs a signed claim',async()=>{
   const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role;');
-  await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+  await db.exec(migrations());
   const rpc=async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value;
   const storage={rpc,read:()=>rpc('read')};
   const row={id:'c'.repeat(64),txid:'d'.repeat(64),player:'02'+'1'.repeat(64),nickname:'Player',layout:'wings',epoch:10,moves:120,points:100,height:1,transaction_index:0,output_index:0,receipt:'fixture'};

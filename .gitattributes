@@ -1,0 +1,2 @@
+# Preserve reproducible distribution bytes even with Windows core.autocrlf enabled.
+relay.js text eol=lf

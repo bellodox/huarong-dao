@@ -2,6 +2,7 @@
   "name": "huarong-rod-experiment",
   "main": "worker.js",
   "compatibility_date": "2026-10-23",
+  "build": { "command": "npm run check:relay" },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",

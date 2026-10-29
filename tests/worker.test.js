@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
+import { migrations } from './schema.js';
 import { readFileSync } from 'node:fs';
 import worker,{ handleApi } from '../worker.js';
 import { canonical,receiptId } from '../leaderboard/receipt.js';
@@ -32,7 +33,7 @@ test('admission rejects missing HMAC binding/IP and checks per-IP before global 
 });
 test('Worker + actual SQL RPC: queued only after commit, exact retry/status, no privileged response',async()=>{
   const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role;');
-  await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+  await db.exec(migrations());
   await db.exec('update public.hd1_coordinator set paused=false,epoch=2900;');
   const storage={rpc:async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value};
   storage.read=()=>storage.rpc('read');

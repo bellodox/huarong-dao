@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
+import { migrations } from './schema.js';
 import { readFileSync,mkdtempSync,rmSync } from 'node:fs';
 export async function database() {
   const db=new PGlite();
   await db.exec('create role anon; create role authenticated; create role service_role;');
-  await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+  await db.exec(migrations());
   return db;
 }
 export async function rpc(db,operation,payload={}) {
@@ -70,7 +71,7 @@ test('disk-backed PostgreSQL restart preserves decisions and safe rollback retai
   let db;
   try {
     db=new PGlite(directory);await db.exec('create role anon;create role authenticated;create role service_role;');
-    await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+    await db.exec(migrations());
     await db.exec('update public.hd1_coordinator set paused=false,epoch=10;');
     await rpc(db,'admit',claim('a',120));await db.close();
     db=new PGlite(directory);

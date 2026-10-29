@@ -33,7 +33,7 @@ export function reconstruct({complete,headers,transactions,previousTransactions=
   const previous=new Map(previousTransactions.map(raw=>{const tx=parseTransaction(raw);return [tx.txid,tx];}));
   const ordered=transactions.map(observation=>({...observation,tx:parseTransaction(observation.raw)}))
     .sort((a,b)=>a.height-b.height||a.index-b.index);
-  const txids=new Set(),positions=new Set(),names=new Map(),receipts=[],pending=[],invalid=[];
+  const txids=new Set(),positions=new Set(),names=new Map(),receipts=[],pending=[],invalid=[],lineage=[];
   let head=null,foundBootstrap=false;
   for(const observation of ordered) {
     const {tx,height,index,blockHash}=observation;
@@ -54,7 +54,11 @@ export function reconstruct({complete,headers,transactions,previousTransactions=
       verifyInput(tx,index,previousOutput.script,key);inputTotal+=previousOutput.amount;
     });
     if(tx.outputs.reduce((sum,output)=>sum+output.amount,0)>inputTotal)throw Error('invalid_funds');
+    const predecessor=head;
     foundBootstrap ||= isBootstrap;head=tx.txid+':'+named[0].index;previous.set(tx.txid,tx);
+    // Canonical name operations are distinct from finalized score receipts (even invalid scores
+    // advance the authenticated name head). Retain exact evidence for no-journal reorg barriers.
+    lineage.push({txid:tx.txid,raw:observation.raw,head,predecessor,height,confirmations:headers.length-height});
     try {
       const final=parseCanonical(named[0].name.value,8),{a,...claim}=final,{s,...unsigned}=claim;
       if(recover('app',canonical(claim,7),a)!==bootstrap.appKey)throw Error('unauthorized_app');
@@ -71,7 +75,7 @@ export function reconstruct({complete,headers,transactions,previousTransactions=
   const currentEpoch=epoch(medianTime(headers.slice(-11).map(header=>header.time)));
   const closing=new Map();
   headers.forEach((header,height)=>{const week=epoch(medianTime(headers.slice(Math.max(0,height-10),height+1).map(h=>h.time)));if(!closing.has(week))closing.set(week,height);});
-  return {receipts,pending,invalid,head,epoch:currentEpoch,height:headers.at(-1).height,hash:headers.at(-1).hash,
+  return {receipts,pending,invalid,lineage,head,epoch:currentEpoch,height:headers.at(-1).height,hash:headers.at(-1).hash,
     finalizedEpochs:[...closing].filter(([week,height])=>week>0&&headers.length-height>=12).map(([week])=>week-1)};
 }
 /** Halt first, then verify outside SQL; only a revision-bound atomic rebuild may resume. */

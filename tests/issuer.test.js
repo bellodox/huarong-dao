@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
+import { migrations } from './schema.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { verifyClaim } from '../leaderboard/verify.js';
 import { receiptId,canonical } from '../leaderboard/receipt.js';
@@ -12,7 +13,7 @@ const secret=Uint8Array.from([...Array(31).fill(0),2]);
 const marker=secp256k1.getPublicKey(Uint8Array.from([...Array(31).fill(0),3]));
 async function setup() {
   const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role;');
-  await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+  await db.exec(migrations());
   await db.exec('update public.hd1_coordinator set paused=false,epoch=2900;');
   const storage={rpc:async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value};
   storage.read=()=>storage.rpc('read');

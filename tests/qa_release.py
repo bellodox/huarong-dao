@@ -11,10 +11,15 @@ for name in ['qa_edge.py','qa_v14.py','qa_dialog_keyboard.py','qa_accessibility.
  assert ("'public'/'index.html'" in text or ("parents[1]/'public'" in text and "{ROOT}/index.html" in text)),name
  assert "'docs'/'index.html'" not in text and 'docs/index.html' not in text,name
 worker=(ROOT/'worker.js').read_text()
-assert 'return handleApi(request,{storage,available:false,rateSecret:env.HD1_RATE_HMAC_KEY})' in worker
-assert "crypto.subtle.sign('HMAC'" in worker and 'sha256(' not in worker
-assert "storage.publicRead('status'" in worker and 'publicLeaderboard(storage,url.searchParams)' in worker
+relay=(ROOT/'leaderboard/relay-entry.js').read_text()
+assert "from './relay.js'" in worker and 'return handleRelayRequest(request,env)' in worker
+assert 'leaderboard/' not in worker and 'verifyClaim' not in worker and 'SupabaseStorage' not in worker
+assert 'return handleApi(request,{storage,available:false,rateSecret:bindings.HD1_RATE_HMAC_KEY})' in relay
+assert "crypto.subtle.sign('HMAC'" in relay and 'sha256(' not in relay
+assert "storage.publicRead('status'" in relay and 'publicLeaderboard(storage,url.searchParams)' in relay
 assert '.replace(' not in worker and 'HUARONG_ISSUER_WIF' not in worker
+assert config['build']['command']=='npm run check:relay'
+assert (ROOT/'relay.js').is_file()
 html=(ROOT/'public/index.html').read_text(encoding='utf-8')
 assert 'HUARONG_PUBLIC_ENABLED = false' in html
 assert 'beginRunEvidence' in html and 'leaderboard-ui.js' in html
