@@ -6,6 +6,8 @@
 
 ## D1 — One conceptual OpenSpeX receipt with evidence placement modes
 
+**Later revision:** The [combined D5–D7 delta](Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) supersedes conflicting relay/execution and publication-sequencing wording. The [current plan](../tasks/plan.md#d5d7-binding-revision) incorporates it. D5 in this earlier document is a historical authority section, not the new ranked-eligibility decision.
+
 **Current reference:** [boundaries](../tasks/plan.md#2-required-end-to-end-behavior-and-boundaries) and [complete receipt](../tasks/plan.md#5-complete-wire-receipt-and-canonical-signatures).
 
 - **Future protocol concept, not standard approval:** A single universal OpenSpeX Receipt may support developer-selectable evidence placement: `inline` or `referenced`. These are storage modes, **not two kinds of receipt**.

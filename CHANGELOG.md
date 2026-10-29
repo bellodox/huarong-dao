@@ -2,6 +2,8 @@
 
 ## Unreleased — experimental local leaderboard MVP, 2026-10-29
 
+- Documentation incorporates [D5–D7](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md): unresolved versioned ranked ceilings, one-confirmation reconciled successor publication (six-confirmation finalization/twelve weekly close unchanged), and one self-contained relay for Worker and non-listening Node CLI. These are target requirements, not shipped functionality; earlier local validation/reviews do not cover them.
+
 - [hd1-plan-2](tasks/plan.md) reconciles the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md): Supabase transactional operational reservations and exact raw outbox replace the planned launch Durable Object, preserving complete inline chain receipts and independent confirmed ranking. Stale-owner safety fails closed after the signing barrier.
 - Complete actual-path player/app receipts, independent replay and authenticated fixture reconstruction, consent-only identity/signing and in-game Bulgarian/English confirmed/pending views. All 11 ranked layout IDs, including Rain2, are supported; three practice layouts remain excluded.
 - Public reads are bounded and separated from operational mutation locks. Server-only HMAC admission limits, authenticated previous outputs, fee ceilings and immutable preparation guard signing. Reconstructed unconfirmed history without a journal pauses issuance; persisted old signed outbox retries survive newer evidence and stop requesting on consent withdrawal.

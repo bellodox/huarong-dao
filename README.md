@@ -6,6 +6,12 @@ Beta **0.1.0-beta.3 candidate** — a browser sliding-block puzzle with Bulgaria
 
 The [normative plan](tasks/plan.md) incorporates the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md). Its local implementation includes player-signed actual-path evidence, independent Worker replay, Supabase SQL operational reservations/exact raw outbox, transaction serialization and independent raw-history reconstruction. The [execution handoff](tests/release-evidence.md) is the single current source for completion, measured validation and review status. The [original snapshot plan](docs/Huarong_Dao_Public_Leaderboard_Cloudflare_Supabase_MVP.md) is historical. No launch Durable Object, player transaction, rewards or transfers are introduced. Live ROD transport, exhaustive chain discovery and hosted Supabase remain unverified; production issuance is disabled.
 
+### Required next architecture (not implemented)
+
+The [combined D5–D7 delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) is incorporated into the [binding design revision](tasks/plan.md#d5d7-binding-revision). It requires a published versioned ranked limit (numerical ceilings remain unresolved), successor publication after one canonical confirmation and lineage reconciliation, six-confirmation result finalization and twelve-confirmation weekly close.
+
+The target is one self-contained relay distribution shared by a thin same-process Cloudflare adapter and a direct, non-listening Node CLI. Offline verification must work without network/database access for complete evidence; operational commands still require Supabase and ROD endpoints. The current modular Worker is not that distribution. No portable CLI, clean-environment parity or executable packaging pass is claimed. Existing local tests/reviews predate this target; see the [current handoff](tests/release-evidence.md#d5d7-documentation-reconciliation).
+
 ## Safe default: local-only play
 
 Open [the game](public/index.html) in a browser, or serve the asset directory with a local static HTTP server. Browser storage restrictions can prevent saving when opening a local file; use a local HTTP origin if needed. No package installation or build is required for the static game.
