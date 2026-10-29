@@ -1,0 +1,142 @@
+[
+  {
+    "p": "hd1",
+    "l": "training",
+    "b": "DCBJDCB.EAA.EAAHGIFF",
+    "m": "mmFJNQQDfcUhZhZCffnnUYZB",
+    "assisted": false,
+    "optimum": 24,
+    "moves": 24,
+    "practice": true
+  },
+  {
+    "p": "hd1",
+    "l": "first_steps",
+    "b": "DBHJDB..ECAAECAAGIFF",
+    "m": "edFIIDeemmFJNQQDfcUhZhZCffnnUYZB",
+    "assisted": false,
+    "optimum": 32,
+    "moves": 32,
+    "practice": true
+  },
+  {
+    "p": "hd1",
+    "l": "next_steps",
+    "b": "IHAADBAADBFFEC.GEC.J",
+    "m": "baWCddhMQhEIbbnnWCehFIIDeeiiFJNQQDfcUlZlZCffjjUYZB",
+    "assisted": false,
+    "optimum": 50,
+    "moves": 50,
+    "practice": true
+  },
+  {
+    "p": "hd1",
+    "l": "rear_guard",
+    "b": "BAACBAACDGHEDIJE.FF.",
+    "m": "ObfVinTKKBcZMcYkgXKXSCdYdZkkDIIRhiCalFMMDaamfIQhaBOOHfnLQQBNGfkMUbbjjCKSldEldMUYjD",
+    "assisted": false,
+    "optimum": 82,
+    "moves": 82,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "fayaa_sideBySide",
+    "b": "CAABCAABGHIJDFFED..E",
+    "m": "WeZMXdaeZNKKDgYcVKgYnQVOCjYjbkkBIIPfeCanHQQBaamhIMfaDSSFhlJMMDTGhkQUZZddCKOnjEnjQUYdB",
+    "assisted": false,
+    "optimum": 85,
+    "moves": 85,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "fayaa_threeRoads",
+    "b": "GAAHCAABCFFBDIJED..E",
+    "m": "imWCZIMfEQjlWCaZJMMDTGdYQknGGRkkBOOLbfQEVhOKbfnTEEBmeZIMjmmDGGRZdJMMDHSZcEUlhlhCKOfbQfbEUghB",
+    "assisted": false,
+    "optimum": 92,
+    "moves": 92,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "fayaa_peach",
+    "b": "GAAHCAABCDEBIDEJ.FF.",
+    "m": "XmGenGeBMMTfEkVVSOZIgTOOfcMXGklNhQXOinnCZZcdkkDEENhiCelJQQDeembEMheBSSLbnHMMBRKbkQUffjjCGOlZIlZQUcjD",
+    "assisted": false,
+    "optimum": 100,
+    "moves": 100,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "small_obstacle",
+    "b": "BAACBAACGFFHDIJED..E",
+    "m": "ihNaGaGDLccQQhlNZGXYMjjOKfQkNKKnkVEVjaFgbGXXISdkIFZiWCnfQMnfIEZZhhWCefLEEBeemmLHTMMBdcUjbjbCddllUYbD",
+    "assisted": false,
+    "optimum": 100,
+    "moves": 100,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "ambush",
+    "b": "BAACBAACGFFHIDEJ.DE.",
+    "m": "iaXfkRNZaWffnnMZhQZhWenPTKKBFkckcPGGDIIRgbgYVVGjOjClcgldgMMHbaCenLQQBeemhMEbeDSSJhlNEEDmimiLQlQkUdZdZCjjnnUYZB",
+    "assisted": false,
+    "optimum": 110,
+    "moves": 110,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "wings",
+    "b": "BAACBAACDFFEDIJEG..H",
+    "m": "ZOXkfSlVMbfTmVgmcZOjXKKBFgMgMbfTnKVQkZZSGhMcTGGdcXIXZmLYlKVVEOjcELnaWCdhMQdhEInnbbWCihFIIDiieeFJNQQDjgUZlZlCjjffUklB",
+    "assisted": false,
+    "optimum": 116,
+    "moves": 116,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "heng_dao_li_ma",
+    "b": "BAACBAACDFFED..EGHIJ",
+    "m": "cZOXTkhSVVcYfYTjmWZZdMdQjjnnWadRNGGDLcYcYRKKBEEPkhkgXSXKllCfYfbkQkQJhiCadFMMDaaenQIhaBOOHfnTIIBNGncMUbbjjCKSddlElMUYjD",
+    "assisted": false,
+    "optimum": 118,
+    "moves": 118,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "fayaa_rain2",
+    "b": "CAA.CAAGFFBDE.BDEHIJ",
+    "m": "YMkhGVQfHjnOOaaBJQQXbMchmaVcHnjOVKKRcEcEnKSdEkkLSSlkXXMhaPgZOVVGQfkQPbiWCldEIldQMbbjjWCedRMMDeemmRNFIIDfcUhZhZCffnnUYZB",
+    "assisted": false,
+    "optimum": 119,
+    "moves": 119,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "fayaa_cannotStop",
+    "b": ".AACGAACBFFDBE.DHEIJ",
+    "m": "YEcgnOVQninSXMhRdGalGaDLMMVZEgneaXgRdlGXKKPgQdKOgQcjQcJOOfcVVEnaFkbGXXMShcMFZmWCffjQIjMEZZllWCejPEEBeeiiPHTIIBdcUnbnbCddhhUYbD",
+    "assisted": false,
+    "optimum": 126,
+    "moves": 126,
+    "practice": false
+  },
+  {
+    "p": "hd1",
+    "l": "fayaa_highRisk",
+    "b": "AAC.AAC.GBFFDBHEDIJE",
+    "m": "JBYMYMjgnenGXQdFhOalOaDLQQVZMcniaXcFhlOXKKTcEcEhKSfEggJSSjgVVMnaNkbOXXGQdgQNZmWCjfEIjfQMZZllWCefTMMBeeiiTPHIIBdcUnbnbCddhhUYbD",
+    "assisted": false,
+    "optimum": 126,
+    "moves": 126,
+    "practice": false
+  }
+]

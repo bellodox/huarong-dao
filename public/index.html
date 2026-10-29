@@ -1758,16 +1758,15 @@
         #cookie-consent.hidden { display:none !important; }
         #cookie-consent button:focus-visible, #btn-cookie-settings:focus-visible { outline:2px solid #fbbf24; outline-offset:2px; }
     </style>
-    <!-- Optional public scoreboard. Without a configured issuer WIF this HTML is strictly local-only. -->
+    <!-- Public availability is discovered without exposing issuer credentials. -->
     <script>
-      // Experimental issuer. If set, it WILL be visible to players in the HTML response.
-      // Leave blank for a fully local leaderboard and zero blockchain network calls.
+      // Compatibility sentinel is empty and no longer substituted by the Worker.
       const ROD_EXPERIMENT_ISSUER_WIF = '';
-      const HUARONG_PUBLIC_ENABLED = typeof ROD_EXPERIMENT_ISSUER_WIF === 'string' && ROD_EXPERIMENT_ISSUER_WIF.trim().length > 0;
+      let HUARONG_PUBLIC_ENABLED = false;
     </script>
     <!-- Optional blockchain signing libraries are needed only for public scoring. -->
     <script>
-      if (HUARONG_PUBLIC_ENABLED) {
+      if (false) { // Retired upstream transaction libraries; hd1 uses a first-party lazy bundle.
         for (const src of ["https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/crypto-min.js", "https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/crypto-sha256.js", "https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/crypto-sha256-hmac.js", "https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/sha512.js", "https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/ripemd160.js", "https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/jsbn.js", "https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/ellipticcurve.js", "https://cdn.jsdelivr.net/gh/SpaceXpanse/rod-web-wallet@beta/js/coin.js"]) {
           document.write('<script src="' + src + '"><\/script>');
         }
@@ -2543,10 +2542,7 @@
       ({best:leaderboard,recent:recentScores}=readLocalScores());
       function bestForLayout(layout){return leaderboard[layout] || null;}
       function needsPublicUpdate(layout){
-          if(isPracticeLayout(layout))return false;
-          const local=bestForLayout(layout), published=typeof rodBest!=='undefined' ? rodBest[layout] : null;
-          return local && (!Array.isArray(published) ||
-              local[1]<Number(published[0]) || (local[1]===Number(published[0]) && local[2]<Number(published[1])));
+          return !isPracticeLayout(layout) && !!window.hd1UI?.candidate(layout);
       }
       function setAssisted(reason){
           if(!solverEnabled){
@@ -2555,6 +2551,7 @@
               triggerDynamicRecalculation();
           }
           assistedRun=true;
+          if(typeof runEvidence!=='undefined' && runEvidence)runEvidence.assisted=true;
           const practice = isPracticeLayout(GAME_LAYOUTS[currentLayoutIdx]?.id);
           document.getElementById('ranked-status').textContent=practice ? 'Тренировка · без класиране' : '✕ С помощ · без запис';
           document.getElementById('ranked-status').className=practice ? 'font-bold text-sky-300' : 'font-bold text-red-300';
@@ -2872,7 +2869,7 @@
               updateNameLockUI();
               if(HUARONG_PUBLIC_ENABLED && !isPracticeLayout(first.layout) && needsPublicUpdate(first.layout)) {
                   const best=bestForLayout(first.layout);
-                  pendingPublicScore={layout:first.layout,moves:best[1],seconds:best[2],epoch:victoryEpoch,nickname};
+                  pendingPublicScore={layout:first.layout,moves:first.moves,seconds:first.seconds,epoch:victoryEpoch,nickname};
                   submitScoreBtn.classList.remove('hidden');
               }
               return;
@@ -2941,7 +2938,11 @@
           const id=(window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now())+'-'+Math.random().toString(36).slice(2);
           recentScores[layout]=[[moves,seconds,Date.now(),id],...(recentScores[layout]||[])].slice(0,RECENT_LIMIT);
           try{
-              const encoded=JSON.stringify({v:2,owner:nickname,best:leaderboard,recent:recentScores});
+              const previous=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY)||'null');
+              const evidence=previous?.evidence && typeof previous.evidence==='object' && !Array.isArray(previous.evidence) ? previous.evidence : {};
+              const actual=completedRunEvidence(layout,moves);
+              if(actual)evidence[id]={...actual,moves,seconds,n:nickname,at:Date.now()};
+              const encoded=JSON.stringify({v:2,owner:nickname,best:leaderboard,recent:recentScores,evidence});
               localStorage.setItem(SCORE_STORE_V2_KEY,encoded);
               if(localStorage.getItem(SCORE_STORE_V2_KEY)!==encoded)throw Error('Score write verification failed');
           }catch(e){
@@ -2962,15 +2963,14 @@
               ? 'Резултатът е запазен само на това устройство. Не се изпраща в общата класация.'
               : 'Резултатът е запазен в последните 5 локални резултата.';
           if(!isPracticeLayout(layout) && HUARONG_PUBLIC_ENABLED){
-              // Only personal bests, never the most recent worse run, go on-chain.
-              // Public opt-in remains explicit. Offline/failure recovery uses
-              // the persistent local best rather than a transient victory object.
+              // Complete actual runs are retained independently of lifetime bests.
+              // The Worker rechecks strict lifetime OR inclusion-week improvement.
               if(needsPublicUpdate(layout)){
                   if(playerGateMode!=='first' && allowPublicScores && publicNameReady){
-                      queueRodVictory(layout,leaderboard[layout][1],leaderboard[layout][2],true);
+                      queueRodVictory(layout,moves,seconds,true);
                   }else if(!allowPublicScores || !publicNameReady){
                       const best=leaderboard[layout];
-                      pendingPublicScore={layout,moves:best[1],seconds:best[2],epoch:victoryEpoch,nickname};
+                      pendingPublicScore={layout,moves,seconds,epoch:victoryEpoch,nickname};
                       submitScoreBtn.classList.remove('hidden');
                       victoryRankStatus.textContent='Резултатът е запазен локално. Можеш да публикуваш най-добрия си резултат.';
                   }
@@ -3740,14 +3740,35 @@
         /**
          * Execute a Single Tile Move
          */
+        let runEvidence = null;
+        const EVIDENCE_PIECES = ['CC','ZY','ZF','MC','HZ','GY','S1','S2','S3','S4'];
+        const EVIDENCE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+        /** Begin evidence from the immutable selected catalog, not mutable game state. */
+        function beginRunEvidence(layout) {
+            const cells=Array(20).fill('.');
+            EVIDENCE_PIECES.forEach((id,index)=>{
+                const piece=layout.board[id], shape=PIECES_DEF[id];
+                for(let dy=0;dy<shape.h;dy++)for(let dx=0;dx<shape.w;dx++)
+                    cells[(piece.y+dy)*4+piece.x+dx]=String.fromCharCode(65+index);
+            });
+            runEvidence={p:'hd1',l:layout.id,b:cells.join(''),m:'',assisted:false};
+        }
+        /** Return only actual complete, unassisted paths; legacy scores cannot acquire evidence. */
+        function completedRunEvidence(layout,moves) {
+            if(!runEvidence || runEvidence.l!==layout || runEvidence.assisted || assistedRun ||
+               !roundFinalized || runEvidence.m.length!==moves || isPracticeLayout(layout))return null;
+            return {...runEvidence};
+        }
         function executeMove(id, dx, dy) {
-            if (roundFinalized) return false;
+            if (roundFinalized || Math.abs(dx)+Math.abs(dy)!==1 || !Number.isInteger(dx) || !Number.isInteger(dy)) return false;
             const grid = buildGrid(currentState);
             if (!canMovePiece(id, currentState, dx, dy, grid)) return false;
             // An unsuccessful tap, cancelled touch or blocked swipe must not start the clock.
             startTimer();
             currentState[id].x += dx;
             currentState[id].y += dy;
+            const direction=dy===-1?0:dx===1?1:dy===1?2:3;
+            if(runEvidence)runEvidence.m+=EVIDENCE_ALPHABET[EVIDENCE_PIECES.indexOf(id)*4+direction];
             userMovesCount++;
             userMovesCountEl.textContent = userMovesCount;
 
@@ -3889,6 +3910,7 @@
             userMovesCountEl.textContent = '0';
 
             currentState = JSON.parse(JSON.stringify(layout.board));
+            beginRunEvidence(layout);
             renderBoard();
             triggerDynamicRecalculation();
             renderLevelsMenu();
@@ -4105,8 +4127,23 @@
     // does nothing: showing/hiding a hint must never trigger a new fit pass.
     window.huarongFitBoard = function () {};
     </script>
-    <!-- ROD name experiment: one silent player wallet/name; fee reserve inside name output. -->
     <script>
+    // Local save retry remains available even with no backend/module/network.
+    document.getElementById('retry-score').onclick=()=>{
+      if(pendingLocalScore){
+        const score=pendingLocalScore;
+        if(score.epoch===victoryEpoch && roundFinalized && !assistedRun && nameLocked &&
+           GAME_LAYOUTS[currentLayoutIdx]?.id===score.layout && score.nickname===nickname)
+          storeVictory(score.layout,score.moves,score.seconds,true);
+      }else window.hd1UI?.sync();
+    };
+    function queueRodVictory(){window.hd1UI?.sync();}
+    function syncOutstandingBests(){window.hd1UI?.sync();}
+    async function rodRefreshLeaderboard(){await window.hd1UI?.refresh();}
+    </script>
+    <script src="/leaderboard-ui.js" defer></script>
+    <!-- Retired browser-funded publisher, preserved as inert historical signer reference. -->
+    <script type="text/plain" id="retired-browser-publisher">
     // EXPERIMENT CONFIG. This wallet is PUBLIC if you publish a filled-in index.html.
     // Use ONLY a disposable, strictly limited ROD balance. Never use your regular wallet.
     // Optional public index address, needed only if issuer WIF is deliberately not shipped.
@@ -4517,6 +4554,31 @@
       'use strict';
       const LANG_KEY = 'huarong_ui_lang_v1';
       const strings = new Map(Object.entries({
+        "Публична класация · преиграни резултати":"Public leaderboard · replayed results",
+        "Период":"Period",
+        "Изглед":"View",
+        "Общо":"Overall",
+        "Избрана подредба":"Selected layout",
+        "Всички времена":"Lifetime",
+        "Текуща седмица":"Current week",
+        "Името, постоянният публичен ключ и целият път стават публични. Оттеглянето на съгласие не изтрива публикувани данни. Няма награди или преводи.":"Your name, stable public key and entire path become public. Withdrawing consent cannot erase published data. No rewards or transfers.",
+        "Архивирай самоличността":"Back up identity",
+        "Архивирането не успя · самоличността не е променена":"Backup failed · identity unchanged",
+        "На опашка · непотвърдено":"Queued · unconfirmed",
+        "Подписано · непотвърдено":"Signed · unconfirmed",
+        "Изпратено · непотвърдено":"Broadcast · unconfirmed",
+        "Неизвестен резултат · непотвърдено":"Unknown outcome · unconfirmed",
+        "Подписването е спряно за проверка":"Signing paused for investigation",
+        "Потвърдено · поне 6 блока":"Confirmed · at least 6 blocks",
+        "Реорганизация · проверката е спряна":"Reorg · verification paused",
+        "Няма строго подобрение":"No strict improvement",
+        "Седмицата е сменена · нужно е ново съгласие":"Week changed · fresh consent required",
+        "Конфликт на публичното име · локалната игра продължава":"Public name conflict · local play continues",
+        "Целият път надхвърля 2048 байта · запазен е локално":"Complete path exceeds 2048 bytes · retained locally",
+        "Публичното изпращане не е достъпно · резултатът е локален":"Public submission unavailable · score stays local",
+        "Данните не са актуални · локалната игра продължава":"Stale data · local play continues",
+        "Преиграно · не доказва човешка игра":"Replayed · not proof of human play",
+        "Публичното изпращане е изключено · локалната игра продължава":"Public submission disabled · local play continues",
         "Четирима войници в редица":"Four Pawns in a Row",
         "Задна охрана":"Rear Guard",
         "Засада":"Ambush",
@@ -4731,6 +4793,8 @@
         if (translation === undefined) {
           let m;
           if ((m=s.match(/^Играеш като (.+)$/))) translation='Playing as '+m[1];
+          else if ((m=s.match(/^Непотвърдено · (\d+)\/6$/))) translation='Unconfirmed · '+m[1]+'/6';
+          else if ((m=s.match(/^(.+) · (\d+) т\. · (\d+) подредби$/))) translation=m[1]+' · '+m[2]+' pts · '+m[3]+' layouts';
           else if ((m=s.match(/^(\d+) хода$/))) translation=m[1]+' moves';
           else if ((m=s.match(/^Личен рекорд: (\d+) хода · (\d+) сек$/))) translation='Personal best: '+m[1]+' moves · '+m[2]+' sec';
           else if ((m=s.match(/^(\d+) хода · (\d+) сек( ★)?$/))) translation=m[1]+' moves · '+m[2]+' sec'+(m[3]||'');

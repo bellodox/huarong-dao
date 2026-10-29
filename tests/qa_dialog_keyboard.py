@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 from contextlib import ExitStack
-html=(Path(__file__).resolve().parents[1]/'docs'/'index.html').read_text(encoding='utf-8')
+html=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text(encoding='utf-8')
 with sync_playwright() as p, ExitStack() as cleanup:
  b=p.chromium.launch(headless=True)
  cleanup.callback(b.close)

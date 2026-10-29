@@ -1,9 +1,12 @@
 # Changelog
 
-## Unreleased — documentation only, 2026-10-29
+## Unreleased — experimental local leaderboard MVP, 2026-10-29
 
 - [hd1-plan-2](tasks/plan.md) reconciles the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md): Supabase transactional operational reservations and exact raw outbox replace the planned launch Durable Object, preserving complete inline chain receipts and independent confirmed ranking. Stale-owner safety fails closed after the signing barrier.
-- The original snapshot plan is historical; P1 remains unresolved. Restricted E1 deployment gathers live evidence before a separate public-use decision. No implementation, application validation or deployment is claimed; the documentation-only review verdict and limits are recorded in the [planning-only completion checklist](tasks/todo.md#planning-only-completion).
+- Complete actual-path player/app receipts, independent replay and authenticated fixture reconstruction, consent-only identity/signing and in-game Bulgarian/English confirmed/pending views. All 11 ranked layout IDs, including Rain2, are supported; three practice layouts remain excluded.
+- Public reads are bounded and separated from operational mutation locks. Server-only HMAC admission limits, authenticated previous outputs, fee ceilings and immutable preparation guard signing. Reconstructed unconfirmed history without a journal pauses issuance; persisted old signed outbox retries survive newer evidence and stop requesting on consent withdrawal.
+- Complete receipts use a final 2,048-byte UTF-8 bound with no separate 1,536-move cap; oversized paths remain intact locally. This experimental technical choice is not human public-policy approval.
+- The original snapshot plan and its documentation-only reviews are historical. Current validation, scoped independent verdicts and persistence belong only in the [execution handoff](tests/release-evidence.md). Production issuance is hardcoded disabled; live E1, hosted Supabase and deployment remain unverified. This is not live MVP acceptance or launch approval.
 
 ## 0.1.0-beta.3 — locally validated candidate
 

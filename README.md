@@ -2,15 +2,15 @@
 
 Beta **0.1.0-beta.3 candidate** — a browser sliding-block puzzle with Bulgarian and English UI, 14 layouts (3 unscored practice and 11 ranked), optional assistance, and on-device scores. Prepared and locally validated, not deployed. See [release notes](CHANGELOG.md).
 
-## Planned leaderboard architecture
+## Experimental leaderboard architecture
 
-The [single normative plan](tasks/plan.md) (hd1-plan-2) incorporates the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md). Supabase operational reservations/outbox and derived rankings, complete inline ROD receipts and independent confirmed-chain reconstruction are planned, not implemented. The [original snapshot plan](docs/Huarong_Dao_Public_Leaderboard_Cloudflare_Supabase_MVP.md) is historical. P1 remains unresolved; restricted E1 deployment gathers live evidence before a separate public-use gate. No deployment is authorized by documentation.
+The [normative plan](tasks/plan.md) incorporates the [decision delta](docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md). Its local implementation includes player-signed actual-path evidence, independent Worker replay, Supabase SQL operational reservations/exact raw outbox, transaction serialization and independent raw-history reconstruction. The [execution handoff](tests/release-evidence.md) is the single current source for completion, measured validation and review status. The [original snapshot plan](docs/Huarong_Dao_Public_Leaderboard_Cloudflare_Supabase_MVP.md) is historical. No launch Durable Object, player transaction, rewards or transfers are introduced. Live ROD transport, exhaustive chain discovery and hosted Supabase remain unverified; production issuance is disabled.
 
 ## Safe default: local-only play
 
 Open [the game](public/index.html) in a browser, or serve the asset directory with a local static HTTP server. Browser storage restrictions can prevent saving when opening a local file; use a local HTTP origin if needed. No package installation or build is required for the static game.
 
-The [issuer declaration](public/index.html:1766) is empty by default. With no configured issuer, public-score controls are hidden: no wallet is created, no chain API calls are made, and no external crypto script is loaded. Scores and the player name stay in browser storage; clearing site data removes them.
+The [Worker](worker.js) never injects a private key into HTML and ignores the old issuer binding. Public submission is disabled in the production entry. Walletless board viewing and play do not create an identity or load the signing bundle. Scores, exact run evidence and the player name stay in browser storage; clearing site data removes them. Static/file play remains local when the backend is absent.
 
 - Training starts each load (24 single-cell moves minimum, unscored). **Choose Layout** opens the picker, which groups practice and four ranked difficulty tiers; Classic (116 moves minimum) is in the top tier.
 - Training, First Steps, and Next Steps are unscored practice: no score saves, nickname commitment, or public submissions. Legacy practice-only records do not lock the nickname; stored records for deferred layouts are retained but excluded from the current selector.
@@ -30,33 +30,27 @@ Rejection is read back to verify persistence. If saving it fails, the game tries
 
 ## Cloudflare deployment (operator action; candidate not deployed)
 
-From the repository root, with Wrangler available and Cloudflare authentication configured, run:
-
-    npx wrangler deploy
-
-The [Wrangler configuration](wrangler.jsonc:6) still points at **./docs**, while the checkout asset is now in **public/**. This pre-existing mismatch must be aligned under future implementation authorization; deployment instructions below are not a claim this checkout is deployable. It binds assets to the [Worker](worker.js:5), which intercepts GET requests for the root and index page. Without an issuer secret, deployment retains local-only behavior.
+No deployment, cloud authentication probe or remote publishing was performed. The [Wrangler configuration](wrangler.jsonc) serves the public asset directory and routes API paths through the [Worker](worker.js). Local development does not authorize deployment. A future controlled rollout needs an explicitly configured target, disposable limited-funded server wallet, spend envelope and pinned issuer/name bootstrap, plus the live E1 evidence in the [plan](tasks/plan.md#10-gates-verification-and-rollback).
 
 ### Optional public scoring — experimental and unverified live
 
-Only if intentionally enabling this experiment, set the optional issuer secret from the repository root:
+Publication requires explicit independent public-score consent. Only then does the browser create/reuse a player identity and sign complete evidence; it does not create a player chain transaction. The application signs and funds the receipt transaction server-side. A complete receipt must fit 2,048 UTF-8 bytes; oversized evidence remains intact and local. The tested technical choice is not public-policy approval; see [capacity evidence](tests/release-evidence.md#capacity-choice).
 
-    npx wrangler secret put ROD_EXPERIMENT_ISSUER_WIF
+Optional server-side read access requires HD1_READS set to the literal true, an HTTPS SUPABASE_URL and server-only SUPABASE_SERVICE_KEY, as defined in [the Worker](worker.js:64) and [storage boundary](leaderboard/storage.js:4). Never put binding values in browser code, logs or documentation, or inspect restricted secret files to configure this experiment. Apply the [revised SQL migration](supabase/migrations/001_leaderboard.sql), including its public-read grants, before separately authorized hosted use. Merely configuring reads never enables issuance: the production entry hardcodes availability false. There is no live chain adapter or production enablement switch.
 
-**The issuer private key is injected into delivered HTML and is visible to every player. Cloudflare Secrets do not make it private. Use only a disposable experiment wallet with funds you can afford to lose; never a valuable wallet.** See [the injection boundary](worker.js:28).
+The [admission boundary](worker.js:30) additionally requires a server-only HD1_RATE_HMAC_KEY of 32–256 UTF-8 bytes and trusted platform-provided client IP for any future separately authorized adapter. It fails closed without either, uses domain-separated HMAC buckets and checks per-IP before global capacity; stale-rate cleanup is traffic-triggered after ten minutes, not scheduled. Never trust a client-supplied IP header outside the trusted platform boundary. Do not reuse the publicly known fixture key for live use. The [public-read boundary](leaderboard/storage.js:11) is lock-free STABLE SQL, bounded to 100 rank rows plus 20 pending rows and 256 KiB. Leaderboard cache lifetime is five seconds; GET/status requests never advance signing or broadcast.
 
-Public scoring requires explicit player consent, network access, and externally loaded ROD crypto code. Player identity creation and registration are deferred until a qualifying public submission. Registrations spend issuer funds; concurrent registrations can contend for confirmed outputs. Published records are public, and clearing browser storage can lose the player's private key. Verify the in-game operator/contact disclosure before enabling this mode.
-
-Real broadcasts, mining/confirmation, public leaderboard integration, and live Cloudflare deployment remain untested. Local simulations and a deployment dry-run do not establish these paths work.
-
-For beta.3, Cloudflare is unauthenticated; no target URL, current deployment, or rollback ID has been verified. Authentication and recording those operator details remain prerequisites to a controlled rollout. No GitHub push is authorized or claimed.
+The separate [loopback fixture entry](tests/runtime-worker.js) demonstrates the end-to-end flow with publicly known test keys and a mock transport, not spendable funding. Never deploy it. Any former exposed issuer must be treated as compromised and never reused.
 
 ### Rollback
 
-Before changing a live deployment, record the current known-good Cloudflare deployment/version ID and preserve its routes, bindings, variables, compatibility settings, and issuer-secret configuration securely. Never put secret values in release notes or Git.
+Disable issuance before rollback. The [SQL rollback](supabase/001_leaderboard.rollback.sql) pauses the coordinator and revokes RPC execution while retaining claims, exact raw transactions and reservations. Never delete the outbox or reset an ambiguous signing barrier to make a retry pass. Reconcile canonical chain/name/input state before resuming. Code rollback cannot undo broadcasts.
 
-If a release fails, use Cloudflare's deployment/version history to roll back to that known-good version, then verify the root/index routes, local play, and intended issuer mode. Check and restore previous settings separately where version rollback does not restore them. If there is no previous known-good deployment, there is no verified rollback target: keep the initial rollout local-only until it is checked. Do not point this checkout back at the obsolete asset directory as a rollback strategy.
+Before any future live change, record a known-good deployment/version and preserve routes/bindings securely. No target URL, existing deployment or rollback ID was verified in this task. Do not restore the obsolete asset directory or exposed-key HTML injection.
 
 ## Validation evidence and limits
+
+Fresh experimental implementation evidence is recorded in the [execution handoff](tests/release-evidence.md#executed-validation). It includes core/SQL tests, all five rerun browser regressions, evidence replay, real loopback workerd EN/BG flows and an independent Python raw-transaction/signature/replay oracle. It does not establish live analytics, hosted Supabase concurrency, chain mining or deployment. Older results below retain their historical attribution.
 
 The parent implementation task reported the following **initial local run** results for beta.2 (beta.3's fresh local rerun is summarized in the [changelog](CHANGELOG.md)); these counts are not totals for the later expanded suites. These checks were not rerun during documentation work:
 
@@ -76,7 +70,7 @@ Reported coverage includes Bulgarian/English responsive UI, the 320px beta badge
 
 ### Available local QA commands
 
-The five supplied scripts resolve the checkout relative to their own location. Their sources still target the absent old asset; future plan T1/T2 must align them before a fresh pass can establish application health. With Python, the Python Playwright package, and its Chromium browser installed, run each from the repository root:
+All five supplied scripts now resolve the public asset relative to the checkout. With Python, the Python Playwright package, and Chromium installed, run each from the repository root:
 
     python.exe tests/qa_edge.py
     python.exe tests/qa_v14.py
@@ -84,11 +78,33 @@ The five supplied scripts resolve the checkout relative to their own location. T
     python.exe tests/qa_accessibility.py
     python.exe tests/qa_deep_independent.py
 
-The deep script includes the independent Python BFS oracle. Optional screenshot/report output in the matrix and deep scripts requires an existing directory selected through the QA_OUTPUT_DIR environment variable; output is disabled by default. No CI pipeline, package manifest, package test runner, build script, or lint script is supplied. The Node counts above are parent-reported ad hoc checks, not checked-in commands. Script sources were inspected, but application checks were not rerun for this documentation-only task. Historical beta.1 results remain in the [changelog](CHANGELOG.md).
+The deep script independently BFS-checks all 14 layouts. Optional screenshots/reports use an existing directory selected through QA_OUTPUT_DIR; output is disabled by default. Historical beta results remain in the [changelog](CHANGELOG.md).
+
+The [manifest](package.json) and [lockfile](package-lock.json) pin the local experiment tools. Node 24.14.1, Python 3.13.5 and Wrangler 4.155.0 were exercised. After installing the locked packages locally, available commands are:
+
+    npm test
+    npm run build:client
+    npm run dev
+    python.exe tests/qa_evidence.py
+    python.exe tests/qa_reconstruct.py
+    python.exe tests/qa_release.py
+
+For the isolated actual-workerd/PGlite browser fixture, use:
+
+    python.exe tests/runtime_servers.py
+    python.exe tests/qa_public_ui.py
+    python.exe tests/qa_outbox_retry.py
+    python.exe tests/qa_ranked_worker.py
+    python.exe tests/runtime_servers.py --stop
+
+The [fixture launcher](tests/runtime_servers.py) binds loopback ports 8787/8788/8790, saves owned PIDs/logs, refuses occupied ports, and disables dotenv loading. Stop its owned processes even after a failed browser check. Do not run a second development server on those ports. The fixture uses local PostgreSQL WASM, not hosted Supabase/PostgREST or a multi-process PostgreSQL server. There is no checked-in lint, typecheck or CI command; do not invent one.
 
 ## Source layout
 
-- [Single HTML asset](public/index.html): ordered inline game, scoring, solver, signing, and translation scripts.
-- [Worker](worker.js): optional issuer injection and asset passthrough.
+- [HTML asset](public/index.html): ordered inline game/scoring/solver/translation logic and actual run evidence.
+- [Worker](worker.js): API validation, disabled production issuer and unchanged asset passthrough.
+- [Leaderboard modules](leaderboard/profile.js): frozen replay rules, signatures, serialization, issuer, storage and reconstruction.
+- [Public UI](public/leaderboard-ui.js) and [local signing source](leaderboard/client.js): consent boundary, exact signed retries and identity backup.
+- [SQL migration](supabase/migrations/001_leaderboard.sql): server-only atomic operational state and derived index.
 - [Deployment configuration](wrangler.jsonc): asset directory and routing.
 - [Agent guidance](AGENTS.md): hidden contracts to preserve.

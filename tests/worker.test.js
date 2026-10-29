@@ -1,0 +1,61 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { PGlite } from '@electric-sql/pglite';
+import { readFileSync } from 'node:fs';
+import worker,{ handleApi } from '../worker.js';
+import { canonical,receiptId } from '../leaderboard/receipt.js';
+const {playerClaim}=JSON.parse(readFileSync(new URL('./fixtures/receipt.json',import.meta.url)));
+const score=(body=canonical(playerClaim,7),origin='https://game.test')=>new Request('https://game.test/api/score',{method:'POST',headers:{origin,'cf-connecting-ip':'192.0.2.1','content-type':'application/json','idempotency-key':receiptId(playerClaim)},body});
+test('Worker ignores legacy secret, serves unchanged assets, disabled API creates no identity',async()=>{
+  const asset='local game';
+  const env={HD1_RATE_HMAC_KEY:'public-nonfunded-fixture-hmac-key-01',ROD_EXPERIMENT_ISSUER_WIF:'NEVER-IN-HTML',ASSETS:{fetch:async()=>new Response(asset)}};
+  assert.equal(await (await worker.fetch(new Request('https://game.test/'),env)).text(),asset);
+  const available=await worker.fetch(new Request('https://game.test/api/leaderboard'),env);
+  assert.equal((await available.json()).available,false);
+  const response=await worker.fetch(score(),env);assert.equal(response.status,503);
+  assert(!(await response.text()).includes(env.ROD_EXPERIMENT_ISSUER_WIF));
+});
+test('admission rejects missing HMAC binding/IP and checks per-IP before global budget',async()=>{
+  const buckets=[];const storage={rpc:async(operation,{bucket})=>{buckets.push(bucket);return {code:bucket==='global'?'ok':'rate_limited'};}};
+  const backend={storage,available:true,rateSecret:'public-nonfunded-fixture-hmac-key-01'};
+  for(const rateSecret of [undefined,'','short','x'.repeat(257)])assert.equal((await handleApi(score(),{...backend,rateSecret})).status,503);
+  assert.equal(buckets.length,0);
+  const missing=score();missing.headers.delete('cf-connecting-ip');
+  assert.equal((await handleApi(missing,backend)).status,503);assert.equal(buckets.length,0);
+  for(let i=0;i<70;i++)assert.equal((await handleApi(score(),backend)).status,429);
+  assert.equal(buckets.length,70);assert(buckets.every(bucket=>bucket!=='global'));
+  assert.equal(new Set(buckets).size,1);assert.match(buckets[0],/^[a-f0-9]{64}$/);
+  const expected=await crypto.subtle.sign('HMAC',await crypto.subtle.importKey('raw',new TextEncoder().encode(backend.rateSecret),{name:'HMAC',hash:'SHA-256'},false,['sign']),new TextEncoder().encode('hd1-admission-ip-v1\u0000192.0.2.1'));
+  assert.equal(buckets[0],Buffer.from(expected).toString('hex'));
+  await handleApi(score(),{...backend,rateSecret:'public-nonfunded-fixture-hmac-key-02'});assert.notEqual(buckets.at(-1),buckets[0]);
+  const different=score();different.headers.set('cf-connecting-ip','192.0.2.2');await handleApi(different,backend);assert.notEqual(buckets.at(-1),buckets[0]);
+});
+test('Worker + actual SQL RPC: queued only after commit, exact retry/status, no privileged response',async()=>{
+  const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role;');
+  await db.exec(readFileSync(new URL('../supabase/migrations/001_leaderboard.sql',import.meta.url),'utf8'));
+  await db.exec('update public.hd1_coordinator set paused=false,epoch=2900;');
+  const storage={rpc:async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value};
+  storage.read=()=>storage.rpc('read');
+  storage.publicRead=async(operation,payload={})=>(await db.query('select public.hd1_public($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value;
+  const backend={storage,available:true,rateSecret:'public-nonfunded-fixture-hmac-key-01'};
+  try {
+    let response=await handleApi(score(),backend);assert.equal(response.status,202);
+    const queued=await response.json();assert.equal(queued.status,'queued');assert.equal(queued.derived_moves,116);assert(!('bytes' in queued));assert(!('raw' in queued));
+    assert.equal((await handleApi(score(),backend)).status,202);
+    assert.equal((await storage.read()).claims.length,1);
+    response=await handleApi(new Request('https://game.test/api/submissions/'+receiptId(playerClaim)),backend);
+    assert.equal((await response.json()).status,'queued');
+    assert.equal((await handleApi(score(undefined,'https://evil.test'),backend)).status,403);
+    assert.equal((await handleApi(score(canonical(playerClaim,7)+' '),backend)).status,400);
+    const unavailable={storage:{rpc:async()=>{throw Error('private binding details');}},available:true,rateSecret:backend.rateSecret};
+    response=await handleApi(score(),unavailable);assert.equal(response.status,503);assert(!(await response.text()).includes('private binding'));
+    for(let i=0;i<10;i++)await handleApi(score(),backend);
+    assert.equal((await handleApi(score(),backend)).status,429);
+    assert.equal((await db.query("select count from public.hd1_rates where bucket='global'")).rows[0].count,10);
+    const other=score();other.headers.set('cf-connecting-ip','192.0.2.2');
+    assert.equal((await handleApi(other,backend)).status,202);
+    assert.equal((await db.query("select count from public.hd1_rates where bucket='global'")).rows[0].count,11);
+    const buckets=(await db.query("select bucket from public.hd1_rates where bucket<>'global'")).rows;
+    assert.equal(buckets.length,2);assert(buckets.every(row=>/^[a-f0-9]{64}$/.test(row.bucket)));
+  }finally{await db.close();}
+});

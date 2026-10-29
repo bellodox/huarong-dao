@@ -1,0 +1,20 @@
+{
+  "name": "huarong-leaderboard-experiment",
+  "version": "0.1.0-beta.3",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "build:client": "esbuild leaderboard/client.js --bundle --format=esm --platform=browser --target=es2022 --minify --outfile=public/leaderboard-client.js"
+  },
+  "dependencies": {
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.2.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.13",
+    "esbuild": "0.28.2",
+    "wrangler": "4.155.0"
+  }
+}

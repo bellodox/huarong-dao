@@ -2,7 +2,7 @@ import os,threading,http.server,json,time,sys,re
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 from collections import deque
-ROOT=Path(__file__).resolve().parents[1]/'docs'
+ROOT=Path(__file__).resolve().parents[1]/'public'
 # Independent shortest-path oracle: no browser solver, hashing, or move helpers.
 def minimum_moves(board):
  ids=['CC','GY','ZF','ZY','MC','HZ','S1','S2','S3','S4']

@@ -4,3 +4,4 @@
 .osg/cache/
 .osg/logs/
 .osg/export/
+node_modules/

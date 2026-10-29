@@ -1,7 +1,7 @@
 import os,threading,http.server,socketserver,time,json,sys
 from playwright.sync_api import sync_playwright
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]/'docs'
+ROOT=Path(__file__).resolve().parents[1]/'public'
 HTML=open(f'{ROOT}/index.html',encoding='utf-8').read()
 fail=[]
 def check(ok,desc):

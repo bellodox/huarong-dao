@@ -2,7 +2,7 @@ import json,sys,re
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 from contextlib import ExitStack
-HTML=(Path(__file__).resolve().parents[1]/'docs'/'index.html').read_text(encoding='utf-8')
+HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text(encoding='utf-8')
 REMOVED={'fayaa_surround','fayaa_oneArmy','fayaa_constellation','fayaa_surrounded','fayaa_east','fayaa_leftPawn','fayaa_worse'}
 EXPECTED_AFTER={'heng_dao_li_ma','fayaa_rain2','fayaa_cannotStop','fayaa_highRisk'}
 MOCK_BEST={'fayaa_surround':['Alice',82,99],'fayaa_worse':['Alice',117,210],'wings':['Alice',121,123]}
