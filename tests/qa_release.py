@@ -12,9 +12,10 @@ for name in ['qa_edge.py','qa_v14.py','qa_dialog_keyboard.py','qa_accessibility.
  assert "'docs'/'index.html'" not in text and 'docs/index.html' not in text,name
 worker=(ROOT/'worker.js').read_text()
 relay=(ROOT/'leaderboard/relay-entry.js').read_text()
-assert "from './relay.js'" in worker and 'return handleRelayRequest(request,env)' in worker
+assert "from './relay.js'" in worker and 'return handleRelayRequest(request,env,ctx)' in worker
 assert 'leaderboard/' not in worker and 'verifyClaim' not in worker and 'SupabaseStorage' not in worker
-assert 'return handleApi(request,{storage,available:false,rateSecret:bindings.HD1_RATE_HMAC_KEY})' in relay
+assert "storage.publicRead('readiness'," in relay and 'readiness?.available===true' in relay
+assert 'ctx.waitUntil(handleScheduled(env))' in worker and config['triggers']['crons']==['* * * * *']
 assert "crypto.subtle.sign('HMAC'" in relay and 'sha256(' not in relay
 assert "storage.publicRead('status'" in relay and 'publicLeaderboard(storage,url.searchParams)' in relay
 assert '.replace(' not in worker and 'HUARONG_ISSUER_WIF' not in worker
@@ -31,4 +32,4 @@ assert 'hd1_public(text,jsonb)' in rollback and 'hd1_rpc(text,jsonb)' in rollbac
 assert 'drop table' not in rollback.lower() and 'delete from' not in rollback.lower()
 for file in (ROOT/'leaderboard').glob('*.js'):
  assert 'DurableObject' not in file.read_text(),file
-print('PASS offline release boundaries: public routing/five QA paths, disabled production issuer, no key substitution, preserved rollback journal, no Durable Object; live E1 and parent reviews remain unverified')
+print('PASS offline release boundaries: public routing/five QA paths, runtime readiness-gated publisher, cron, no key substitution, preserved rollback journal; hosted/funded acceptance unverified')

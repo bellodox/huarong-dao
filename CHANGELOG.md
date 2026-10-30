@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased — experimental local leaderboard MVP, 2026-10-29
+## Unreleased — experimental live-publisher implementation, 2026-10-30
+
+- Corrected schema gating to require migration 004's readiness capability revision 4 before HTTP availability or publisher job/preparation/signing; 003-only fails closed. Added immutable finite-scope continuation to the [operator commands](docs/cloudflare-deployment.md#read-only-versus-finite-funded-acceptance), with no budget replacement or ordinary-cron reconciliation. Shared value-aware funding authenticates at most 12 candidates and selects at most nine funding inputs within the 36-fetch tick budget.
+- Implemented hd2 inclusive 10× optimum ceilings for eleven ranked layouts, preserving hd1 semantics and unlimited complete local evidence; see the [published policy](tasks/plan.md#experimental-profile-decision).
+- Added the [single-API provider](leaderboard/provider.js): authenticated raws/prevouts, recomputed header hashes/merkle roots and ancestry; provider-anchored history is not independent consensus or omission proof. Incomplete/drifting history fails closed.
+- Added the [bounded autonomous publisher](leaderboard/publisher.js), one-minute cron and [migration 003](supabase/migrations/003_live_publisher.sql) for durable acquisition/bootstrap and job leases, preserving exact outbox and non-expiring signing barriers. Publication needs all four runtime bindings and fresh readiness; WIF alone is insufficient.
+- Added [migration 004](supabase/migrations/004_finite_publication.sql), required for current runtime schema readiness: SQL-durable finite authority snapshots queued unsigned claims, rejects preexisting preparation/ambiguous signing/unconfirmed raw state, checks budgets before preparation/signing and reserves them atomically with the non-expiring barrier. Cumulative fees/new locks count once per transaction; broadcast attempts are separately capped. Cron/restart never automatically clears, resets or widens scope. Provider response limits now count streaming bytes before decoding and cancel/abort oversized bodies and timed-out reads.
+- Updated the [runbook](docs/cloudflare-deployment.md#5-runtime-configuration-and-live-publisher) with missing-only 001 → 002 → 003 → 004 migration order, each missing file complete/atomic, compressed app-address funding, defaults/errors and read-only versus finite-publication acceptance commands. Push/build does not apply SQL or secrets. No hosted/funded/deployment success is claimed; current evidence and reviews belong only in the [handoff](tests/release-evidence.md#live-publisher-current-scope).
+
+## Historical implementation boundary — 2026-10-29
+
+The following entries describe the earlier disabled-production scope, not the current publisher.
 
 - Corrected the [deployment guide](docs/cloudflare-deployment.md) to the existing GitHub push → Workers Builds workflow, with pinned Node, explicit locked dev install/build/test/deploy settings and secondary local recovery. No hosted build or deployment is claimed; [current scope and final review status](tests/release-evidence.md#github-workers-builds-current-scope) are recorded in the handoff.
 - Locally implemented D7: one [self-contained relay](relay.js) shared by thin Worker and direct non-listening Node 24.2+ verify/reconstruct/status CLI, with reproducible build/check and stale-artifact deployment guard. Standalone offline runtime needs no project dependencies; build/test still does. Executable packaging and live publication CLI are not implemented.

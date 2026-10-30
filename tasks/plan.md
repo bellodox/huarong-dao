@@ -1,5 +1,7 @@
 # Implementation design: replay-backed public leaderboard
 
+**Current execution extension, 2026-10-30:** [§14](#14-live-public-leaderboard-execution-extension) governs the newly authorized live-leaderboard completion scope and experimental ranked policy wherever older stops conflict. Historical design, implementation evidence and incomplete items below are retained, not retroactively completed. This planning edit authorizes no external operation itself; deployment/pushes, secret reads and unspecified spending remain excluded.
+
 ## 1. Status, authority and scope
 
 **Design revision hd1-plan-3, 2026-10-29.** The later explicit execution instruction authorizes experimental T1–T12 implementation and local validation, superseding this document's historical planning-only A0 stop. It does not authorize production changes, commits/pushes, unrestricted spending or secret-file inspection. Current outcomes and review ownership are centralized in the [execution handoff](../tests/release-evidence.md). This document remains the normative design; historical task boundaries below describe its preparation, not a renewed implementation prohibition.
@@ -8,7 +10,7 @@
 
 The [combined delta](../docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) supersedes conflicting earlier wording in this plan, including §3's prohibition on a second execution mode and §7's six-confirmation wait before successor issuance. The earlier delta's D5 is a historical authority section, not the new ranked-eligibility decision. This revision began as documentation only. Subsequent authorized local D7/D6 implementation is described below; earlier reviews do not approve it.
 
-- **D5:** Apply a published, versioned ranked-eligibility limit before receipt assembly/publication. Actual per-layout numerical ceilings remain unresolved; do not invent a move cap or score floor. Once frozen, enforce identical limits in browser, authoritative relay verification, published policy and independent reconstruction. Test boundary/version mismatches and worst-case complete canonical signed receipts against 2,048 UTF-8 bytes. Until all allowed runs are covered, preserve explicit oversize errors and intact local evidence. Local play remains unlimited.
+- **D5:** Apply a published, versioned ranked-eligibility limit before receipt assembly/publication. The authorized §14 experimental hd2 policy is selected and implemented: inclusive 10× frozen optimum across eleven ranked layouts, preserving hd1. Enforce identical limits in browser, authoritative relay verification, published policy and independent reconstruction. Test boundary/version mismatches and worst-case complete canonical signed receipts against 2,048 UTF-8 bytes. Until all allowed runs are covered, preserve explicit oversize errors and intact local evidence. Local play remains unlimited.
 - **D6:** Keep the shared historical name g/huarong-lb. Permit one successor after one canonical-chain confirmation and successful head/lineage reconciliation, with at most one unconfirmed shared-name operation globally. Six confirmations still govern finalized rankings; twelve govern weekly close. One through five confirmations mean included, not finalized. Pause/reconcile on reorg, persist exact signed bytes before broadcast and resolve ambiguous delivery without signing a different transaction. Independent reconstruction enumerates all historical values, not merely current name state.
 - **D7:** Require exactly one [self-contained relay distribution](../relay.js) (now locally implemented). The [Worker](../worker.js) is thin HTTP/assets/bindings glue importing it in the same process, with no duplicate verification, issuance, encoding or state machine. Node directly executes the same artifact as a one-shot CLI without an HTTP listener. Offline verification/replay works without Supabase/network for self-contained evidence; any future operational indexing/publication still requires configured Supabase and ROD endpoints, not an invented publication CLI.
 - Source modules may remain build-time inputs only; the distribution must need no local leaderboard modules, project dependencies or native database driver at runtime. Guard Node-only startup/I/O from Worker imports. If bundling is selected, provide reproducible build/test commands and stale-artifact protection. Test executable packaging before claiming it exists.
@@ -16,9 +18,9 @@ The [combined delta](../docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29-2.md) sup
 
 Existing T1–T12 results remain evidence for their recorded scope only. Current local D7 implementation uses [relay source](../leaderboard/relay-entry.js), the reproducible [bundler/check](../tests/build-relay.js) and a stale-artifact Wrangler build guard. Node 24.2+ directly supports verification of canonical file/stdin evidence (optional trusted app public key for a receipt), reconstruction from authenticated history file/stdin plus a pinned bootstrap file, and status lookup with explicit server-only reads. No publication command, listener or executable packaging exists. Build/test needs locked project dependencies; standalone offline runtime does not.
 
-Current D6 uses [migration 002](../supabase/migrations/002_d6_included_successor.sql) after [001](../supabase/migrations/001_leaderboard.sql). Fresh installs apply both in order; existing 001 installs apply all of 002 atomically. It pauses/increments revision to invalidate old observations, retains exact raw lineage, ownership/journals/reservations and requires fresh authenticated reconciliation. Durable included state permits a successor only after canonical inclusion/reconciliation, not ranking finality. Included predecessors never re-sign/rebroadcast; reorg/conflict remains fail-closed. Six/twelve thresholds remain unchanged. See the [operator guide](../docs/cloudflare-deployment.md) and [checklist](todo.md#d5d7-follow-up); E1 and public-use gates remain closed. Current validation/review status lives only in the [handoff](../tests/release-evidence.md#d7d6-current-local-scope).
+Historical D6 implementation used [migration 002](../supabase/migrations/002_d6_included_successor.sql) after [001](../supabase/migrations/001_leaderboard.sql). At that historical boundary, fresh installs applied both in order and existing 001 installs applied all of 002 atomically. It pauses/increments revision to invalidate old observations, retains exact raw lineage, ownership/journals/reservations and requires fresh authenticated reconciliation. Durable included state permits a successor only after canonical inclusion/reconciliation, not ranking finality. Included predecessors never re-sign/rebroadcast; reorg/conflict remains fail-closed. Six/twelve thresholds remain unchanged. See the [operator guide](../docs/cloudflare-deployment.md) and [checklist](todo.md#d5d7-follow-up); Current reads/publication require only missing complete atomic migrations 001 → 002 → 003 → [004](../supabase/migrations/004_finite_publication.sql), runtime schema readiness through 004, the four runtime bindings and fresh readiness; E1/public-use acceptance remains open. Current validation/review status lives only in the [handoff](../tests/release-evidence.md#d7d6-current-local-scope).
 
-**Experimental P1 technical choice:** retain the reversible one-symbol-per-successful-single-cell action encoding. Enforce the complete final receipt's 2,048-byte UTF-8 bound, not a separate 1,536-move cap. A valid signed/replayed 1,536-move receipt is 1,851 bytes; a valid 1,722-move receipt is exactly 2,048 bytes. Capacity is byte-dependent; longer runs remain local intact and return an explicit capacity error. This is an experimental implementation choice authorized for investigation, **not human approval of a universal public eligibility restriction**. Production issuance remains disabled. No truncation, substituted path, digest-only evidence or external evidence link is permitted.
+**Experimental P1 technical choice:** retain the reversible one-symbol-per-successful-single-cell action encoding. Enforce the complete final receipt's 2,048-byte UTF-8 bound, not a separate 1,536-move cap. A valid signed/replayed 1,536-move receipt is 1,851 bytes; a valid 1,722-move receipt is exactly 2,048 bytes. Capacity is byte-dependent; longer runs remain local intact and return an explicit capacity error. This is an experimental implementation choice authorized for investigation, **not human approval of a universal public eligibility restriction**. Publication now requires the four runtime bindings and fresh readiness described in §14; live acceptance remains unverified. No truncation, substituted path, digest-only evidence or external evidence link is permitted.
 
 The design incorporates [D1–D5](../docs/Huarong_Dao_MVP_Decision_Delta_2026-10-29.md); the [execution checklist](todo.md) tracks it, not a second contract. Saving the design does not approve a standard, production availability, deployment or funding. Restricted E1 gathers live evidence; public-use availability still requires E1 success. Node core/SQL tests replace planned Python-only harness names where they exercise the actual Worker modules; the independent Python raw-history/replay oracle remains separate. Task packets are ordered logical slices, not a claim that their original hypothetical file lists match the implemented test organization.
 
@@ -79,7 +81,7 @@ Signature bytes: header 31+recovery-id (0..3), then unsigned big-endian r and s,
 
 Fresh Python compact UTF-8 serialization with the worst allowed 10-digit w, 16-byte l, 20-byte b, 48-byte non-escaping n and two 87-character signatures gives **326+M bytes**. M=1,536 gives **1,862 bytes**, leaving 186 of the 2,048 value bytes. M=1,722 gives exactly 2,048; M=1,723 gives 2,049. JSON escapes are forbidden for the restricted nickname characters; allowed Unicode is literal, and byte length rather than codepoint length is enforced. Signature length alone is not signature validity; these measurements are capacity fixtures, not signed/replay-valid transactions.
 
-The 1,536 candidate cap is an additional eligibility restriction not requested by the user. Neither first weekly nor first lifetime entry provides a finite move bound. Even requiring points >=1 would allow up to floor(sqrt(20*126^3))=6,325 moves, exceeding this encoding's capacity. Therefore the unrestricted workflow cannot be promised by this receipt design. **P1 requires explicit human approval of a bounded public profile or an explicitly revised full-evidence design. Until then public issuance is disabled; never truncate evidence, silently reject otherwise-eligible runs under an approved-sounding cap, replace it with a hash, or claim the requirement resolved.** Unlimited local play remains intact. The 16-byte layout ID and 48-byte name limits are fixed wire/profile bounds and must also be disclosed in that policy review.
+Historical pre-§14 P1 analysis (superseded for experimental hd2 by the selected/implemented policy): the 1,536 candidate cap is an additional eligibility restriction not requested by the user. Neither first weekly nor first lifetime entry provides a finite move bound. Even requiring points >=1 would allow up to floor(sqrt(20*126^3))=6,325 moves, exceeding this encoding's capacity. Therefore the unrestricted workflow cannot be promised by this receipt design. **P1 requires explicit human approval of a bounded public profile or an explicitly revised full-evidence design. Until then public issuance is disabled; never truncate evidence, silently reject otherwise-eligible runs under an approved-sounding cap, replace it with a hash, or claim the requirement resolved.** Unlimited local play remains intact. The 16-byte layout ID and 48-byte name limits are fixed wire/profile bounds and must also be disclosed in that policy review.
 
 ## 6. Weeks, confirmations and reconstruction
 
@@ -289,3 +291,137 @@ Validation is documentation-only; no app/chain feasibility pass is implied. Fres
 The historical body retains its original 24,155 characters and 255 lines, with only the four-line banner prepended; the prepend-only patch and body size/content inspection are the preservation evidence. A comparison against the Git index failed because that pre-existing document is untracked; no false index-comparison pass is claimed. Full git diff --check returned exit 2 solely for four pre-existing Markdown hard-break lines in that preserved historical body (now lines 7–10). They are intentionally not rewritten. New normative documents and the banner receive separate whitespace checks; final results are in the parent evidence handoff. Historical links in the superseded body are retained as source text, not certified active navigation.
 
 The optional fitz page-count probe returned exit 1 (module absent); the full PDF extraction, including cover and numbered pages through 11, is the page-count basis. A final Python assertion initially expected exit 0 from git diff --no-index --check against an empty file; that expectation was incorrect because no-index reports exit 1 for a new-file difference even without whitespace diagnostics. The independent active-text whitespace check passed. No dependencies installed, PDF modified, agents spawned, memory persisted, implementation executed, chain transaction sent, or deployment/commit/push performed. Final porcelain status preserves the original deletion/untracked files and adds only the authorized task documents; the only edit to a pre-existing file is the historical banner. Application tests remain blocked by stale asset paths until future alignment.
+
+## 14. Live public leaderboard execution extension
+
+### Authority, preserved scope and exit conditions
+
+The latest explicit user request authorizes autonomous experimental implementation toward a live public leaderboard, including selection of numerical ranked ceilings. It replaces prior implementation/policy stops and human review-confirmation checkpoints, not safety invariants or missing operational permissions. The original two-file planning scope is historical. Authorized implementation and local validation have since been performed; current evidence and review status are in the [handoff](../tests/release-evidence.md#live-publisher-current-scope). Secret-file inspection, commits/pushes/deployment and unspecified spending remain unauthorized. Do not probe cloud login/authentication merely to prepare local work. An external prerequisite blocks only its dependent operation; continue independent authorized work without confirmation stalls.
+
+Carry forward all unchecked D5–D7, E1 and T10/C5 work in [todo](todo.md), including executable-packaging validation if packaging is later implemented. Packaging is not required for this live path and is not silently cancelled or claimed delivered. Historical approvals cover their original scope only. Current completion/review status continues to belong solely in the [handoff](../tests/release-evidence.md); do not duplicate changing verdicts here.
+
+Maintain separate exit labels: **local code ready** requires implementation, local checks and scoped independent reviews; **live accepted** additionally requires actual hosted SQL/Worker and authorized funded-chain end-to-end evidence. Neither source inspection nor fixtures, an HTTP acceptance response, scheduled-handler existence or a configured endpoint establishes live acceptance. Missing access, funding envelope, deployment permission or measurements remain explicitly pending; no assumed passes.
+
+### Experimental profile decision
+
+Select new profile **hd2**: same frozen catalog, replay, move alphabet, scoring and assurance as hd1, with inclusive public ranked maximum **10 × frozen optimum** for each of the eleven ranked layouts. Keep hd1 parsing, signing domains, receipt identities, replay and historical reconstruction semantics unchanged; never reinterpret old receipts with the new ceilings. Give hd2 explicit profile dispatch and distinct player/app signing domains using its profile identifier; reject unknown profiles and cross-profile signature substitution. Preserve the existing full ordered inline receipt shape and bound, not a digest or replacement path. Define mixed-profile ranking/deduplication deterministically over the same stable player/layout identities, retaining earliest-chain provenance and preventing profile switching from bypassing strict lifetime OR weekly improvement.
+
+| Ranked layout | Frozen optimum | hd2 maximum moves (inclusive) |
+| --- | ---: | ---: |
+| wings | 116 | 1160 |
+| heng_dao_li_ma | 118 | 1180 |
+| rear_guard | 82 | 820 |
+| small_obstacle | 100 | 1000 |
+| ambush | 110 | 1100 |
+| fayaa_sideBySide | 85 | 850 |
+| fayaa_threeRoads | 92 | 920 |
+| fayaa_peach | 100 | 1000 |
+| fayaa_rain2 | 119 | 1190 |
+| fayaa_cannotStop | 126 | 1260 |
+| fayaa_highRisk | 126 | 1260 |
+
+Training and both practice layouts remain excluded. Local play and saved actual paths remain unlimited and intact, even when not publicly eligible. Explain the experimental restriction before signing; preserve consent-only identity, legacy WIF bytes/compression, backup/export, nickname atomicity, weekly-only evidence, assistance isolation and BG/EN accessibility. The historical conservative arithmetic suggests 326 + 1260 = 1586 bytes with a three-character profile, **not implementation proof**. Implementation must prove the complete canonical receipt for all allowed field bounds and profiles, including both real signatures and UTF-8 names, is at most 2,048 bytes; retain final byte enforcement and explicit capacity errors. No independent 1,536-move cap, truncation or substituted solution.
+
+### Existing-provider and operational contract
+
+Use only the existing SpaceXpanse API, default **https://api.spacexpanse.org:1234**, with bounded configurable transport. No additional node, service or provider is authorized. History exposes count plus pages but no snapshot token: replace the current snapshot-token assumption with stable canonical-tip-anchored acquisition, count/page exhaustion and deduplication, raw transaction/inclusion/header ancestry checks, and end-of-acquisition tip/count rechecks with bounded retry/fail-closed behavior. Detect page drift and missing data; do not manufacture a provider snapshot token. Explicitly record the provider trust/completeness assumption: a stable response set and hash-linked headers are **not independently verified consensus or proof that a provider omitted nothing**. If required data cannot be obtained, report the limitation without adding a node-scan fallback or silently weakening acceptance.
+
+Production configuration uses Worker-runtime **ROD_APP_WIF**, server-only, plus existing **SUPABASE_URL**, **SUPABASE_SERVICE_KEY** and **HD1_RATE_HMAC_KEY**. The retired **ROD_EXPERIMENT_ISSUER_WIF** must remain ignored; never restore secret substitution into HTML, browser bundles, API responses or logs. Configuration preparation uses names/placeholders and redacted diagnostics, not secret reads. Preserve the shared self-contained [relay](../relay.js), thin [Worker](../worker.js), direct offline Node parity and current build guards.
+
+Pin the chain/network, exact g/huarong-lb name, app public key, dedicated marker and bootstrap identity. **First registration is a separate explicit state**, not an invented established bootstrap: use the explicit bounded chain-rejected-duplicate policy and verified funding observations under the stated provider trust (the API has no global name-absence proof); reserve inputs/global slot and persist the exact signed registration before any broadcast. Pin its deterministic transaction identity and validate canonical inclusion/ownership/marker before treating it as established lineage. Existing names require the separately pinned registration and complete authenticated lineage, never takeover based on current name state alone. No funded registration/broadcast occurs without a specified spend envelope and applicable permission.
+
+Scheduled bounded recovery/reconciliation uses the same SQL fences and issuer path as requests: no transaction spans network/signing; exact outbox before broadcast; non-expiring signing barrier; no takeover after ambiguous signing; identical-byte retries; one global unconfirmed transaction. One canonical confirmation **plus reconciled lineage** permits a successor, six finalize ranking, twelve close the week. Reorgs, external spends, missing evidence and unknown signer execution fail closed. Schedule overlap/restarts cannot create a second signer or replace an ambiguous spend.
+
+### Ordered slices and verification
+
+The following acceptance packets originated in planning; checked L1–L3 criteria now describe implemented/local-tested scope. Actual measured results and remaining external/review gaps belong in the handoff, not these command lists. Each focused packet should touch at most five files; split a larger packet before implementation while retaining its dependencies and the acceptance criteria below. Put every new automated check under root tests. Update obsolete disabled-only assertions when the authorized production implementation changes; replace them with equivalent explicit-enable/secret/fail-closed assertions rather than deleting protection. Do not run live checks through fixture defaults.
+
+Operator contract correction: migration 004 alone exposes readiness capability revision 4, required by HTTP and publisher before job acquisition, preparation or signing; 003-only returns schema_upgrade_required. Shared value-aware readiness/preparation authenticates at most 12 funding candidates and selects at most nine funding inputs within the shared 36-fetch tick budget. Finite acceptance continuation uses only the returned scope ID and optional 1–10 ticks, preserving original durable budgets, queued snapshot and counters. Ordinary cron remains fenced, including reconciliation; follow the [exact resume sequence](../docs/cloudflare-deployment.md#read-only-versus-finite-funded-acceptance) after initial sync, lost responses and confirmations through six-confirmation ranking. No reopening or new authority is implied.
+
+#### L1 — Versioned ranked policy and browser path
+
+Dependencies: current local baseline; selected hd2 policy above. Focus: [profile](../leaderboard/profile.js), [receipt](../leaderboard/receipt.js), browser capture/signing and focused tests; split browser bundle/UI work from core dispatch if needed.
+- [x] Browser, authoritative verifier and independent reconstruction agree on all eleven inclusive ceilings; practice, unknown/cross-profile claims and mixed-profile improvement bypasses fail; hd1 vectors remain unchanged.
+- [x] Prove complete signed UTF-8 receipt capacity across allowed worst-case fields and boundary fixtures; preserve full over-ceiling local evidence and explicit public rejection without silent trimming.
+- [x] Run focused receipt/replay and browser evidence checks; regenerate both distributions and validate the aggregate build.
+
+Verification: [node --test tests/receipt.test.js tests/verify.test.js tests/reconstruct.test.js](../tests/receipt.test.js), [python.exe tests/qa_evidence.py](../tests/qa_evidence.py), [python.exe tests/qa_public_ui.py](../tests/qa_public_ui.py), and [npm run build](../package.json:7). Browser runtime prerequisites use the [owned loopback launcher](../tests/runtime_servers.py); stop only its saved processes with its stop option. Scope medium per split packet.
+
+#### L2 — Existing SpaceXpanse API preparation and history validation
+
+Dependencies: L1 profile contract. Focus: provider adapter, [reconstruction](../leaderboard/reconcile.js) and focused raw-history/transport tests; no new infrastructure.
+- [x] Validate available read-only endpoint schemas, network/address parameters, raws and headers against the default API; locally test funding/inclusion/MTP contracts. Live fee acceptance, funded UTXOs and publication remain unverified; the read-only probe is not E1.
+- [x] Implement bounded stable-tip count/page acquisition without a snapshot token; test drift, duplicates, omission signals, reorgs, timeouts and budget exhaustion under explicit provider trust.
+- [x] Independent reconstruction recovers overwritten hd1/hd2 receipts and rejects forged markers/lineage; distinguish provider-anchored observations from consensus-authenticated input, with no false completeness attestation.
+
+Verification: [node --test tests/reconstruct.test.js tests/chain.test.js](../tests/reconstruct.test.js), [python.exe tests/qa_reconstruct.py](../tests/qa_reconstruct.py), [python.exe tests/qa_portable_relay.py](../tests/qa_portable_relay.py). Add an explicit read-only live-provider mode/check under tests and record its actual command, endpoint, timestamps, exits and redacted public evidence before claiming live validation; existing fixture commands alone cannot satisfy the first criterion. Scope medium per adapter/test packet.
+
+#### L3 — Production issuer with bounded scheduled recovery
+
+Dependencies: L1–L2; hosted execution additionally needs configured runtime bindings and authorized operations. Split into issuer/bindings, scheduler/reconciliation and focused safety-test packets.
+- [x] Explicit enablement constructs the production adapter with the server-only runtime app key; absent/invalid configuration fails closed, retired key is ignored and static/read-only/local-play modes remain safe.
+- [x] First registration and pinned established lineage follow the distinct states above; requests and scheduled work share fenced SQL, exact persisted outbox, signing barrier and one-global-unconfirmed enforcement under overlap/crash/timeout.
+- [x] Bounded retries/reconciliation handle one-confirmation successors, six/twelve thresholds, boundary epochs, reorg/external-spend and unresolved signing without replacement transactions or premature reservation release.
+
+Verification: [node --test tests/issuer.test.js tests/storage.test.js tests/relay.test.js tests/review-regressions.test.js](../tests/issuer.test.js), [python.exe tests/qa_outbox_retry.py](../tests/qa_outbox_retry.py), [python.exe tests/qa_d6_successor.py](../tests/qa_d6_successor.py), [python.exe tests/qa_release.py](../tests/qa_release.py), and [npm run build](../package.json:7). Extend these checks for production/scheduled behavior, including no-secret output assertions. Scope medium per split packet.
+
+**Checkpoint LC1 — after L1–L3:** run [npm test](../package.json:11) and the aggregate build; reconcile contract drift, actual command exits and independent provider evidence. Continue authorized local work automatically; do not infer hosted readiness, grant funding or replace a missing live capability with another provider.
+
+#### L4 — Hosted SQL and Worker acceptance
+
+Dependencies: L3; actual hosted target access and separate deployment authorization where changes require deployment. Local preparation is independent of these external waits.
+- [ ] Validate missing-only migration order 001 → 002 → 003 → 004, each entire file atomic, constrained server-only RPC/RLS, concurrent sessions, rollback and outage behavior on hosted Supabase; retain all journals/reservations/outbox.
+- [ ] Hosted Worker routing, explicit availability, runtime bindings, scheduled invocation and redacted failures behave as intended; browser never receives privileged credentials and disabled fallback stays walletless/playable.
+- [ ] Save real target/revision, commands, exits and observations separately from fixtures; leave every unavailable hosted action unchecked, with its exact prerequisite.
+
+Verification: extend [node --test tests/storage.test.js tests/worker.test.js tests/public-read.test.js](../tests/storage.test.js) and [python.exe tests/qa_ranked_worker.py](../tests/qa_ranked_worker.py) with explicit hosted modes or narrowly scoped new tests. Record actual hosted invocation commands after implementing those modes; current commands are local baselines, not hosted proof. No deployment command or push is authorized by this plan. Scope medium per SQL/Worker test packet.
+
+#### L5 — Authorized live end-to-end publication and rebuild
+
+Dependencies: L4, successful L2 provider observations, pinned network/name/marker/app identity, limited-funded wallet and explicit spend/broadcast permission. Never read secret files to satisfy prerequisites.
+- [ ] Actual consented hd2 run registers the name if absent, then publishes an update using application-funded exact bytes; independently validate signatures, scripts, fee/weight/dust, dedicated marker, txids and canonical inclusion. Exercise unknown delivery with identical-byte recovery, not an alternate spend.
+- [ ] Observe reconciled one-confirmation successor, six-confirmation public ranking and twelve-confirmation weekly close when observable; chain history rebuild without Supabase matches hosted lifetime/week/per-layout results, including overwritten receipts and actual inclusion epoch.
+- [ ] BG/EN browser flow shows honest queued/pending/confirmed/stale/reorg state and retains local play, wallet continuity and separate consents; record unobserved epoch/confirmation conditions as pending, never fixture-proven live passes.
+
+Verification: [python.exe tests/qa_public_ui.py](../tests/qa_public_ui.py), [python.exe tests/qa_reconstruct.py](../tests/qa_reconstruct.py) and [python.exe tests/qa_outbox_retry.py](../tests/qa_outbox_retry.py) remain local regressions; implement explicit live modes/tests under tests and record exact commands with public txids/headers/measurements. The separate [acceptance utility](../tests/live-publisher-acceptance.js) now provides read-only and explicitly finite publication modes; exact flags and limitations are in the [runbook](../docs/cloudflare-deployment.md#read-only-versus-finite-funded-acceptance). Scope medium per live harness/evidence packet; external confirmation waits are not autonomous execution time.
+
+**Checkpoint LC2 — after L4–L5:** classify each outcome as local, hosted, provider-observed, funded live, blocked or unverified. Live acceptance stays open for any missing essential observation; continue independent cleanup/testing without pretending deployment or spending happened.
+
+#### L6 — Simplify completed implementation
+
+Dependencies: L1–L5 implementation complete, with external acceptance gaps isolated. Use Code Simplifier after substantive coding; no new features or contract changes.
+- [ ] Remove unnecessary duplication while preserving relay runtime parity, profile/version semantics, SQL fences, exact-byte outbox and signing safety.
+- [ ] Rerun affected focused checks, [npm run build](../package.json:7), [npm test](../package.json:11) and [python.exe tests/qa_portable_relay.py](../tests/qa_portable_relay.py); retain actual failures/gaps.
+
+Scope small/medium per focused packet; any behavioral change returns to affected implementation validation.
+
+#### L7 — Independent tests of the completed scope
+
+Dependencies: L6 and all implementation in the agreed scope complete. Independent Test Engineer checks concrete production-adapter/scheduler/profile risks, not only happy-path fixtures.
+- [ ] Independently exercise ranked/capacity/version boundaries, browser/local preservation, concurrent SQL/signing, provider drift, exact retry/restart/reorg and hosted/live evidence qualifications without weakening assertions.
+- [ ] Run [npm run build](../package.json:7), [npm test](../package.json:11), [python.exe tests/qa_deep_independent.py](../tests/qa_deep_independent.py), [python.exe tests/qa_public_ui.py](../tests/qa_public_ui.py), [python.exe tests/qa_d6_successor.py](../tests/qa_d6_successor.py) and affected new checks; report counts/exits and distinguish fresh, historical and blocked results.
+
+Scope bounded independent test packets; fix observed defects and repeat affected checks before final reviews. Preserve long-running logs/exit status and inspect existing processes after timeout rather than duplicating runs.
+
+#### L8 — Final independent security and Code Reviewer reviews
+
+Dependencies: L7 and all implementation/fixes/testing complete; clean only task-owned disposable artifacts first.
+- [ ] Vulnerability Checker reviews final input/API/secrets/signing/persistence/provider/deployment-configuration scope with actual diff/base and evidence; resolve findings and revalidate affected behavior.
+- [ ] Code Reviewer then reviews the final agreed scope and evidence; record exact reviewed revisions/diff and verdict limits, never extend older approvals to later code or infer deployment approval.
+
+Verification evidence supplied to both reviews: final [npm test](../package.json:11), [npm run build](../package.json:7), focused checks from L1–L7 and Git diff/status. These are reviewer inputs, not claims of reviewer execution. Scope bounded final review packets; parent owns verdict consolidation.
+
+**Checkpoint LC3 — after L6–L8:** implementation and tests precede final reviews; substantive fixes after a verdict require relevant validation/review again. Factual closeout alone does not restart the cycle. Missing live acceptance cannot be converted into “live complete” by a review.
+
+#### L9 — Factual documentation and parent OSG closeout
+
+Durable implementation/operator documentation is reconciled before L8 reviews; final factual closeout and parent-owned memory persistence follow L8.
+- [ ] Reconcile operator guidance, policy and checklists with verified implementation, preserving historical evidence; keep current status/review scope/live gaps solely in the designated handoff and link to it elsewhere.
+- [ ] Parent performs authorized OSG persistence/semantic refresh and verifies returned IDs/warnings, final Git diff/status and documentation links; do not claim saved memory before success or fabricate entity IDs.
+- [ ] Report local readiness separately from actual live acceptance, external waits and excluded actions; no commit/push/deployment implied.
+
+Verification: [git diff --check](../tasks/plan.md), changed-document local-link/fragment checks and final Git status; application reruns are unnecessary for factual-only closeout. Parent records the actual OSG command results in the handoff. Scope small/medium documentation packets; no additional tooling solely for process.
+
+### Planning evidence for this extension
+
+Fresh planning inspection: clean Git status on branch leaderboard at cc340dd1b96ccf74d2e7689e15ab1878d85f9cee; existing manifest/build/test entrypoints, frozen profile/receipt, relay production-disable boundary, snapshot-dependent history, configuration and owned runtime launcher checked directly. Bounded read-only OSG context succeeded without warnings; graph cd629326e1fd7fd0e381c00c87b94a5e0dd49aa9e5535e70b42cb143a3fbd18ef reports main provenance, not the actual checkout branch. Retrieved older episode anchors were changed/other-branch and were not treated as current approval. No sync, embed, remember, application test, remote API check or live operation is claimed by this planning edit.

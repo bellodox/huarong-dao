@@ -1,10 +1,11 @@
-import { SupabaseStorage,publicStatus,PUBLIC_RESPONSE_BYTES } from './storage.js';
+import { SupabaseStorage,publicStatus,publisherReadiness,PUBLIC_RESPONSE_BYTES } from './storage.js';
 import { ClaimError,checkOrigin,readClaim,verifyClaim } from './verify.js';
 import { admit,advance } from './issuer.js';
 import { publicLeaderboard } from './index.js';
 import { bytesToHex,utf8,parseCanonical,canonical,receiptId,recover } from './receipt.js';
 import { reconstruct } from './reconcile.js';
 import { rank } from './index.js';
+import { publisherConfig,runPublisher } from './publisher.js';
 
 // Build-time modules only: the generated root relay.js is the sole runtime distribution.
 export * from './profile.js';
@@ -15,6 +16,7 @@ export * from './issuer.js';
 export * from './index.js';
 export * from './chain.js';
 export * from './reconcile.js';
+export * from './publisher.js';
 
 /** Responses never serialize bindings, caught exceptions, raw journals or private keys. */
 function json(value,status=200,cache=false) {
@@ -22,13 +24,13 @@ function json(value,status=200,cache=false) {
   return Response.json(value,{status,headers:{'Cache-Control':cache?'public, max-age=5, s-maxage=5':'no-store','X-Content-Type-Options':'nosniff',...(status===429?{'Retry-After':'60'}:{})}});
 }
 /** Injectable local fixture boundary; no production chain adapter is presumed verified. */
-export async function handleApi(request,{storage=null,issuer=null,available=false,rateSecret=null}={}) {
+export async function handleApi(request,{storage=null,issuer=null,available=false,rateSecret=null,readiness=null}={}) {
   const url=new URL(request.url);
   try {
     if(url.pathname==='/api/leaderboard' && request.method==='GET') {
       if(!storage)return json({available:false,code:'issuance_disabled',rows:[],pending:[],stale:true,rewards_enabled:false,assurance:'replayed'});
       const result=await publicLeaderboard(storage,url.searchParams);
-      return json({...result,available:available===true},200,true);
+      return json({...result,available:available===true,...(readiness?{publisher:readiness}: {})},200,true);
     }
     const match=/^\/api\/submissions\/([a-f0-9]{64})$/.exec(url.pathname);
     if(match && request.method==='GET') {
@@ -38,7 +40,7 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
     }
     if(url.pathname==='/api/score' && request.method==='POST') {
       checkOrigin(request);
-      if(!available||!storage)return json({code:'issuance_disabled',retryable:false},503);
+      if(!available||!storage)return json({code:readiness?.code??'issuance_disabled',retryable:!!storage},503);
       // Server-only HMAC, never a reversible unsalted IP digest or a fallback key.
       const ip=request.headers.get('cf-connecting-ip');
       if(typeof rateSecret!=='string'||utf8(rateSecret).length<32||utf8(rateSecret).length>256||!ip||ip.length>64)return json({code:'issuance_disabled',retryable:false},503);
@@ -69,11 +71,27 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
   }
 }
 
-/** Production bindings permit explicit server-only reads, never issuance or key injection. */
-export function handleRelayRequest(request,bindings={}) {
-  const storage=bindings.HD1_READS==='true'&&bindings.SUPABASE_URL&&bindings.SUPABASE_SERVICE_KEY?
-    new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY):null;
-  return handleApi(request,{storage,available:false,rateSecret:bindings.HD1_RATE_HMAC_KEY});
+/** Runtime credentials stay server-only. GET calls only STABLE whitelisted reads. */
+export async function handleRelayRequest(request,bindings={},context=null) {
+  const config=publisherConfig(bindings);
+  let storage=null;
+  try {
+    if((!config.code||bindings.HD1_READS==='true')&&bindings.SUPABASE_URL&&bindings.SUPABASE_SERVICE_KEY)
+      storage=new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY);
+    let readiness={available:false,code:config.code??'initial_sync'};
+    if(storage&&!config.code)readiness=await publisherReadiness(storage,{appKey:config.appKey,markerKey:config.markerKey,baseUrl:config.baseUrl});
+    const response=await handleApi(request,{storage,available:!config.code&&readiness?.available===true,
+      rateSecret:bindings.HD1_RATE_HMAC_KEY,readiness});
+    if(request.method==='POST'&&new URL(request.url).pathname==='/api/score'&&response.status===202&&context?.waitUntil)
+      context.waitUntil(runPublisher(storage,config));
+    return response;
+  }catch {return json({code:'backend_unavailable',retryable:true},503);}
+}
+/** Cron is the autonomous progress path. No HTTP route exposes this operation. */
+export async function handleScheduled(bindings={}) {
+  const config=publisherConfig(bindings);if(config.code)return {code:config.code};
+  try {return await runPublisher(new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY),config);}
+  catch {return {code:'backend_unavailable'};}
 }
 
 /** Verify exact canonical claim/receipt bytes offline; a receipt needs a separately trusted issuer. */
@@ -87,7 +105,7 @@ export function verifyOffline(text,appKey=null) {
     if(!/^(02|03)[a-f0-9]{64}$/.test(appKey||''))throw Error('issuer_key_required');
     if(recover('app',canonical(claim,7),a)!==appKey)throw Error('unauthorized_app');
   }else if(appKey!==null)throw Error('unexpected_issuer_key');
-  return {ok:true,profile:'hd1',assurance:'replayed',receipt_id:verified.id,player:verified.player,
+  return {ok:true,profile:verified.claim.p,assurance:'replayed',receipt_id:verified.id,player:verified.player,
     moves:verified.moves,points:verified.points,canonical:canonical(receipt,stage),issuer:stage===8?appKey:null};
 }
 /** Reuse canonical reconstruction; consensus/completeness authentication is the caller's responsibility. */

@@ -69,13 +69,18 @@ test('direct CLI verifies claim/issuer receipt and stdin with only relay.js and 
   assert.deepEqual(result(invoke(['relay.js','verify','input.json',transactions.appKey])),relay.verifyOffline(final,transactions.appKey));
   assert.equal(result(invoke(['relay.js','verify','input.json']),1).code,'issuer_key_required');
   assert.equal(result(invoke(['relay.js','verify','input.json',transactions.markerKey]),1).code,'unauthorized_app');
+  const {s,...unsigned}=vectors.playerClaim;
+  const hd2=relay.signApp(signPlayer({...unsigned,p:'hd2'},hexToBytes('1'.padStart(64,'0'))),hexToBytes('2'.padStart(64,'0')));
+  const hd2Text=canonical(hd2,8);
+  assert.equal(result(invoke(['relay.js','verify','-',transactions.appKey],hd2Text)).profile,'hd2');
+  assert.equal(result(invoke(['relay.js','verify','-',transactions.appKey],final.replace('hd1','hd2')),1).code,'unauthorized_app');
   const help=result(invoke(['relay.js','help']));assert.equal(help.packaged_executable,false);assert.equal(help.issuance,false);
 }));
 test('CLI rejects noncanonical, bad signatures/replay/profile/practice, oversized and malformed UTF-8 inputs',()=>isolated((directory,invoke)=>{
   const {s,...unsigned}=vectors.playerClaim;
   const signed=changes=>canonical(signPlayer({...unsigned,...changes},hexToBytes('1'.padStart(64,'0'))),7);
   const practice=fixture('paths').find(path=>path.practice);
-  const cases=[text+' ',text.replace('hd1','hd2'),canonical({...vectors.playerClaim,s:'A'.repeat(87)},7),
+  const cases=[text+' ',text.replace('hd1','hd3'),canonical({...vectors.playerClaim,s:'A'.repeat(87)},7),
     signed({m:'A'}),signed({l:practice.l,b:practice.b,m:practice.m}),'x'.repeat(8193),'{',Buffer.from([0xff])];
   for(const input of cases) {
     const rejected=result(invoke(['relay.js','verify','-'],input),1);assert.equal(rejected.ok,false);

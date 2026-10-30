@@ -25,8 +25,10 @@ var SupabaseStorage = class {
       body: JSON.stringify({ operation, payload }),
       signal: AbortSignal.timeout(1e4)
     });
-    if (!response.ok) throw Error("storage_unavailable");
-    if (functionName !== "hd1_public") return response.json();
+    if (functionName !== "hd1_public") {
+      if (!response.ok) throw Error("storage_unavailable");
+      return response.json();
+    }
     const reader = response.body.getReader(), chunks = [];
     let length = 0;
     try {
@@ -46,12 +48,27 @@ var SupabaseStorage = class {
       bytes.set(chunk, offset);
       offset += chunk.length;
     }
-    return JSON.parse(new TextDecoder().decode(bytes));
+    const result = JSON.parse(new TextDecoder().decode(bytes));
+    if (!response.ok) {
+      if (operation === "readiness" && (result?.code === "P0001" && result.message === "invalid_query" || result?.code === "PGRST202")) throw Error("schema_upgrade_required");
+      throw Error("storage_unavailable");
+    }
+    return result;
   }
   async read() {
     return this.rpc("read");
   }
 };
+async function publisherReadiness(storage, payload = {}) {
+  let readiness;
+  try {
+    readiness = await storage.publicRead("readiness", payload);
+  } catch (error) {
+    if (!["invalid_query", "unsupported_operation", "schema_upgrade_required"].includes(error.message)) throw error;
+  }
+  if (readiness?.capability_revision !== 4) return { available: false, code: "schema_upgrade_required", required_capability_revision: 4 };
+  return readiness;
+}
 function publicStatus(claim) {
   return {
     status: ["signing_started", "signing_unknown"].includes(claim.state) ? "signing_unknown" : claim.state,
@@ -88,6 +105,24 @@ var CATALOG = Object.freeze(Object.fromEntries([
   ["fayaa_cannotStop", 126, ".AACGAACBFFDBE.DHEIJ"],
   ["fayaa_highRisk", 126, "AAC.AAC.GBFFDBHEDIJE"]
 ].map(([id, optimum, board, practice = false]) => [id, Object.freeze({ optimum, board, practice })])));
+var RANKED_PROFILE = "hd2";
+var RANKED_MOVE_MULTIPLIER = 10;
+var RANKED_MAX_MOVES = Object.freeze(Object.fromEntries(Object.entries(CATALOG).filter(([, layout]) => !layout.practice).map(([id, layout]) => [id, RANKED_MOVE_MULTIPLIER * layout.optimum])));
+function assertProfile(profile) {
+  if (profile !== "hd1" && profile !== RANKED_PROFILE) throw Error("unknown_profile");
+  return profile;
+}
+function rankedMoveLimit(profile, layoutId) {
+  assertProfile(profile);
+  if (!Object.hasOwn(CATALOG, layoutId)) throw Error("invalid_board");
+  if (CATALOG[layoutId].practice) throw Error("practice_layout");
+  return profile === "hd1" ? Infinity : RANKED_MAX_MOVES[layoutId];
+}
+function assertRankedMoves(profile, layoutId, moves) {
+  const maximum = rankedMoveLimit(profile, layoutId);
+  if (!Number.isSafeInteger(moves) || moves < 1) throw Error("invalid_replay");
+  if (moves > maximum) throw Error("ranked_move_limit");
+}
 function positions(board) {
   if (typeof board !== "string" || !/^[A-J.]{20}$/.test(board)) throw Error("invalid_board");
   const result = SHAPES.map((shape, index) => board.indexOf(String.fromCharCode(65 + index)));
@@ -119,11 +154,12 @@ function step(state, symbol) {
   return next;
 }
 function replay(claim, { allowPractice = false } = {}) {
-  if (claim.p !== "hd1") throw Error("unknown_profile");
+  assertProfile(claim.p);
   const layout = CATALOG[claim.l];
   if (!layout || claim.b !== layout.board) throw Error("invalid_board");
-  if (layout.practice && !allowPractice) throw Error("practice_layout");
+  if (layout.practice && (!allowPractice || claim.p === RANKED_PROFILE)) throw Error("practice_layout");
   if (typeof claim.m !== "string" || !claim.m.length) throw Error("invalid_replay");
+  if (claim.p === RANKED_PROFILE) assertRankedMoves(claim.p, claim.l, claim.m.length);
   let state = positions(claim.b);
   for (const symbol of claim.m) state = step(state, symbol);
   if (state[0] !== 13 || claim.m.length < layout.optimum) throw Error("invalid_replay");
@@ -3105,7 +3141,8 @@ function validName(name) {
 }
 function canonical(claim, stage = Object.keys(claim).length) {
   if (![6, 7, 8].includes(stage) || Object.keys(claim).length !== stage || Object.keys(claim).some((key, index) => key !== KEYS[index])) throw Error("noncanonical");
-  if (claim.p !== "hd1" || !Number.isSafeInteger(claim.w) || claim.w < 0 || claim.w > 9999999999 || typeof claim.l !== "string" || !/^[A-Za-z0-9_]{1,16}$/.test(claim.l) || typeof claim.b !== "string" || !/^[A-J.]{20}$/.test(claim.b) || !validName(claim.n) || typeof claim.m !== "string" || !/^[A-Za-z0-9_-]+$/.test(claim.m)) throw Error("malformed");
+  assertProfile(claim.p);
+  if (!Number.isSafeInteger(claim.w) || claim.w < 0 || claim.w > 9999999999 || typeof claim.l !== "string" || !/^[A-Za-z0-9_]{1,16}$/.test(claim.l) || typeof claim.b !== "string" || !/^[A-J.]{20}$/.test(claim.b) || !validName(claim.n) || typeof claim.m !== "string" || !/^[A-Za-z0-9_-]+$/.test(claim.m)) throw Error("malformed");
   for (const key of ["s", "a"].slice(0, stage - 6)) if (!/^[A-Za-z0-9_-]{87}$/.test(claim[key])) throw Error("invalid_signature");
   return JSON.stringify(claim);
 }
@@ -3115,7 +3152,8 @@ function parseCanonical(text, stage) {
   return claim;
 }
 function digest(domain, text) {
-  return sha2562(utf8("huarong/hd1/" + domain + "\0" + text));
+  const profile = assertProfile(JSON.parse(text).p);
+  return sha2562(utf8("huarong/" + profile + "/" + domain + "\0" + text));
 }
 function sign(domain, text, secret) {
   const signature = secp256k1.sign(digest(domain, text), secret, { prehash: false, lowS: true, format: "recovered" });
@@ -3192,7 +3230,8 @@ function verifyClaim(text, idempotencyKey) {
     claim = parseCanonical(text, 7);
     assertCapacity(claim);
   } catch (error) {
-    throw new ClaimError(error.message === "evidence_too_large" ? "evidence_too_large" : "malformed", error.message === "evidence_too_large" ? 422 : 400);
+    const code = ["evidence_too_large", "unknown_profile"].includes(error.message) ? error.message : "malformed";
+    throw new ClaimError(code, code === "malformed" ? 400 : 422);
   }
   let player;
   try {
@@ -3207,7 +3246,7 @@ function verifyClaim(text, idempotencyKey) {
   try {
     derived = replay(claim);
   } catch (error) {
-    throw new ClaimError(error.message === "practice_layout" ? "practice_layout" : "invalid_replay", 422);
+    throw new ClaimError(["practice_layout", "ranked_move_limit"].includes(error.message) ? error.message : "invalid_replay", 422);
   }
   return { id, claim, text, player, moves: derived.moves, points: derived.points };
 }
@@ -3434,7 +3473,7 @@ function buildTransaction(prepared, receipt, appKey, markerKey) {
   let total = 0;
   const mapped = inputs.map((input) => {
     if (!/^[a-f0-9]{64}$/.test(input.txid) || !Number.isSafeInteger(input.index) || input.index < 0 || !Number.isSafeInteger(input.amount) || input.amount < 0) throw Error("invalid_input");
-    const previous = parseTransaction(input.previousRaw), output = previous.outputs[input.index];
+    const previous = parseTransaction(input.previousRaw, { funding: true }), output = previous.outputs[input.index];
     if (previous.txid !== input.txid || !output || output.amount !== input.amount || bytesToHex3(output.script) !== input.script) throw Error("unauthenticated_prevout");
     const previousScript = output.script;
     if (bytesToHex3(previousScript.slice(-25)) !== bytesToHex3(payScript(appKey))) throw Error("input_not_owned");
@@ -3481,24 +3520,25 @@ function rawReader(bytes) {
   };
   return { take, number, compact, remaining: () => bytes.length - offset };
 }
-function parseTransaction(raw) {
-  if (typeof raw !== "string" || !/^([a-f0-9]{2})+$/.test(raw) || raw.length >= 2e4) throw Error("invalid_raw");
-  const bytes = hexToBytes3(raw), reader = rawReader(bytes), version = reader.number(4);
-  if (version !== 2) throw Error("unsupported_transaction");
+var FUNDING_LIMITS = Object.freeze({ rawHex: 4e5, count: 3e3 });
+function parseTransaction(raw, { funding = false } = {}) {
+  if (typeof raw !== "string" || !/^([a-f0-9]{2})+$/.test(raw) || raw.length >= (funding ? FUNDING_LIMITS.rawHex : 2e4)) throw Error("invalid_raw");
+  const bytes = hexToBytes3(raw), reader = rawReader(bytes), version = reader.number(4), limit = funding ? FUNDING_LIMITS.count : 100;
+  if (!(version === 2 || funding && version === 1)) throw Error("unsupported_transaction");
   const inputCount = reader.compact();
-  if (inputCount < 1 || inputCount > 100) throw Error("invalid_inputs");
+  if (inputCount < 1 || inputCount > limit) throw Error("invalid_inputs");
   const inputs = Array.from({ length: inputCount }, () => {
-    const txid = bytesToHex3(reader.take(32).reverse()), index = reader.number(4), script = reader.take(reader.compact());
-    if (reader.number(4) !== 4294967295) throw Error("unsupported_sequence");
-    return { txid, index, script };
+    const txid = bytesToHex3(reader.take(32).reverse()), index = reader.number(4), script = reader.take(reader.compact()), sequence = reader.number(4);
+    if (!funding && sequence !== 4294967295) throw Error("unsupported_sequence");
+    return funding ? { txid, index, script, sequence } : { txid, index, script };
   });
   const outputCount = reader.compact();
-  if (outputCount < 1 || outputCount > 100) throw Error("invalid_outputs");
+  if (outputCount < 1 || outputCount > limit) throw Error("invalid_outputs");
   const outputs = Array.from({ length: outputCount }, () => ({ amount: reader.number(8), script: reader.take(reader.compact()) }));
   const locktime = reader.number(4);
   if (reader.remaining()) throw Error("trailing_raw");
   const tx = { version, inputs, outputs, locktime };
-  if (bytesToHex3(serialize(tx)) !== raw) throw Error("noncanonical_transaction");
+  if (!funding && bytesToHex3(serialize(tx)) !== raw) throw Error("noncanonical_transaction");
   return { ...tx, txid: bytesToHex3(hash256(bytes).reverse()), weight: bytes.length * 4 };
 }
 function readPush(reader) {
@@ -3533,7 +3573,11 @@ async function admit(storage, verified) {
 }
 async function broadcastStored(storage, chain, claim) {
   if (!claim.raw || !claim.txid) throw Error("missing_persisted_bytes");
-  if (claim.attempts > 0) await chain.lookup(claim.txid, claim.prepared.inputs);
+  if (claim.attempts > 0) {
+    const observation = await chain.lookup(claim.txid, claim.prepared.inputs);
+    if (["included", "mempool"].includes(observation?.state)) return claim;
+    if (observation?.state === "conflict_suspected") throw Error("conflict_suspected");
+  }
   const owned = { id: claim.id, owner: claim.owner, generation: claim.generation };
   const attempt = await storage.rpc("broadcast", owned);
   if (attempt.code) return attempt;
@@ -3677,24 +3721,43 @@ async function discoverHistory(fetchPage, { maxPages = 1e4 } = {}) {
   }
   throw Error("history_budget_exceeded");
 }
-function reconstruct({ complete, headers, transactions, previousTransactions = [], bootstrap }) {
-  if (complete !== true || !headers?.length || headers[0].height !== 0) throw Error("canonical_history_required");
+var MTP_WINDOW = 11;
+function deriveReceipt(value, appKey) {
+  const final = parseCanonical(value, 8), { a, ...claim } = final, { s, ...unsigned } = claim;
+  if (recover("app", canonical(claim, 7), a) !== appKey) throw Error("unauthorized_app");
+  const player = recover("player", canonical(unsigned, 6), s), derived = replay(final);
+  return { id: receiptId(claim), player, nickname: final.n, layout: final.l, moves: derived.moves, points: derived.points };
+}
+function reconstruct({ complete, headers, transactions, previousTransactions = [], bootstrap, anchor = null, checkpoint = null }) {
+  const base = anchor ? anchor.height : 0;
+  if (anchor && (!Number.isSafeInteger(base) || base < 0 || headers?.[0]?.hash !== anchor.hash)) throw Error("canonical_history_required");
+  if (complete !== true || !headers?.length || headers[0].height !== base) throw Error("canonical_history_required");
   headers.forEach((header, index) => {
-    if (header.height !== index || !Number.isSafeInteger(header.time) || header.time < 0 || index > 0 && header.previous !== headers[index - 1].hash || !/^([a-f0-9]{64})$/.test(header.hash)) throw Error("invalid_headers");
+    if (header.height !== base + index || !Number.isSafeInteger(header.time) || header.time < 0 || index > 0 && header.previous !== headers[index - 1].hash || !/^([a-f0-9]{64})$/.test(header.hash)) throw Error("invalid_headers");
   });
+  const at = (height) => height >= base ? headers[height - base] : void 0, tip = base + headers.length - 1;
   const key = hexToBytes3(bootstrap.appKey), marker = payScript(hexToBytes3(bootstrap.markerKey));
   const ownerScript = bytesToHex3(payScript(key));
   const previous = new Map(previousTransactions.map((raw) => {
-    const tx = parseTransaction(raw);
+    const tx = parseTransaction(raw, { funding: true });
     return [tx.txid, tx];
   }));
-  const ordered = transactions.map((observation) => ({ ...observation, tx: parseTransaction(observation.raw) })).sort((a, b) => a.height - b.height || a.index - b.index);
-  const txids = /* @__PURE__ */ new Set(), positions2 = /* @__PURE__ */ new Set(), names = /* @__PURE__ */ new Map(), receipts = [], pending = [], invalid = [], lineage = [];
-  let head = null, foundBootstrap = false;
+  const ordered = transactions.map((observation) => ({ ...observation, tx: parseTransaction(observation.raw, { funding: true }) })).sort((a, b) => a.height - b.height || a.index - b.index);
+  if (checkpoint && (!at(checkpoint.height) || at(checkpoint.height).hash !== checkpoint.hash || checkpoint.bootstrap !== bootstrap.txid)) throw Error("checkpoint_mismatch");
+  const txids = /* @__PURE__ */ new Set(), positions2 = /* @__PURE__ */ new Set(), names = /* @__PURE__ */ new Map(), receipts = [], pending = [], invalid = [...checkpoint?.invalid ?? []], lineage = [];
+  for (const row of [...checkpoint?.receipts ?? [], ...checkpoint?.pending ?? []]) {
+    names.set(row.player, row.nickname);
+    const { confirmations: ignored, ...receipt } = row, confirmations = tip - row.height + 1;
+    if (confirmations >= 6) receipts.push(receipt);
+    else pending.push({ ...receipt, confirmations });
+  }
+  for (const row of checkpoint?.lineage ?? []) lineage.push({ ...row, confirmations: tip - row.height + 1 });
+  let head = checkpoint?.head ?? null, foundBootstrap = !!checkpoint?.head;
   for (const observation of ordered) {
     const { tx, height, index, blockHash } = observation;
+    if (checkpoint && height <= checkpoint.height) throw Error("checkpoint_overlap");
     if (txids.has(tx.txid)) continue;
-    if (!headers[height] || headers[height].hash !== blockHash || !Number.isSafeInteger(index) || index < 0 || positions2.has(height + ":" + index)) throw Error("invalid_inclusion");
+    if (!at(height) || at(height).hash !== blockHash || !Number.isSafeInteger(index) || index < 0 || positions2.has(height + ":" + index)) throw Error("invalid_inclusion");
     positions2.add(height + ":" + index);
     txids.add(tx.txid);
     const spendsHead = head && tx.inputs.some((input) => input.txid + ":" + input.index === head);
@@ -3703,6 +3766,8 @@ function reconstruct({ complete, headers, transactions, previousTransactions = [
       previous.set(tx.txid, tx);
       continue;
     }
+    parseTransaction(observation.raw);
+    if (height - base < MTP_WINDOW - 1 && base > 0) throw Error("anchor_too_recent");
     const named = tx.outputs.map((output, index2) => ({ output, index: index2, name: parseName(output.script) })).filter((item) => item.name);
     if (named.length !== 1 || named[0].name.name !== APP_NAME || bytesToHex3(named[0].name.payment) !== ownerScript || (isBootstrap ? named[0].name.operation !== "register" : named[0].name.operation !== "update")) throw Error("name_lineage_conflict");
     if (isBootstrap && foundBootstrap) throw Error("duplicate_bootstrap");
@@ -3719,40 +3784,37 @@ function reconstruct({ complete, headers, transactions, previousTransactions = [
     foundBootstrap ||= isBootstrap;
     head = tx.txid + ":" + named[0].index;
     previous.set(tx.txid, tx);
-    lineage.push({ txid: tx.txid, raw: observation.raw, head, predecessor, height, confirmations: headers.length - height });
+    const confirmations = tip - height + 1, position = height - base;
+    lineage.push({ txid: tx.txid, raw: observation.raw, head, predecessor, height, confirmations });
     try {
-      const final = parseCanonical(named[0].name.value, 8), { a, ...claim } = final, { s, ...unsigned } = claim;
-      if (recover("app", canonical(claim, 7), a) !== bootstrap.appKey) throw Error("unauthorized_app");
-      const player = recover("player", canonical(unsigned, 6), s), derived = replay(final);
-      if (names.has(player) && names.get(player) !== final.n) throw Error("name_conflict");
-      names.set(player, final.n);
-      const actualEpoch = epoch(medianTime(headers.slice(Math.max(0, height - 10), height + 1).map((header) => header.time)));
+      const derived = deriveReceipt(named[0].name.value, bootstrap.appKey), player = derived.player;
+      if (names.has(player) && names.get(player) !== derived.nickname) throw Error("name_conflict");
+      names.set(player, derived.nickname);
+      const actualEpoch = epoch(medianTime(headers.slice(Math.max(0, position - 10), position + 1).map((header) => header.time)));
       const row = {
-        id: receiptId(claim),
+        ...derived,
         txid: tx.txid,
-        player,
-        nickname: final.n,
-        layout: final.l,
         epoch: actualEpoch,
-        moves: derived.moves,
-        points: derived.points,
         height,
         transaction_index: index,
         output_index: named[0].index,
         receipt: named[0].name.value
       };
-      if (headers.length - height >= 6) receipts.push(row);
-      else pending.push({ ...row, confirmations: headers.length - height });
+      if (confirmations >= 6) receipts.push(row);
+      else pending.push({ ...row, confirmations });
     } catch (error) {
       invalid.push({ txid: tx.txid, code: error.message });
     }
   }
   if (!foundBootstrap) throw Error("bootstrap_missing");
   const currentEpoch = epoch(medianTime(headers.slice(-11).map((header) => header.time)));
-  const closing = /* @__PURE__ */ new Map();
-  headers.forEach((header, height) => {
-    const week = epoch(medianTime(headers.slice(Math.max(0, height - 10), height + 1).map((h) => h.time)));
-    if (!closing.has(week)) closing.set(week, height);
+  const closing = new Map((checkpoint?.epochTransitions ?? []).map((row) => [row.week, row.height]));
+  let anchoredFirst = null;
+  headers.forEach((header, position) => {
+    if (base > 0 && position < MTP_WINDOW - 1) return;
+    const week = epoch(medianTime(headers.slice(Math.max(0, position - 10), position + 1).map((h) => h.time)));
+    if (base > 0 && (anchoredFirst ??= week) === week) return;
+    if (!closing.has(week)) closing.set(week, header.height);
   });
   return {
     receipts,
@@ -3763,7 +3825,8 @@ function reconstruct({ complete, headers, transactions, previousTransactions = [
     epoch: currentEpoch,
     height: headers.at(-1).height,
     hash: headers.at(-1).hash,
-    finalizedEpochs: [...closing].filter(([week, height]) => week > 0 && headers.length - height >= 12).map(([week]) => week - 1)
+    epochTransitions: [...closing].map(([week, height]) => ({ week, height })),
+    finalizedEpochs: [.../* @__PURE__ */ new Set([...checkpoint?.finalizedEpochs ?? [], ...[...closing].filter(([week, height]) => week > 0 && tip - height + 1 >= 12).map(([week]) => week - 1)])]
   };
 }
 async function reconcile(storage, source) {
@@ -3773,18 +3836,835 @@ async function reconcile(storage, source) {
   return storage.rpc("rebuild", { revision: halted.revision, epoch: result.epoch, head: result.head, snapshot: { ...result, stale: false } });
 }
 
+// leaderboard/provider.js
+var PROVIDER_DEFAULTS = Object.freeze({
+  baseUrl: "https://api.spacexpanse.org:1234",
+  chain: "main",
+  genesisHash: "5d4b20be4fc87d2333aea5235d9de1c685696fc935f806a9ffd71c9f9abf3c57",
+  timeoutMs: 1e4,
+  retries: 2,
+  retryDelayMs: 250,
+  maxResponseBytes: 4e6,
+  pageSize: 10,
+  maxHistoryPages: 500,
+  rangeChunk: 100,
+  maxHeaderSpan: 2e4,
+  reorgRecheckDepth: 30,
+  acquisitionAttempts: 3,
+  feePerByte: 20,
+  markerAmount: NETWORK.dust,
+  nameAmount: NETWORK.nameMinimum,
+  maxFundingInputs: 9,
+  maxFundingCandidates: 12,
+  coinbaseMaturity: 100,
+  allowUnprovenNameAbsence: false
+});
+var PROVIDER_TRUST = "provider_anchored: one provider's stable responses, recomputed header hashes/merkle roots and hash-linked headers from a pinned anchor; not independent consensus or proof that nothing was omitted";
+var HEX64 = /^[a-f0-9]{64}$/;
+var KEY = /^0[23][a-f0-9]{64}$/;
+var ZERO = "0".repeat(64);
+var SIGNED_INPUT_BYTES = 108;
+var RETRYABLE_TRANSPORT = /* @__PURE__ */ new Set(["provider_timeout", "provider_unavailable"]);
+var RETRYABLE_ACQUISITION = /* @__PURE__ */ new Set(["history_changed", "history_page_gap", "tip_changed", "reorg_detected"]);
+var ALREADY_KNOWN = /already in block chain|txn-already-in-mempool|txn-already-known|already have transaction/i;
+function providerError(code, detail) {
+  const error = Error(code);
+  error.code = code;
+  if (detail !== void 0) error.detail = detail;
+  return error;
+}
+function classifyEnvelope(error) {
+  const message = String(error?.message ?? "").slice(0, 200);
+  if (error?.code === -5) return providerError("not_found", { providerCode: -5, message });
+  if (/history too large/i.test(message)) return providerError("history_too_large", { message });
+  if (/ElectrumX/i.test(message)) return providerError("provider_unavailable", { message });
+  return providerError("provider_error", { providerCode: error?.code ?? null, message });
+}
+function createTransport({
+  baseUrl = PROVIDER_DEFAULTS.baseUrl,
+  fetch: fetcher = globalThis.fetch,
+  timeoutMs = PROVIDER_DEFAULTS.timeoutMs,
+  retries = PROVIDER_DEFAULTS.retries,
+  retryDelayMs = PROVIDER_DEFAULTS.retryDelayMs,
+  maxResponseBytes = PROVIDER_DEFAULTS.maxResponseBytes,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+} = {}) {
+  const base = new URL(baseUrl);
+  if (base.protocol !== "https:" || base.username || base.password || base.search || base.hash) throw providerError("invalid_provider_url");
+  const root = base.href.replace(/\/$/, "");
+  if (!Number.isSafeInteger(maxResponseBytes) || maxResponseBytes < 1) throw providerError("invalid_provider_config", "maxResponseBytes");
+  async function once(path, init) {
+    let reader, response, bytes, length = 0;
+    const controller = new AbortController(), cancel = () => {
+      if (reader) void reader.cancel().catch(() => {
+      });
+    };
+    const timer = setTimeout(() => {
+      controller.abort();
+      cancel();
+    }, timeoutMs);
+    try {
+      response = await fetcher(root + path, { ...init, redirect: "error", signal: controller.signal });
+      reader = response.body?.getReader();
+      if (Number(response.headers.get("content-length")) > maxResponseBytes) throw providerError("provider_response_too_large", { path });
+      bytes = new Uint8Array(Math.min(65536, maxResponseBytes));
+      if (reader) for (; ; ) {
+        const { done, value } = await reader.read();
+        if (controller.signal.aborted) throw providerError("provider_timeout", { path });
+        if (done) break;
+        if (value.byteLength > maxResponseBytes - length) throw providerError("provider_response_too_large", { path });
+        if (length + value.byteLength > bytes.length) {
+          const grown = new Uint8Array(Math.min(maxResponseBytes, Math.max(length + value.byteLength, bytes.length * 2)));
+          grown.set(bytes.subarray(0, length));
+          bytes = grown;
+        }
+        bytes.set(value, length);
+        length += value.byteLength;
+      }
+    } catch (error) {
+      const timedOut = controller.signal.aborted;
+      cancel();
+      controller.abort();
+      if (error.code === "provider_response_too_large" || error.code === "provider_timeout") throw error;
+      throw providerError(timedOut ? "provider_timeout" : "provider_unavailable", { path });
+    } finally {
+      clearTimeout(timer);
+      reader?.releaseLock();
+    }
+    let text;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, length));
+    } catch {
+      throw providerError("provider_non_json", { path });
+    }
+    if (!response.ok) throw providerError(response.status === 429 || response.status >= 500 ? "provider_unavailable" : "provider_http", { path, status: response.status });
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      throw providerError("provider_non_json", { path });
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body) || !("error" in body)) throw providerError("provider_envelope", { path });
+    if (body.error !== null && body.error !== void 0) {
+      const error = classifyEnvelope(body.error);
+      error.detail = { ...error.detail, path };
+      throw error;
+    }
+    if (!("result" in body)) throw providerError("provider_envelope", { path });
+    return body.result;
+  }
+  async function request(path, init = {}) {
+    const idempotent = (init.method ?? "GET") === "GET";
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await once(path, init);
+      } catch (error) {
+        if (!idempotent || attempt >= retries || !RETRYABLE_TRANSPORT.has(error.message)) throw error;
+        await sleep(retryDelayMs * (attempt + 1));
+      }
+    }
+  }
+  return {
+    root,
+    get: (path) => request(path),
+    post: (path, form) => request(path, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(form).toString() })
+  };
+}
+function headerHash(header) {
+  return bytesToHex3(hash256(concat(
+    le(header.version >>> 0, 4),
+    hexToBytes3(header.previousblockhash ?? ZERO).reverse(),
+    hexToBytes3(header.merkleroot).reverse(),
+    le(header.time, 4),
+    hexToBytes3(header.bits).reverse(),
+    le(header.nonce, 4)
+  )).reverse());
+}
+function merkleRoot(txids) {
+  if (!txids.length || new Set(txids).size !== txids.length) throw providerError("invalid_merkle");
+  let level = txids.map((txid) => hexToBytes3(txid).reverse());
+  while (level.length > 1) {
+    if (level.length % 2) level.push(level.at(-1));
+    const next = [];
+    for (let i = 0; i < level.length; i += 2) next.push(hash256(concat(level[i], level[i + 1])));
+    level = next;
+  }
+  return bytesToHex3(level[0].slice().reverse());
+}
+function checkHeader(block, height) {
+  const ok = block && block.height === height && HEX64.test(block.hash) && HEX64.test(block.merkleroot) && (height === 0 ? !block.previousblockhash : HEX64.test(block.previousblockhash)) && Number.isSafeInteger(block.version) && Number.isSafeInteger(block.time) && block.time >= 0 && Number.isSafeInteger(block.nonce) && block.nonce >= 0 && /^[a-f0-9]{8}$/.test(block.bits) && Array.isArray(block.tx) && block.tx.every((txid) => HEX64.test(txid)) && block.txcount === block.tx.length;
+  if (!ok) throw providerError("invalid_header", { height });
+  if (headerHash(block) !== block.hash) throw providerError("invalid_header", { height });
+  if (merkleRoot(block.tx) !== block.merkleroot) throw providerError("invalid_merkle", { height });
+  return { height, hash: block.hash, previous: block.previousblockhash ?? null, time: block.time, tx: [...block.tx] };
+}
+var isCoinbase = (tx) => tx.inputs.length === 1 && tx.inputs[0].txid === ZERO && tx.inputs[0].index === 4294967295;
+function namedApp(tx, ownerScript) {
+  return tx.outputs.some((output) => {
+    try {
+      const name = parseName(output.script);
+      return name?.name === APP_NAME && bytesToHex3(name.payment) === ownerScript;
+    } catch {
+      return false;
+    }
+  });
+}
+function checkConfig(config) {
+  const { appKey, markerKey, anchor, bootstrap } = config;
+  if (!KEY.test(appKey) || !KEY.test(markerKey) || appKey === markerKey) throw providerError("invalid_provider_config", "keys");
+  if (!anchor || !Number.isSafeInteger(anchor.height) || anchor.height < 0 || !HEX64.test(anchor.hash)) throw providerError("invalid_provider_config", "anchor");
+  if (bootstrap !== null && !HEX64.test(bootstrap?.txid)) throw providerError("invalid_provider_config", "bootstrap");
+  if (!Number.isSafeInteger(config.feePerByte) || config.feePerByte < 1 || config.feePerByte > FEE_POLICY.perByte) throw providerError("invalid_provider_config", "feePerByte");
+  if (!Number.isSafeInteger(config.markerAmount) || config.markerAmount < NETWORK.dust || !Number.isSafeInteger(config.nameAmount) || config.nameAmount < NETWORK.nameMinimum) throw providerError("invalid_provider_config", "amounts");
+  if (!HEX64.test(config.genesisHash) || typeof config.chain !== "string") throw providerError("invalid_provider_config", "network");
+  for (const field of ["pageSize", "maxHistoryPages", "rangeChunk", "maxHeaderSpan", "reorgRecheckDepth", "acquisitionAttempts", "maxFundingInputs", "maxFundingCandidates"])
+    if (!Number.isSafeInteger(config[field]) || config[field] < 1) throw providerError("invalid_provider_config", field);
+  if (config.rangeChunk > 100 || config.maxFundingInputs > 9 || config.maxFundingCandidates > 12) throw providerError("invalid_provider_config", "bounds");
+}
+function createSpaceXpanseProvider(options = {}) {
+  const config = { ...PROVIDER_DEFAULTS, bootstrap: null, ...options };
+  checkConfig(config);
+  const transport = config.transport ?? createTransport(config);
+  const appKey = hexToBytes3(config.appKey), markerKey = hexToBytes3(config.markerKey), anchor = config.anchor;
+  const appAddress = address(appKey), markerAddress = address(markerKey);
+  const ownerScript = bytesToHex3(payScript(appKey));
+  const bootstrap = config.bootstrap && { txid: config.bootstrap.txid, appKey: config.appKey, markerKey: config.markerKey };
+  let cache = [], networkChecked = false;
+  const raws = /* @__PURE__ */ new Map();
+  const headerAt = (height) => height >= anchor.height ? cache[height - anchor.height] : void 0;
+  async function tipInfo() {
+    const info = await transport.get("/info");
+    if (info?.chain !== config.chain) throw providerError("wrong_network", { chain: info?.chain ?? null });
+    if (!HEX64.test(info.bestblockhash) || !Number.isSafeInteger(info.blocks) || info.blocks < 0) throw providerError("provider_shape", "info");
+    if (!networkChecked) {
+      if (await transport.get("/hash/0") !== config.genesisHash) throw providerError("wrong_network", "genesis");
+      networkChecked = true;
+    }
+    return { height: info.blocks, hash: info.bestblockhash };
+  }
+  async function fetchHeaders(low, high) {
+    const out = [];
+    for (let top = high; top >= low; top -= config.rangeChunk) {
+      const count = Math.min(config.rangeChunk, top - low + 1), rows = await transport.get(`/range/${top}?offset=${count}`);
+      if (!Array.isArray(rows) || rows.length !== count) throw providerError("header_gap", { top, count });
+      rows.forEach((row, i) => out.push(checkHeader(row, top - i)));
+    }
+    out.reverse();
+    for (let i = 1; i < out.length; i++) if (out[i].previous !== out[i - 1].hash) throw providerError("reorg_detected", { height: out[i].height });
+    return out;
+  }
+  async function syncHeaders(tip) {
+    if (tip.height < anchor.height) throw providerError("anchor_above_tip");
+    if (tip.height - anchor.height + 1 > config.maxHeaderSpan) throw providerError("header_budget_exceeded");
+    let next;
+    if (cache.length && cache[0].hash === anchor.hash) {
+      const from = Math.max(anchor.height, Math.min(cache.at(-1).height, tip.height) - config.reorgRecheckDepth + 1);
+      const keep = cache.slice(0, from - anchor.height), fresh = await fetchHeaders(from, tip.height);
+      next = !keep.length || keep.at(-1).hash === fresh[0].previous ? [...keep, ...fresh] : await fetchHeaders(anchor.height, tip.height);
+    } else next = await fetchHeaders(anchor.height, tip.height);
+    if (next[0].hash !== anchor.hash) throw providerError("anchor_mismatch");
+    if (next.at(-1).hash !== tip.hash) throw providerError("tip_changed");
+    cache = next;
+    return cache;
+  }
+  async function transaction(txid) {
+    if (!HEX64.test(txid)) throw providerError("invalid_txid");
+    const result = await transport.get(`/transaction/${txid}`);
+    if (!result || typeof result.hex !== "string" || !/^([a-f0-9]{2})+$/.test(result.hex)) throw providerError("provider_shape", "transaction");
+    if (bytesToHex3(hash256(hexToBytes3(result.hex)).reverse()) !== txid) throw providerError("provider_raw_mismatch", { txid });
+    raws.set(txid, result.hex);
+    const included = HEX64.test(result.blockhash ?? "") && Number.isSafeInteger(result.height) && result.height >= 0;
+    return { txid, raw: result.hex, blockHash: included ? result.blockhash : null, height: included ? result.height : null };
+  }
+  async function rawOf(txid) {
+    return raws.get(txid) ?? (await transaction(txid)).raw;
+  }
+  async function historyPage(offset) {
+    const result = await transport.get(`/history/${markerAddress}?offset=${offset}`);
+    if (!result || !Number.isSafeInteger(result.txcount) || result.txcount < 0 || !Array.isArray(result.tx) || result.tx.some((txid) => !HEX64.test(txid))) throw providerError("provider_shape", "history");
+    if (result.tx.length !== Math.max(0, Math.min(config.pageSize, result.txcount - offset))) throw providerError("history_page_gap", { offset });
+    return { count: result.txcount, tx: [...result.tx] };
+  }
+  async function historyPages(addr) {
+    const ids = [], seen = /* @__PURE__ */ new Set();
+    let count = null;
+    for (let page = 0; page < config.maxHistoryPages; page++) {
+      const offset = page * config.pageSize, result = await transport.get(`/history/${addr}?offset=${offset}`);
+      if (!result || !Number.isSafeInteger(result.txcount) || result.txcount < 0 || !Array.isArray(result.tx)) throw providerError("provider_shape", "history");
+      if (count === null) count = result.txcount;
+      else if (result.txcount !== count) throw providerError("history_changed");
+      if (result.tx.length !== Math.max(0, Math.min(config.pageSize, count - offset))) throw providerError("history_page_gap", { offset });
+      for (const txid of result.tx) {
+        if (!HEX64.test(txid)) throw providerError("provider_shape", "history");
+        if (seen.has(txid)) throw providerError("history_changed");
+        seen.add(txid);
+        ids.push(txid);
+      }
+      if (offset + config.pageSize >= count) return { ids, count, first: ids.slice(0, config.pageSize) };
+    }
+    throw providerError("history_budget_exceeded");
+  }
+  async function acquireOnce() {
+    const tip = await tipInfo(), history = await historyPages(markerAddress), headers = await syncHeaders(tip);
+    const transactions = [], unconfirmed = [], previous = /* @__PURE__ */ new Map();
+    for (const txid of history.ids) {
+      const tx = await transaction(txid);
+      if (!tx.blockHash) {
+        unconfirmed.push(tx);
+        continue;
+      }
+      if (tx.height > tip.height) throw providerError("tip_changed");
+      const header = headerAt(tx.height);
+      if (!header) throw providerError("history_before_anchor", { txid });
+      if (header.hash !== tx.blockHash) throw providerError("reorg_detected", { txid });
+      const index = header.tx.indexOf(txid);
+      if (index < 0) throw providerError("invalid_inclusion", { txid });
+      transactions.push({ raw: tx.raw, height: tx.height, index, blockHash: tx.blockHash });
+    }
+    for (const observation of [...transactions, ...unconfirmed]) {
+      const tx = parseTransaction(observation.raw, { funding: true });
+      if (isCoinbase(tx) || !namedApp(tx, ownerScript)) continue;
+      for (const input of tx.inputs) if (!previous.has(input.txid)) previous.set(input.txid, await rawOf(input.txid));
+    }
+    const again = await tipInfo();
+    if (again.hash !== tip.hash) throw providerError("tip_changed");
+    const first = await transport.get(`/history/${markerAddress}?offset=0`);
+    if (first?.txcount !== history.count || JSON.stringify(first?.tx) !== JSON.stringify(history.first)) throw providerError("history_changed");
+    return {
+      complete: true,
+      anchor: { ...anchor },
+      headers: headers.map(({ height, hash, previous: previous2, time }) => ({ height, hash, previous: previous2, time })),
+      transactions,
+      previousTransactions: [...previous.values()],
+      unconfirmed,
+      evidence: { trust: PROVIDER_TRUST, provider: transport.root ?? null, tip, markerAddress, appAddress, txcount: history.count }
+    };
+  }
+  async function acquire2() {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await acquireOnce();
+      } catch (error) {
+        if (!RETRYABLE_ACQUISITION.has(error.message)) throw error;
+        if (attempt >= config.acquisitionAttempts) throw providerError("history_unstable", { last: error.message, attempts: attempt });
+      }
+    }
+  }
+  async function state() {
+    const observed = await acquire2();
+    const pendingOf = (head) => observed.unconfirmed.some(({ raw }) => {
+      const tx = parseTransaction(raw, { funding: true });
+      return namedApp(tx, ownerScript) || head && tx.inputs.some((input) => input.txid + ":" + input.index === head);
+    });
+    if (!bootstrap) {
+      const registered = [...observed.transactions, ...observed.unconfirmed].some(({ raw }) => namedApp(parseTransaction(raw, { funding: true }), ownerScript));
+      if (registered) throw providerError("bootstrap_pin_required");
+      if (!config.allowUnprovenNameAbsence) throw providerError("name_absence_unverified");
+      const times = observed.headers.slice(-11).map((header) => header.time);
+      return { mode: "first_registration", observed, head: null, epoch: epoch(medianTime(times)), pending: false, lineage: [] };
+    }
+    const result = reconstruct({ ...observed, bootstrap });
+    return { mode: "established", observed, result, head: result.head, epoch: result.epoch, pending: pendingOf(result.head), lineage: result.lineage };
+  }
+  async function confirmedUnspent(tip) {
+    const rows = await transport.get(`/unspent/${appAddress}`);
+    if (!Array.isArray(rows)) throw providerError("provider_shape", "unspent");
+    return rows.filter((row) => {
+      if (!row || !HEX64.test(row.txid) || !Number.isSafeInteger(row.index) || row.index < 0 || !Number.isSafeInteger(row.value) || row.value < 0 || !Number.isSafeInteger(row.height))
+        throw providerError("provider_shape", "unspent");
+      return row.height > 0 && row.height <= tip.height;
+    });
+  }
+  async function fundingInput(row, tip) {
+    const tx = await transaction(row.txid), parsed = parseTransaction(tx.raw, { funding: true }), output = parsed.outputs[row.index];
+    if (!output || output.amount !== row.value) throw providerError("provider_utxo_mismatch", { txid: row.txid });
+    if (!tx.blockHash || tx.height !== row.height) throw providerError("reorg_detected", { txid: row.txid });
+    const header = headerAt(tx.height) ?? (await fetchHeaders(tx.height, tx.height))[0];
+    if (header.hash !== tx.blockHash || !header.tx.includes(row.txid)) throw providerError("reorg_detected", { txid: row.txid });
+    if (bytesToHex3(output.script) !== ownerScript) return null;
+    if (isCoinbase(parsed) && tip.height - tx.height + 1 < config.coinbaseMaturity) return null;
+    return { txid: row.txid, index: row.index, amount: output.amount, script: ownerScript, previousRaw: tx.raw };
+  }
+  async function selectFunding(tip, head, accept) {
+    const rows = (await confirmedUnspent(tip)).filter((row) => row.txid + ":" + row.index !== head).sort((a, b) => b.value - a.value || a.height - b.height || (a.txid < b.txid ? -1 : a.txid > b.txid ? 1 : 0) || a.index - b.index);
+    const selected = [], seen = /* @__PURE__ */ new Set();
+    let inspected = 0;
+    for (const row of rows) {
+      if (selected.length >= config.maxFundingInputs || inspected >= config.maxFundingCandidates) break;
+      const outpoint = row.txid + ":" + row.index;
+      if (seen.has(outpoint)) continue;
+      seen.add(outpoint);
+      inspected++;
+      const input = await fundingInput(row, tip);
+      if (!input) continue;
+      selected.push(input);
+      const result = accept(selected);
+      if (result) return result;
+    }
+    throw providerError("funds_unavailable");
+  }
+  async function fund(claim, current) {
+    const tip = current.observed.evidence.tip, operation = current.head ? "update" : "register";
+    const receipt = { ...parseCanonical(claim.bytes, 7), a: "A".repeat(87) };
+    const inputs = [];
+    let nameAmount = config.nameAmount;
+    if (current.head) {
+      const [txid, index] = current.head.split(":"), entry = current.lineage.at(-1);
+      if (entry?.txid !== txid) throw providerError("reconciliation_required");
+      const output = parseTransaction(entry.raw).outputs[Number(index)];
+      inputs.push({ txid, index: Number(index), amount: output.amount, script: bytesToHex3(output.script), previousRaw: entry.raw });
+      nameAmount = output.amount;
+    }
+    const plan = () => {
+      const total = inputs.reduce((sum, input) => sum + input.amount, 0);
+      const shape = { version: 2, inputs: inputs.map(({ txid, index }) => ({ txid, index })), locktime: 0, outputs: [
+        { amount: nameAmount, script: nameScript(operation, receipt, appKey) },
+        { amount: config.markerAmount, script: payScript(markerKey) },
+        { amount: NETWORK.dust, script: payScript(appKey) }
+      ] };
+      let fee = (serialize(shape, inputs.map(() => new Uint8Array())).length + inputs.length * SIGNED_INPUT_BYTES) * config.feePerByte;
+      const change = total - fee - config.markerAmount - nameAmount;
+      if (change < 0) return null;
+      if (change < NETWORK.dust) fee += change;
+      const prepared = { operation, fee, markerAmount: config.markerAmount, nameAmount, inputs: inputs.map((input) => ({ ...input })) };
+      try {
+        buildTransaction(prepared, receipt, appKey, markerKey);
+        return prepared;
+      } catch (error) {
+        if (["funds_unavailable", "excessive_fee", "excessive_fee_rate"].includes(error.message)) return null;
+        throw error;
+      }
+    };
+    return selectFunding(tip, current.head, (selected) => {
+      inputs.push(selected.at(-1));
+      return plan();
+    });
+  }
+  return Object.freeze({
+    config: Object.freeze({ ...config, transport: void 0, fetch: void 0, appAddress, markerAddress }),
+    // The durable Worker follower persists verified observations between bounded invocations.
+    // These are adapter methods, not HTTP endpoints or generic RPC forwarding.
+    primitives: Object.freeze({
+      tipInfo,
+      fetchHeaders,
+      transaction,
+      rawOf,
+      historyPage,
+      fund,
+      fundingInput,
+      selectFunding,
+      confirmedUnspent,
+      ownedName: (tx) => namedApp(tx, ownerScript),
+      ownerScript,
+      appAddress,
+      markerAddress
+    }),
+    /** Issuer: authenticated head/epoch plus fully raw-authenticated prepared inputs. */
+    async prepare(claim) {
+      const current = await state();
+      if (current.pending) throw providerError("unconfirmed_pending");
+      const prepared = await fund(claim, current);
+      return { epoch: current.epoch, head: current.head, prepared, mode: current.mode, evidence: current.observed.evidence };
+    },
+    /** Issuer pre-barrier recheck: same head/epoch, no pending lineage, inputs still confirmed-unspent. */
+    async validate(observation) {
+      const current = await state();
+      if (current.pending || current.epoch !== observation.epoch || current.head !== observation.head) return false;
+      const unspent = new Set((await confirmedUnspent(current.observed.evidence.tip)).map((row) => row.txid + ":" + row.index));
+      return observation.prepared.inputs.every((input) => {
+        const outpoint = input.txid + ":" + input.index;
+        return outpoint === current.head || input.script === ownerScript && unspent.has(outpoint);
+      });
+    },
+    /** Read-only investigation of an uncertain prior broadcast; never triggers a new spend. */
+    async lookup(txid, inputs = []) {
+      let tx;
+      try {
+        tx = await transaction(txid);
+      } catch (error) {
+        if (error.message !== "not_found") throw error;
+        const tip2 = await tipInfo(), unspent = new Set((await confirmedUnspent(tip2)).map((row) => row.txid + ":" + row.index));
+        const spent = inputs.filter((input) => input.script === ownerScript && !unspent.has(input.txid + ":" + input.index)).map((input) => input.txid + ":" + input.index);
+        return { state: spent.length ? "conflict_suspected" : "unknown", txid, spent };
+      }
+      if (!tx.blockHash) return { state: "mempool", txid };
+      const tip = await tipInfo();
+      await syncHeaders(tip);
+      const header = headerAt(tx.height);
+      if (header && header.hash !== tx.blockHash) throw providerError("reorg_detected", { txid });
+      return { state: "included", txid, height: tx.height, blockHash: tx.blockHash, confirmations: tip.height - tx.height + 1, index: header ? header.tx.indexOf(txid) : null };
+    },
+    /** Submit exact persisted bytes once (no transport retry); identical-byte duplicates map to txid. */
+    async broadcast(raw) {
+      const txid = parseTransaction(raw).txid;
+      try {
+        const result = await transport.post("/broadcast", { raw });
+        if (result !== txid) throw providerError("broadcast_txid_mismatch");
+        return result;
+      } catch (error) {
+        if (error.message === "provider_error" && ALREADY_KNOWN.test(error.detail?.message ?? "")) return txid;
+        throw error;
+      }
+    },
+    /** Reconcile source: requires the pinned bootstrap; returns provider-anchored history. */
+    async history() {
+      if (!bootstrap) throw providerError("bootstrap_pin_required");
+      return { ...await acquire2(), bootstrap };
+    },
+    /** Network/tip status only; no history or signing side effects. */
+    async status() {
+      return { tip: await tipInfo(), appAddress, markerAddress, mode: bootstrap ? "established" : "first_registration", trust: PROVIDER_TRUST };
+    }
+  });
+}
+
+// leaderboard/publisher.js
+var RECHECK = 30;
+var CHUNK = 100;
+var CHECKPOINT_LAG = 60;
+var FINITE_FAILURES = /* @__PURE__ */ new Set(["finite_scope_required", "claim_outside_scope", "transaction_budget_exhausted", "broadcast_budget_exhausted", "spend_budget_exhausted", "invalid_budget_plan"]);
+function deriveMarker(appKey) {
+  for (let counter = 0; counter < 256; counter++) {
+    const key = "02" + bytesToHex3(sha2562(utf8("huarong/marker/main/g/huarong-lb/v1\0" + appKey + "\0" + counter)));
+    try {
+      secp256k1.Point.fromHex(key);
+      return key;
+    } catch {
+    }
+  }
+  throw Error("invalid_provider_config");
+}
+function publisherConfig(bindings = {}) {
+  if (bindings.HD1_PUBLISHER === "false") return { code: "issuance_disabled" };
+  if (!bindings.ROD_APP_WIF) return { code: "issuer_not_configured" };
+  if (!bindings.SUPABASE_URL || !bindings.SUPABASE_SERVICE_KEY) return { code: "storage_not_configured" };
+  if (typeof bindings.HD1_RATE_HMAC_KEY !== "string" || utf8(bindings.HD1_RATE_HMAC_KEY).length < 32 || utf8(bindings.HD1_RATE_HMAC_KEY).length > 256) return { code: "rate_secret_not_configured" };
+  try {
+    const wif = bindings.ROD_APP_WIF;
+    if (typeof wif !== "string" || wif.length > 52) throw Error("invalid_issuer_wif");
+    const secret = decodeWif(wif, NETWORK.wif), appKey = bytesToHex3(secp256k1.getPublicKey(secret));
+    if (base58check(Uint8Array.from([NETWORK.wif, ...secret, 1])) !== wif) return { code: "funding_compression_incompatible" };
+    const markerKey = bindings.ROD_MARKER_KEY || deriveMarker(appKey);
+    let anchor = null, bootstrap = null;
+    if (bindings.ROD_ANCHOR_HEIGHT !== void 0 || bindings.ROD_ANCHOR_HASH !== void 0) {
+      anchor = { height: Number(bindings.ROD_ANCHOR_HEIGHT), hash: bindings.ROD_ANCHOR_HASH };
+      if (!Number.isSafeInteger(anchor.height) || anchor.height < 0 || !/^[a-f0-9]{64}$/.test(anchor.hash ?? "")) throw Error();
+    }
+    if (bindings.ROD_BOOTSTRAP_TXID) {
+      bootstrap = bindings.ROD_BOOTSTRAP_TXID;
+      if (!/^[a-f0-9]{64}$/.test(bootstrap) || !anchor) throw Error();
+    }
+    createSpaceXpanseProvider({
+      appKey,
+      markerKey,
+      anchor: anchor ?? { height: 0, hash: PROVIDER_DEFAULTS.genesisHash },
+      bootstrap: bootstrap ? { txid: bootstrap } : null,
+      baseUrl: bindings.ROD_API_URL || PROVIDER_DEFAULTS.baseUrl
+    });
+    new URL(bindings.ROD_API_URL || PROVIDER_DEFAULTS.baseUrl);
+    return { secret, appKey, markerKey, anchor, bootstrap, baseUrl: bindings.ROD_API_URL || PROVIDER_DEFAULTS.baseUrl };
+  } catch {
+    return { code: "invalid_publisher_configuration" };
+  }
+}
+async function mutate(storage, operation, payload) {
+  const result = await storage.rpc(operation, payload);
+  if (result?.code && result.version === void 0) throw Error(result.code);
+  return result;
+}
+function journalBootstrap(claim, config) {
+  const tx = parseTransaction(claim.raw), key = hexToBytes3(config.appKey), marker = bytesToHex3(payScript(hexToBytes3(config.markerKey)));
+  const names = tx.outputs.map((output) => parseName(output.script)).filter(Boolean);
+  if (tx.txid !== claim.txid || names.length !== 1 || names[0].operation !== "register" || names[0].name !== APP_NAME || bytesToHex3(names[0].payment) !== bytesToHex3(payScript(key)) || names[0].value !== claim.receipt || !tx.outputs.some((output) => bytesToHex3(output.script) === marker) || deriveReceipt(claim.receipt, config.appKey).id !== claim.id) throw Error("bootstrap_pin_required");
+  tx.inputs.forEach((input, index) => {
+    const saved = claim.prepared.inputs.find((row) => row.txid === input.txid && row.index === input.index);
+    const previous = parseTransaction(saved?.previousRaw, { funding: true });
+    if (previous.txid !== input.txid || !previous.outputs[input.index]) throw Error("bootstrap_pin_required");
+    verifyInput(tx, index, previous.outputs[input.index].script, key);
+  });
+  return tx.txid;
+}
+function snapshotOf(document, config, bootstrap, tip = document.headers.at(-1)) {
+  const headers = document.headers.filter((row) => row.height <= tip.height);
+  const transactions = document.transactions.filter((row) => row.height <= tip.height);
+  if (!bootstrap || !document.checkpoint && !transactions.some((row) => parseTransaction(row.raw).txid === bootstrap)) {
+    if (bootstrap && !config.allowUnobservedBootstrap) throw Error("bootstrap_missing");
+    if (document.checkpoint || transactions.some((row) => config.ownedName(parseTransaction(row.raw, { funding: true })))) throw Error("bootstrap_pin_required");
+    return {
+      receipts: [],
+      pending: [],
+      invalid: [],
+      lineage: [],
+      head: null,
+      epoch: epoch(medianTime(headers.slice(-11).map((row) => row.time))),
+      height: tip.height,
+      hash: tip.hash,
+      finalizedEpochs: []
+    };
+  }
+  return reconstruct({
+    complete: true,
+    anchor: { height: headers[0].height, hash: headers[0].hash },
+    headers,
+    transactions,
+    previousTransactions: document.previous,
+    checkpoint: document.checkpoint,
+    bootstrap: { txid: bootstrap, appKey: config.appKey, markerKey: config.markerKey }
+  });
+}
+async function acquire(runtime, provider, storage, job) {
+  const api = provider.primitives, document = structuredClone(runtime.document), tip = await api.tipInfo();
+  const headers = document.headers ?? [], anchor = document.headerAnchor ?? runtime.config.anchor;
+  const from = headers.length ? Math.max(headers[0].height, Math.min(headers.at(-1).height, tip.height) - RECHECK + 1) : anchor.height;
+  const high = Math.min(tip.height, from + CHUNK - 1), fresh = await api.fetchHeaders(from, high);
+  const keep = headers.filter((row) => row.height < from);
+  if (keep.length && keep.at(-1).hash !== fresh[0].previous || !keep.length && fresh[0].hash !== (document.checkpoint ? headers[0].hash : anchor.hash)) throw Error("checkpoint_mismatch");
+  if (document.checkpoint && fresh.some((row) => row.height === document.checkpoint.height && row.hash !== document.checkpoint.hash)) throw Error("checkpoint_mismatch");
+  const prior = new Map(headers.map((row) => [row.height, row.hash]));
+  const changed = fresh.find((row) => prior.has(row.height) && prior.get(row.height) !== row.hash);
+  if (changed && document.checkpoint && changed.height <= document.checkpoint.height) throw Error("checkpoint_mismatch");
+  document.headers = [...keep, ...fresh];
+  document.transactions ??= [];
+  document.previous ??= [];
+  document.observations ??= {};
+  document.ids ??= [];
+  if (high < tip.height) {
+    await mutate(storage, "save", { job, version: runtime.version, document });
+    return null;
+  }
+  if (fresh.at(-1).hash !== tip.hash) throw Error("history_changed");
+  const first = await api.historyPage(0);
+  let scan = document.scan;
+  if (!scan || scan.count !== first.count || JSON.stringify(scan.first) !== JSON.stringify(first.tx)) scan = { count: first.count, first: first.tx, offset: 0, ids: [] };
+  const page = scan.offset === 0 ? first : await api.historyPage(scan.offset);
+  if (page.count !== scan.count) throw Error("history_changed");
+  if (page.tx.some((id) => scan.ids.includes(id))) throw Error("history_changed");
+  scan.ids.push(...page.tx);
+  scan.offset += page.tx.length;
+  const overlap = page.tx.find((id) => document.ids.includes(id));
+  if (overlap) {
+    const merged = [...scan.ids.slice(0, scan.ids.indexOf(overlap)), ...document.ids.slice(document.ids.indexOf(overlap))];
+    if (merged.length === scan.count && new Set(merged).size === merged.length && scan.ids.every((id, index) => merged[index] === id)) {
+      scan.ids = merged;
+      scan.offset = scan.count;
+    }
+  }
+  document.scan = scan;
+  if (scan.offset < scan.count) {
+    await mutate(storage, "save", { job, version: runtime.version, document });
+    return null;
+  }
+  if (scan.ids.length !== scan.count) throw Error("history_changed");
+  document.transactions = document.transactions.filter((row) => scan.ids.includes(parseTransaction(row.raw, { funding: true }).txid));
+  const checkpointHeight = document.checkpoint?.height ?? -1;
+  const todo = scan.ids.filter((id) => {
+    const old = document.observations[id];
+    const header = old && document.headers.find((row) => row.height === old.height);
+    return !old || old.height === null && old.owned && old.checkedHash !== tip.hash || old.height > checkpointHeight && header && old.blockHash !== header.hash;
+  }).sort((a, b) => Number(!!document.observations[a]) - Number(!!document.observations[b]));
+  for (const id of todo.slice(0, 1)) {
+    const observed = await api.transaction(id), tx = parseTransaction(observed.raw, { funding: true });
+    const owned = api.ownedName(tx);
+    if (observed.height !== null && observed.height < document.headers[0].height) {
+      if (owned && observed.height > checkpointHeight) throw Error("bootstrap_pin_required");
+    } else if (observed.height !== null) {
+      const header = document.headers.find((row) => row.height === observed.height);
+      if (!header || header.hash !== observed.blockHash || !header.tx.includes(id)) throw Error("reorg_detected");
+      document.transactions = document.transactions.filter((row) => parseTransaction(row.raw, { funding: true }).txid !== id);
+      if (owned) document.transactions.push({ raw: observed.raw, height: observed.height, index: header.tx.indexOf(id), blockHash: observed.blockHash });
+    } else document.transactions = document.transactions.filter((row) => parseTransaction(row.raw, { funding: true }).txid !== id);
+    if (owned) for (const input of tx.inputs) {
+      if (!document.previous.some((raw) => parseTransaction(raw, { funding: true }).txid === input.txid)) document.previous.push(await api.rawOf(input.txid));
+    }
+    document.observations[id] = { height: observed.height, blockHash: observed.blockHash, checkedHash: tip.hash, owned, raw: owned ? observed.raw : void 0 };
+  }
+  const end = await api.tipInfo(), last = await api.historyPage(0);
+  if (end.hash !== tip.hash || JSON.stringify(last) !== JSON.stringify(first)) throw Error("history_changed");
+  const unfinished = todo.length > 1;
+  document.ids = scan.ids;
+  document.scan = null;
+  if (unfinished) {
+    await mutate(storage, "save", { job, version: runtime.version, document });
+    return null;
+  }
+  for (const row of document.checkpoint?.lineage ?? []) if (!document.ids.includes(row.txid)) throw Error("checkpoint_mismatch");
+  const config = { ...runtime.config, ownedName: api.ownedName, allowUnobservedBootstrap: !!runtime.bootstrap_claim };
+  if (!runtime.bootstrap && Object.values(document.observations).some((row) => row.owned)) throw Error("bootstrap_pin_required");
+  const snapshot = snapshotOf(document, config, runtime.bootstrap);
+  const unconfirmed = document.ids.some((id) => document.observations[id]?.height === null && document.observations[id]?.owned);
+  const cut = tip.height - CHECKPOINT_LAG;
+  if (runtime.bootstrap && snapshot.head && cut > (document.checkpoint?.height ?? anchor.height + 10) && document.headers.some((row) => row.height === cut)) {
+    const header = document.headers.find((row) => row.height === cut), checkpoint = snapshotOf(document, config, runtime.bootstrap, header);
+    if (checkpoint.head) {
+      document.checkpoint = { ...checkpoint, bootstrap: runtime.bootstrap };
+      document.headers = document.headers.filter((row) => row.height >= cut - 10);
+      document.headerAnchor = { height: document.headers[0].height, hash: document.headers[0].hash };
+      document.transactions = document.transactions.filter((row) => row.height > cut);
+      const required = new Set(document.transactions.flatMap((row) => parseTransaction(row.raw).inputs.map((input) => input.txid)));
+      if (checkpoint.lineage.length) required.add(checkpoint.lineage.at(-1).txid);
+      const previous = /* @__PURE__ */ new Map();
+      for (const raw of [...document.previous, ...checkpoint.lineage.map((row) => row.raw)]) {
+        const txid = parseTransaction(raw, { funding: true }).txid;
+        if (required.has(txid)) previous.set(txid, raw);
+      }
+      document.previous = [...previous.values()];
+    }
+  }
+  if (!runtime.bootstrap && document.headers.length > CHUNK) {
+    document.headers = document.headers.slice(-(CHECKPOINT_LAG + 11));
+    document.headerAnchor = { height: document.headers[0].height, hash: document.headers[0].hash };
+  }
+  runtime = await mutate(storage, "save", { job, version: runtime.version, document });
+  return { runtime, snapshot, unconfirmed, tip, api };
+}
+async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch, providerOptions = {}, scope = null } = {}) {
+  if (config.code) return { code: config.code };
+  const capability = await publisherReadiness(storage);
+  if (capability.code === "schema_upgrade_required") return { code: capability.code };
+  const backend = storage;
+  storage = { read: () => backend.read(), rpc: (operation, payload = {}) => backend.rpc(operation, { ...payload, scope }) };
+  const job = crypto.randomUUID();
+  let runtime = await storage.rpc("job", { owner: job });
+  if (runtime.code === "job_busy") return { code: "job_busy" };
+  if (!runtime.owner) return { code: FINITE_FAILURES.has(runtime.code) ? runtime.code : "publisher_unavailable" };
+  let calls = 0;
+  const deadline = Date.now() + 55e3;
+  const boundedFetch = (...args) => {
+    if (++calls > 36 || Date.now() > deadline) throw Error("provider_unavailable");
+    return fetcher(...args);
+  };
+  const makeProvider = (anchor, bootstrap) => createSpaceXpanseProvider({
+    appKey: config.appKey,
+    markerKey: config.markerKey,
+    anchor,
+    bootstrap: bootstrap ? { txid: bootstrap } : null,
+    baseUrl: config.baseUrl,
+    fetch: boundedFetch,
+    retries: 0,
+    acquisitionAttempts: 1,
+    ...providerOptions
+  });
+  try {
+    if (runtime.config && (runtime.config.appKey !== config.appKey || runtime.config.markerKey !== config.markerKey || runtime.config.baseUrl !== config.baseUrl || config.bootstrap && config.bootstrap !== runtime.bootstrap || config.anchor && JSON.stringify(config.anchor) !== JSON.stringify(runtime.config.anchor))) throw Error("identity_configuration_mismatch");
+    if (runtime.config) {
+      const current = await storage.read(), active2 = current.claims.find((row) => row.id === current.coordinator.active);
+      if (active2 && ["signing_started", "signing_unknown"].includes(active2.state)) throw Error("signing_unknown");
+    }
+    if (!runtime.config) {
+      const probe = makeProvider(config.anchor ?? { height: 0, hash: PROVIDER_DEFAULTS.genesisHash }, config.bootstrap), api2 = probe.primitives;
+      const tip2 = await api2.tipInfo(), height = config.anchor?.height ?? Math.max(0, tip2.height - 10), [header] = await api2.fetchHeaders(height, height);
+      let anchor = config.anchor ?? { height, hash: header.hash };
+      if (header.hash !== anchor.hash) throw Error("anchor_mismatch");
+      const state2 = await storage.read(), registrations = state2.claims.filter((row) => row.raw && row.prepared?.operation === "register");
+      if (registrations.length > 1) throw Error("bootstrap_pin_required");
+      const own = registrations[0], bootstrap = config.bootstrap ?? (own ? journalBootstrap(own, config) : null);
+      if (own && config.bootstrap && config.bootstrap !== journalBootstrap(own, config)) throw Error("identity_configuration_mismatch");
+      if (own && !config.anchor) {
+        const observed = await api2.transaction(own.txid).catch((error) => {
+          if (error.message !== "not_found") throw error;
+          return null;
+        });
+        if (observed?.height !== null && observed?.height !== void 0) {
+          const start = Math.max(0, observed.height - 10), [before] = await api2.fetchHeaders(start, start);
+          anchor = { height: start, hash: before.hash };
+        }
+      }
+      runtime = await mutate(storage, "initialize", {
+        job,
+        config: { appKey: config.appKey, markerKey: config.markerKey, baseUrl: config.baseUrl, anchor },
+        bootstrap,
+        bootstrap_claim: own?.id ?? null,
+        document: { headers: [], transactions: [], previous: [], ids: [], observations: {} }
+      });
+    }
+    const provider = makeProvider(runtime.config.anchor, runtime.bootstrap), acquired = await acquire(runtime, provider, storage, job);
+    if (!acquired) return { code: "initial_sync" };
+    runtime = acquired.runtime;
+    const { snapshot, api, tip, unconfirmed } = acquired;
+    if (snapshot.head && !unconfirmed) {
+      const unspent = await api.confirmedUnspent(tip);
+      if (!unspent.some((row) => row.txid + ":" + row.index === snapshot.head)) throw Error("conflict_suspected");
+    }
+    const state = await storage.read();
+    const active = state.claims.find((row) => row.id === state.coordinator.active);
+    if (unconfirmed && Object.entries(runtime.document.observations).some(([id, row]) => row.owned && row.height === null && id !== active?.txid)) throw Error("conflict_suspected");
+    if (active && ["signing_started", "signing_unknown"].includes(active.state)) throw Error("signing_unknown");
+    if (active?.raw && active.attempts >= 4 && !snapshot.lineage.some((row) => row.txid === active.txid)) throw Error("retry_exhausted");
+    runtime = await mutate(storage, "synchronize", {
+      job,
+      version: runtime.version,
+      revision: state.coordinator.revision,
+      epoch: snapshot.epoch,
+      head: snapshot.head,
+      snapshot: { ...snapshot, stale: false }
+    });
+    const claim = await storage.rpc("next");
+    if (claim && ["signing_started", "signing_unknown"].includes(claim.state)) throw Error("signing_unknown");
+    if (claim?.raw && claim.attempts >= 4 && !["included", "confirmed"].includes(claim.state)) throw Error("retry_exhausted");
+    if (!runtime.ready) return { code: runtime.code };
+    const chain = {
+      prepare: async (row) => {
+        if (unconfirmed) throw Error("unconfirmed_pending");
+        const current = { head: snapshot.head, lineage: snapshot.lineage, observed: { evidence: { tip } } };
+        return { epoch: snapshot.epoch, head: snapshot.head, prepared: await api.fund(row, current) };
+      },
+      validate: async (observation) => {
+        const fresh = await api.tipInfo();
+        if (fresh.hash !== tip.hash) return false;
+        const first = await api.historyPage(0), observed = runtime.document.ids.slice(0, 10);
+        if (first.count !== runtime.document.ids.length || JSON.stringify(first.tx) !== JSON.stringify(observed)) return false;
+        const unspent = new Set((await api.confirmedUnspent(fresh)).map((row) => row.txid + ":" + row.index));
+        return observation.prepared.inputs.every((input) => unspent.has(input.txid + ":" + input.index));
+      },
+      lookup: async (txid, inputs) => {
+        try {
+          const observed = await api.transaction(txid);
+          if (observed.height !== null) return { state: "included", txid };
+          return { state: "mempool", txid };
+        } catch (error) {
+          if (error.message !== "not_found") throw error;
+          const unspent = new Set((await api.confirmedUnspent(await api.tipInfo())).map((row) => row.txid + ":" + row.index));
+          if (inputs.some((input) => !unspent.has(input.txid + ":" + input.index))) throw Error("conflict_suspected");
+          return { state: "unknown", txid };
+        }
+      },
+      broadcast: (raw) => provider.broadcast(raw)
+    };
+    if (claim) {
+      const scoped = { read: () => storage.read(), rpc: (operation, payload = {}) => storage.rpc(operation, { ...payload, job }) };
+      const result = await advance(scoped, chain, config.secret, hexToBytes3(config.markerKey), claim.id);
+      if (result.code && !["retry_later", "signer_busy", "stale_state"].includes(result.code)) throw Error(result.code);
+      return { code: result.code ?? result.state };
+    }
+    const reserve = (snapshot.head ? 0 : NETWORK.nameMinimum) + FEE_POLICY.maximum + NETWORK.dust;
+    await api.selectFunding(tip, snapshot.head, (inputs) => inputs.reduce((total, input) => total + input.amount, 0) >= reserve);
+    return { code: "ready" };
+  } catch (error) {
+    try {
+      await storage.rpc("job_error", { job, code: error.message });
+    } catch {
+    }
+    return { code: FINITE_FAILURES.has(error.message) ? error.message : "publisher_unavailable" };
+  } finally {
+    try {
+      await storage.rpc("job_done", { job });
+    } catch {
+    }
+  }
+}
+
 // leaderboard/relay-entry.js
 function json(value, status = 200, cache = false) {
   if (utf8(JSON.stringify(value)).length > PUBLIC_RESPONSE_BYTES) throw Error("public_response_too_large");
   return Response.json(value, { status, headers: { "Cache-Control": cache ? "public, max-age=5, s-maxage=5" : "no-store", "X-Content-Type-Options": "nosniff", ...status === 429 ? { "Retry-After": "60" } : {} } });
 }
-async function handleApi(request, { storage = null, issuer = null, available = false, rateSecret = null } = {}) {
+async function handleApi(request, { storage = null, issuer = null, available = false, rateSecret = null, readiness = null } = {}) {
   const url = new URL(request.url);
   try {
     if (url.pathname === "/api/leaderboard" && request.method === "GET") {
       if (!storage) return json({ available: false, code: "issuance_disabled", rows: [], pending: [], stale: true, rewards_enabled: false, assurance: "replayed" });
       const result = await publicLeaderboard(storage, url.searchParams);
-      return json({ ...result, available: available === true }, 200, true);
+      return json({ ...result, available: available === true, ...readiness ? { publisher: readiness } : {} }, 200, true);
     }
     const match = /^\/api\/submissions\/([a-f0-9]{64})$/.exec(url.pathname);
     if (match && request.method === "GET") {
@@ -3794,7 +4674,7 @@ async function handleApi(request, { storage = null, issuer = null, available = f
     }
     if (url.pathname === "/api/score" && request.method === "POST") {
       checkOrigin(request);
-      if (!available || !storage) return json({ code: "issuance_disabled", retryable: false }, 503);
+      if (!available || !storage) return json({ code: readiness?.code ?? "issuance_disabled", retryable: !!storage }, 503);
       const ip = request.headers.get("cf-connecting-ip");
       if (typeof rateSecret !== "string" || utf8(rateSecret).length < 32 || utf8(rateSecret).length > 256 || !ip || ip.length > 64) return json({ code: "issuance_disabled", retryable: false }, 503);
       const key = await crypto.subtle.importKey("raw", utf8(rateSecret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -3825,9 +4705,35 @@ async function handleApi(request, { storage = null, issuer = null, available = f
     return json({ code: "backend_unavailable", retryable: true }, 503);
   }
 }
-function handleRelayRequest(request, bindings = {}) {
-  const storage = bindings.HD1_READS === "true" && bindings.SUPABASE_URL && bindings.SUPABASE_SERVICE_KEY ? new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY) : null;
-  return handleApi(request, { storage, available: false, rateSecret: bindings.HD1_RATE_HMAC_KEY });
+async function handleRelayRequest(request, bindings = {}, context = null) {
+  const config = publisherConfig(bindings);
+  let storage = null;
+  try {
+    if ((!config.code || bindings.HD1_READS === "true") && bindings.SUPABASE_URL && bindings.SUPABASE_SERVICE_KEY)
+      storage = new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY);
+    let readiness = { available: false, code: config.code ?? "initial_sync" };
+    if (storage && !config.code) readiness = await publisherReadiness(storage, { appKey: config.appKey, markerKey: config.markerKey, baseUrl: config.baseUrl });
+    const response = await handleApi(request, {
+      storage,
+      available: !config.code && readiness?.available === true,
+      rateSecret: bindings.HD1_RATE_HMAC_KEY,
+      readiness
+    });
+    if (request.method === "POST" && new URL(request.url).pathname === "/api/score" && response.status === 202 && context?.waitUntil)
+      context.waitUntil(runPublisher(storage, config));
+    return response;
+  } catch {
+    return json({ code: "backend_unavailable", retryable: true }, 503);
+  }
+}
+async function handleScheduled(bindings = {}) {
+  const config = publisherConfig(bindings);
+  if (config.code) return { code: config.code };
+  try {
+    return await runPublisher(new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY), config);
+  } catch {
+    return { code: "backend_unavailable" };
+  }
 }
 function verifyOffline(text, appKey = null) {
   if (utf8(text).length > 8192) throw new ClaimError("payload_too_large", 413);
@@ -3841,7 +4747,7 @@ function verifyOffline(text, appKey = null) {
   } else if (appKey !== null) throw Error("unexpected_issuer_key");
   return {
     ok: true,
-    profile: "hd1",
+    profile: verified.claim.p,
     assurance: "replayed",
     receipt_id: verified.id,
     player: verified.player,
@@ -3916,17 +4822,23 @@ export {
   ClaimError,
   DIRECTIONS,
   FEE_POLICY,
+  FUNDING_LIMITS,
   MAX_REQUEST_BYTES,
   MAX_VALUE_BYTES,
   NETWORK,
   PIECES,
   PUBLIC_RESPONSE_BYTES,
+  RANKED_MAX_MOVES,
+  RANKED_MOVE_MULTIPLIER,
+  RANKED_PROFILE,
   SHAPES,
   SupabaseStorage,
   address,
   admit,
   advance,
   assertCapacity,
+  assertProfile,
+  assertRankedMoves,
   base58check,
   broadcastStored,
   buildTransaction,
@@ -3935,11 +4847,14 @@ export {
   checkOrigin,
   concat,
   decodeWif,
+  deriveMarker,
+  deriveReceipt,
   digest,
   discoverHistory,
   epoch,
   handleApi,
   handleRelayRequest,
+  handleScheduled,
   hash160,
   hash256,
   hexToBytes3 as hexToBytes,
@@ -3956,8 +4871,11 @@ export {
   positions,
   publicLeaderboard,
   publicStatus,
+  publisherConfig,
+  publisherReadiness,
   push,
   rank,
+  rankedMoveLimit,
   rawReader,
   readClaim,
   readPush,
@@ -3967,6 +4885,7 @@ export {
   reconstructOffline,
   recover,
   replay,
+  runPublisher,
   serialize,
   sighash,
   sign,

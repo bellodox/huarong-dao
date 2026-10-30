@@ -1,4 +1,4 @@
-/* Same-origin hd1 UI. Network failure never blocks the puzzle or local score commit. */
+/* Same-origin versioned leaderboard UI. Network failure never blocks local play. */
 (() => {
   'use strict';
   const OUTBOX_KEY='huarong_hd1_outbox_v1';
@@ -26,7 +26,7 @@
   }
   /** Status is distinct from confirmed ranking; arbitrary backend strings are never rendered as HTML. */
   function showStatus(row) {
-    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално'};
+    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално',ranked_move_limit:'Над лимита hd2 · целият път е запазен локално',practice_layout:'Тренировка · без публично изпращане'};
     status.textContent=text[row.status||row.code]||'Публичното изпращане не е достъпно · резултатът е локален';
   }
   /** Viewing is walletless. Availability contains no secret or binding value. */
@@ -47,7 +47,7 @@
       }
       for(const row of result.pending||[]) {const line=document.createElement('p');line.textContent='Непотвърдено · '+(row.confirmations||0)+'/6';pending.append(line);}
       status.textContent=!HUARONG_PUBLIC_ENABLED?'Публичното изпращане е изключено · локалната игра продължава':result.stale?'Данните не са актуални · локалната игра продължава':'Преиграно · не доказва човешка игра';
-      document.getElementById('ranking-public-privacy').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
+      document.getElementById('ranking-public-privacy').classList.remove('hidden');
       panel.querySelector('#hd1-backup').classList.toggle('hidden',!localStorage.getItem('huarong_rod_identity_v1'));
     }catch {status.textContent='Публичното изпращане не е достъпно · резултатът е локален';}
   }
@@ -87,12 +87,14 @@
         if(!consented())return;
         const evidence=candidate(layout);if(!evidence)continue;
         if(Object.values(durable).some(row=>row.localId===evidence.localId&&row.epoch===snapshot.epoch&&row.player===player))continue;
-        const claim=cryptoModule.createSignedClaim(evidence,player,snapshot.epoch,{consented});
-        const signed={...claim,localId:evidence.localId,layout,moves:evidence.moves,epoch:snapshot.epoch,player};
-        durable[claim.id]=signed;saveOutbox(durable);
-        await retry(signed);
+        try {
+          const claim=cryptoModule.createSignedClaim(evidence,player,snapshot.epoch,{consented});
+          const signed={...claim,localId:evidence.localId,layout,moves:evidence.moves,epoch:snapshot.epoch,player};
+          durable[claim.id]=signed;saveOutbox(durable);
+          await retry(signed);
+        }catch(error){if(consented())showStatus({code:error.message});}
       }
-      panel.querySelector('#hd1-backup').classList.remove('hidden');
+      panel.querySelector('#hd1-backup').classList.toggle('hidden',!localStorage.getItem('huarong_rod_identity_v1'));
     }catch(error){showStatus({code:error.message});}
     finally{busy=false;}
   }

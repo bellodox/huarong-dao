@@ -1824,7 +1824,7 @@
     <!-- Ranked eligibility badge; reveals solver distance only after assistance. -->
     <section class="w-full max-w-md my-1 px-3 py-1.5 bg-amber-950/60 border border-amber-500/40 rounded-xl flex items-center justify-between text-xs shadow shrink-0" aria-live="polite">
         <div id="eligibility-info" class="flex items-center gap-1 min-w-0 flex-1">
-          <span id="ranked-status" class="font-bold text-amber-300">★ Самостоятелна игра · за класацията</span>
+          <span id="ranked-status" class="font-bold text-amber-300">★ Самостоятелна игра · локална игра</span>
           <span id="solver-status" class="hidden text-slate-100">Остават: <span id="badge-remaining-moves" class="text-amber-400 font-black">--</span></span>
         </div>
         <button id="active-player" type="button" aria-label="Отвори класацията и настройките на името" title="Отвори класацията" class="text-slate-300 font-bold truncate text-right"></button>
@@ -2043,11 +2043,12 @@
           <input id="player-name-input" type="text" maxlength="12" autocomplete="nickname" placeholder="Например: Player1" class="w-full bg-slate-950 border border-slate-600 text-white text-sm rounded-xl p-3" required />
           <label id="player-public-consent-row" class="flex items-start gap-2 text-left text-xs text-slate-200 cursor-pointer leading-relaxed">
             <input id="public-score-consent" type="checkbox" class="mt-0.5 w-4 h-4 accent-amber-500 shrink-0" />
-            <span>Съгласявам се името и резултатите ми да бъдат добавени в публичния регистър.</span>
+            <span>Съгласявам се името, постоянният публичен ключ и целият път да бъдат публикувани необратимо в ROD.</span>
           </label>
+          <p class="text-left text-[11px] text-slate-300 leading-relaxed">Експериментален hd2: до 10 × оптималните ходове включително за 11 класирани подредби. Тренировки, помощ и по-дълги пътища не се публикуват; локалната игра и целият действителен път остават без лимит. Нужно е строго подобрение за всички времена ИЛИ текущата седмица; времето е само локално.</p>
           <details id="player-public-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed">
             <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
-            <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Локалните данни са нужни за играта и се премахват чрез изчистване на данните за сайта. С твое съгласие името и резултатите се публикуват в публичния ROD блокчейн, където остават достъпни и не могат да се изтрият. Можеш да оттеглиш съгласието от „Класация“ за бъдещи записи. За зареждане на библиотеки и онлайн класиране се използват външни CDN услуги и ROD API.</p>
+            <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Локалната игра не изисква самоличност или публикуване. Разглеждането на публичната класация изпраща заявка до сървъра, но не създава самоличност и не публикува твой резултат. Само с отделно съгласие името, постоянният публичен ключ, резултатът и целият път се подписват за публичния ROD блокчейн. Публикуваните данни са необратими; изчистването на браузъра и оттеглянето на съгласие не ги изтриват. Оттеглянето спира бъдещи неподадени изпращания, не вече изпратени записи. Съгласието за анализ е независимо.</p>
           </details>
           <p id="player-name-error" class="text-xs text-red-300" role="alert" aria-live="polite"></p>
           <button id="btn-confirm-gate" type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-3 font-black">Публикувай резултата</button>
@@ -2078,13 +2079,14 @@
           <input id="ranking-public-consent" type="checkbox" class="mt-0.5 w-4 h-4 shrink-0 accent-amber-500" />
           <span>Публикувай бъдещите ми резултати в публичната класация.</span>
         </label>
-        <details id="ranking-public-privacy" class="hidden text-left text-[11px] text-slate-400 leading-relaxed mb-3">
+        <p class="text-left text-[11px] text-slate-300 leading-relaxed mb-3">Експериментален hd2: до 10 × оптималните ходове включително за 11 класирани подредби. Тренировки, помощ и по-дълги пътища не се публикуват; локалната игра и целият действителен път остават без лимит. Нужно е строго подобрение за всички времена ИЛИ текущата седмица; времето е само локално.</p>
+        <details id="ranking-public-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed mb-3">
           <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
-          <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Локалните данни са нужни за играта и се премахват чрез изчистване на данните за сайта. С твое съгласие името и резултатите се публикуват в публичния ROD блокчейн, където остават достъпни и не могат да се изтрият. Можеш да оттеглиш съгласието от „Класация“ за бъдещи записи. За зареждане на библиотеки и онлайн класиране се използват външни CDN услуги и ROD API.</p>
+          <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Локалната игра не изисква самоличност или публикуване. Разглеждането на публичната класация изпраща заявка до сървъра, но не създава самоличност и не публикува твой резултат. Само с отделно съгласие името, постоянният публичен ключ, резултатът и целият път се подписват за публичния ROD блокчейн. Публикуваните данни са необратими; изчистването на браузъра и оттеглянето на съгласие не ги изтриват. Оттеглянето спира бъдещи неподадени изпращания, не вече изпратени записи. Съгласието за анализ е независимо.</p>
         </details>
         <details id="ranking-local-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed mb-3">
           <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
-          <p class="mt-2">Резултатите и потребителското ти име се съхраняват само в този браузър. Няма онлайн публикуване или регистрация. Изтриват се чрез изчистване на данните за сайта.</p>
+          <p class="mt-2">Локалните резултати, име и пътища се пазят в този браузър и се премахват чрез изчистване на данните за сайта. Това не изтрива по-рано публикувани записи. Изключено изпращане не означава липса на исторически публикации.</p>
         </details>
         <div class="flex items-center justify-between gap-2 mb-2">
           <label class="font-bold text-xs text-slate-200" for="ranking-layout">Подредба</label>
@@ -2569,7 +2571,7 @@
           badgeRemainingMovesEl.textContent='--';
           const practice = isPracticeLayout(GAME_LAYOUTS[currentLayoutIdx]?.id);
           const localOnly = !HUARONG_PUBLIC_ENABLED;
-          document.getElementById('ranked-status').textContent=practice ? 'Тренировка · без класиране' : localOnly ? '★ Самостоятелна игра · локален резултат' : allowPublicScores ? '★ Самостоятелна игра · за класацията' : '★ Самостоятелна игра · само локално';
+          document.getElementById('ranked-status').textContent=practice ? 'Тренировка · без класиране' : localOnly ? '★ Самостоятелна игра · локален резултат' : allowPublicScores ? '★ Самостоятелна игра · локална игра' : '★ Самостоятелна игра · само локално';
           document.getElementById('ranked-status').className=practice ? 'font-bold text-sky-300' : localOnly ? 'font-bold text-emerald-300' : 'font-bold text-amber-300';
           document.getElementById('solver-status').classList.add('hidden');
           victoryRankStatus.textContent='';
@@ -2598,7 +2600,7 @@
               const layout = GAME_LAYOUTS[currentLayoutIdx]?.id;
               if(!isPracticeLayout(layout)){
                   document.getElementById('ranked-status').textContent=allowPublicScores
-                      ? '★ Самостоятелна игра · за класацията'
+                      ? '★ Самостоятелна игра · локална игра'
                       : '★ Самостоятелна игра · само локално';
               }
           }
@@ -2682,7 +2684,7 @@
               const layout=GAME_LAYOUTS[currentLayoutIdx]?.id;
               if(!isPracticeLayout(layout)){
                   document.getElementById('ranked-status').textContent=allowed
-                      ? '★ Самостоятелна игра · за класацията'
+                      ? '★ Самостоятелна игра · локална игра'
                       : '★ Самостоятелна игра · само локално';
               }
           }
@@ -2763,7 +2765,7 @@
       // Startup never blocks the puzzle with a username dialog.
       activePlayer.textContent='♙ '+nickname;
       document.getElementById('ranking-public-controls').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED || !publicNameReady);
-      document.getElementById('ranking-public-privacy').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
+      document.getElementById('ranking-public-privacy').classList.remove('hidden');
       document.getElementById('ranking-local-privacy').classList.toggle('hidden',HUARONG_PUBLIC_ENABLED);
       document.getElementById('install-online-note').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
       playerGate.classList.add('hidden');
@@ -2972,7 +2974,7 @@
                       const best=leaderboard[layout];
                       pendingPublicScore={layout,moves,seconds,epoch:victoryEpoch,nickname};
                       submitScoreBtn.classList.remove('hidden');
-                      victoryRankStatus.textContent='Резултатът е запазен локално. Можеш да публикуваш най-добрия си резултат.';
+                      victoryRankStatus.textContent='Резултатът е запазен локално. Публичното изпращане изисква съгласие и допустим действителен път.';
                   }
               }
           }
@@ -3037,7 +3039,7 @@
           updateNameLockUI();
           rankingPublicConsent.checked=allowPublicScores;
           document.getElementById('ranking-public-controls').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED || !publicNameReady);
-          document.getElementById('ranking-public-privacy').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
+          document.getElementById('ranking-public-privacy').classList.remove('hidden');
           document.getElementById('ranking-local-privacy').classList.toggle('hidden',HUARONG_PUBLIC_ENABLED);
           document.getElementById('install-online-note').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
           refreshRanking();
@@ -4555,6 +4557,10 @@
       const LANG_KEY = 'huarong_ui_lang_v1';
       const strings = new Map(Object.entries({
         "Публична класация · преиграни резултати":"Public leaderboard · replayed results",
+        "Над лимита hd2 · целият път е запазен локално":"Above hd2 limit · complete path retained locally",
+        "Тренировка · без публично изпращане":"Practice · no public submission",
+        "Експериментален hd2: до 10 × оптималните ходове включително за 11 класирани подредби. Тренировки, помощ и по-дълги пътища не се публикуват; локалната игра и целият действителен път остават без лимит. Нужно е строго подобрение за всички времена ИЛИ текущата седмица; времето е само локално.":"Experimental hd2: up to 10 × optimum moves inclusive for 11 ranked layouts. Practice, assistance and longer paths are not published; local play and the entire actual path remain unlimited. A strict lifetime OR current-week improvement is required; time is local only.",
+        "Съгласявам се името, постоянният публичен ключ и целият път да бъдат публикувани необратимо в ROD.":"I consent to irreversible publication of my name, stable public key and entire path on ROD.",
         "Период":"Period",
         "Изглед":"View",
         "Общо":"Overall",
@@ -4636,7 +4642,7 @@
         'Бета 0.1.0-beta.3':'Beta 0.1.0-beta.3',
         'Класическа':'Classic',
         'Подредби':'Layouts', 'Избери подредба':'Choose Layout', 'Ходове':'Moves', 'Инсталирай':'Install',
-        '★ Самостоятелна игра · за класацията':'★ Unassisted · ranked',
+        '★ Самостоятелна игра · локална игра':'★ Unassisted · local run',
         '★ Самостоятелна игра · само локално':'★ Unassisted · local only',
         '★ Самостоятелна игра · локален резултат':'★ Unassisted · local score',
         'Тренировка · без класиране':'Training · no scores',
@@ -4698,7 +4704,7 @@
         'Поверителност':'Privacy',
         'Резултатите и случайно генерираното ти име се съхраняват само в този браузър. Няма онлайн публикуване или регистрация. Изтриват се чрез изчистване на данните за сайта.':'Your scores and randomly generated name are stored only in this browser. There is no online publishing or registration. Clear the site data to erase them.',
         'Администратор: SpaceXpanse ·':'Controller: SpaceXpanse ·',
-        '. Локалните данни са нужни за играта и се премахват чрез изчистване на данните за сайта. С твое съгласие името и резултатите се публикуват в публичния ROD блокчейн, където остават достъпни и не могат да се изтрият. Можеш да оттеглиш съгласието от „Класация“ за бъдещи записи. За зареждане на библиотеки и онлайн класиране се използват външни CDN услуги и ROD API.':'. Local data is needed for the game and can be removed by clearing this site’s data. With your consent, your username and scores are published on the public ROD blockchain, where they remain accessible and cannot be deleted. You can withdraw consent for future submissions in “Leaderboard”. External CDN services and the ROD API are used to load libraries and online scores.',
+        '. Локалната игра не изисква самоличност или публикуване. Разглеждането на публичната класация изпраща заявка до сървъра, но не създава самоличност и не публикува твой резултат. Само с отделно съгласие името, постоянният публичен ключ, резултатът и целият път се подписват за публичния ROD блокчейн. Публикуваните данни са необратими; изчистването на браузъра и оттеглянето на съгласие не ги изтриват. Оттеглянето спира бъдещи неподадени изпращания, не вече изпратени записи. Съгласието за анализ е независимо.':'. Local play requires no identity or publication. Viewing the public leaderboard sends a server request but creates no identity and publishes no score of yours. Only with separate consent are your name, stable public key, score and entire path signed for the public ROD blockchain. Published data is irreversible; clearing browser data and withdrawing consent cannot erase it. Withdrawal stops future unsent submissions, not records already sent. Analytics consent is independent.',
         'Публикувай резултата':'Publish score', 'Не сега · запази локално':'Not now · keep locally',
         'Добави в общата класация':'Submit to public leaderboard',
         'Последните 5 локални резултата':'Last 5 local results',
@@ -4706,7 +4712,7 @@
         'Потребителско име':'Username','Запази':'Save','Името може да се промени по всяко време.':'You can change your name anytime.',
         'Можеш да промениш името си по всяко време. Локалните ти резултати се запазват.':'You can change your name anytime. Your local scores are preserved.',
         'Можеш да промениш името си преди първия запазен резултат.':'You can change your name before your first saved score.',
-        'Резултатите и потребителското ти име се съхраняват само в този браузър. Няма онлайн публикуване или регистрация. Изтриват се чрез изчистване на данните за сайта.':'Your scores and username are stored only in this browser. Nothing is published online or registered. Clear the site data to delete them.',
+        'Локалните резултати, име и пътища се пазят в този браузър и се премахват чрез изчистване на данните за сайта. Това не изтрива по-рано публикувани записи. Изключено изпращане не означава липса на исторически публикации.':'Local scores, name and paths are stored in this browser and removed by clearing site data. This does not erase previously published records. Disabled submission does not mean there are no historical publications.',
         'Публикувай бъдещите ми резултати в публичната класация.':'Publish my future results to the public leaderboard.',
         'Публикувай бъдещите ми резултати в публичната ROD класация.':'Publish my future results to the public ROD leaderboard.',
         'Можеш да изключиш по всяко време; старите записи остават в блокчейна.':'You can turn this off at any time; old records remain on the blockchain.',
@@ -4728,7 +4734,7 @@
         'Последните 5 резултата · само на това устройство':'Last 5 results · on this device only',
         'Все още нямаш личен рекорд за тази подредба.':'No personal best for this layout yet.',
         'Няма публични резултати.':'No public scores yet.',
-        'Резултатът е запазен локално. Можеш да публикуваш най-добрия си резултат.':'Score saved locally. You can publish your personal best.',
+        'Резултатът е запазен локално. Публичното изпращане изисква съгласие и допустим действителен път.':'Score saved locally. Public submission requires consent and an eligible actual path.',
         'Резултатът е запазен само на това устройство.':'Score saved on this device only.',
         'Резултатът е запазен локално. Можеш да го добавиш и в общата класация.':'Score saved locally. You can also submit it to the public leaderboard.',
         'Потвърди съгласието, за да публикуваш резултата.':'Please agree before publishing the score.',

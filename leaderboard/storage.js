@@ -15,17 +15,34 @@ export class SupabaseStorage {
       method:'POST',headers:{'Content-Type':'application/json',apikey:this.key,Authorization:'Bearer '+this.key},
       body:JSON.stringify({operation,payload}),signal:AbortSignal.timeout(10000)
     });
-    if(!response.ok)throw Error('storage_unavailable');
-    if(functionName!=='hd1_public')return response.json();
+    if(functionName!=='hd1_public') {
+      if(!response.ok)throw Error('storage_unavailable');
+      return response.json();
+    }
     // Bound even a misconfigured/unexpected backend before JSON parsing.
     const reader=response.body.getReader(),chunks=[];let length=0;
     try {
       while(true) {const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>PUBLIC_RESPONSE_BYTES)throw Error('public_response_too_large');chunks.push(value);}
     }finally{await reader.cancel();}
     const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
-    return JSON.parse(new TextDecoder().decode(bytes));
+    const result=JSON.parse(new TextDecoder().decode(bytes));
+    if(!response.ok) {
+      if(operation==='readiness'&&(result?.code==='P0001'&&result.message==='invalid_query'||result?.code==='PGRST202'))throw Error('schema_upgrade_required');
+      throw Error('storage_unavailable');
+    }
+    return result;
   }
   async read() {return this.rpc('read');}
+}
+/** Migration 004 explicitly attests the finite-authority contract; 003 readiness is insufficient. */
+export async function publisherReadiness(storage,payload={}) {
+  let readiness;
+  try {readiness=await storage.publicRead('readiness',payload);}
+  catch(error) {
+    if(!['invalid_query','unsupported_operation','schema_upgrade_required'].includes(error.message))throw error;
+  }
+  if(readiness?.capability_revision!==4)return {available:false,code:'schema_upgrade_required',required_capability_revision:4};
+  return readiness;
 }
 /** Public status whitelist never exposes raw journals, preparation details or credentials. */
 export function publicStatus(claim) {

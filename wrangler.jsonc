@@ -2,6 +2,7 @@
   "name": "huarong-dao",
   "main": "worker.js",
   "compatibility_date": "2026-10-23",
+  "triggers": { "crons": ["* * * * *"] },
   "observability": {
     "logs": {
       "enabled": true,

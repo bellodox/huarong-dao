@@ -5,3 +5,7 @@
 .osg/logs/
 .osg/export/
 node_modules/
+/.wrangler/tmp/
+/tests/.wrangler/tmp/
+/tests/.runtime-fixture/
+/tests/.runtime-prod/

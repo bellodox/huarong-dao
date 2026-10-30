@@ -63,7 +63,7 @@ export function buildTransaction(prepared,receipt,appKey,markerKey) {
   let total=0;
   const mapped=inputs.map(input=>{
     if(!/^[a-f0-9]{64}$/.test(input.txid)||!Number.isSafeInteger(input.index)||input.index<0||!Number.isSafeInteger(input.amount)||input.amount<0)throw Error('invalid_input');
-    const previous=parseTransaction(input.previousRaw),output=previous.outputs[input.index];
+    const previous=parseTransaction(input.previousRaw,{funding:true}),output=previous.outputs[input.index];
     if(previous.txid!==input.txid||!output||output.amount!==input.amount||bytesToHex(output.script)!==input.script)throw Error('unauthenticated_prevout');
     const previousScript=output.script;
     if(bytesToHex(previousScript.slice(-25))!==bytesToHex(payScript(appKey)))throw Error('input_not_owned');
@@ -95,21 +95,28 @@ export function rawReader(bytes) {
   const compact=()=>{const prefix=number(1);if(prefix<253)return prefix;const value=number(prefix===253?2:prefix===254?4:8);if(value<(prefix===253?253:prefix===254?65536:4294967296))throw Error('nonminimal_size');return value;};
   return {take,number,compact,remaining:()=>bytes.length-offset};
 }
-/** Decode exact legacy transaction bytes; metadata cannot substitute for raw scripts. */
-export function parseTransaction(raw) {
-  if(typeof raw!=='string'||!/^([a-f0-9]{2})+$/.test(raw)||raw.length>=20000)throw Error('invalid_raw');
-  const bytes=hexToBytes(raw), reader=rawReader(bytes), version=reader.number(4);
-  if(version!==2)throw Error('unsupported_transaction');
-  const inputCount=reader.compact();if(inputCount<1||inputCount>100)throw Error('invalid_inputs');
+// Live funding/previous transactions include version 1 (observed on the default provider)
+// and wallet-chosen sequences. Generated app transactions keep the strict v2/final policy.
+export const FUNDING_LIMITS=Object.freeze({rawHex:400000,count:3000});
+/** Decode exact legacy transaction bytes; metadata cannot substitute for raw scripts.
+ * Strict default is the generated-transaction policy. {funding:true} only broadens version
+ * (1|2), sequence and size bounds for previous/unrelated outputs; witness stays unsupported. */
+export function parseTransaction(raw,{funding=false}={}) {
+  if(typeof raw!=='string'||!/^([a-f0-9]{2})+$/.test(raw)||raw.length>=(funding?FUNDING_LIMITS.rawHex:20000))throw Error('invalid_raw');
+  const bytes=hexToBytes(raw), reader=rawReader(bytes), version=reader.number(4), limit=funding?FUNDING_LIMITS.count:100;
+  if(!(version===2||(funding&&version===1)))throw Error('unsupported_transaction');
+  const inputCount=reader.compact();if(inputCount<1||inputCount>limit)throw Error('invalid_inputs');
   const inputs=Array.from({length:inputCount},()=>{
-    const txid=bytesToHex(reader.take(32).reverse()),index=reader.number(4),script=reader.take(reader.compact());
-    if(reader.number(4)!==0xffffffff)throw Error('unsupported_sequence');return {txid,index,script};
+    const txid=bytesToHex(reader.take(32).reverse()),index=reader.number(4),script=reader.take(reader.compact()),sequence=reader.number(4);
+    if(!funding&&sequence!==0xffffffff)throw Error('unsupported_sequence');return funding?{txid,index,script,sequence}:{txid,index,script};
   });
-  const outputCount=reader.compact();if(outputCount<1||outputCount>100)throw Error('invalid_outputs');
+  const outputCount=reader.compact();if(outputCount<1||outputCount>limit)throw Error('invalid_outputs');
   const outputs=Array.from({length:outputCount},()=>({amount:reader.number(8),script:reader.take(reader.compact())}));
   const locktime=reader.number(4);if(reader.remaining())throw Error('trailing_raw');
   const tx={version,inputs,outputs,locktime};
-  if(bytesToHex(serialize(tx))!==raw)throw Error('noncanonical_transaction');
+  // Strict mode re-serializes with the generated policy; funding mode is exact by full
+  // consumption with minimal compact sizes, and its txid is hashed from the original bytes.
+  if(!funding&&bytesToHex(serialize(tx))!==raw)throw Error('noncanonical_transaction');
   return {...tx,txid:bytesToHex(hash256(bytes).reverse()),weight:bytes.length*4};
 }
 /** Read minimal pushdata without the upstream long-value script parser. */

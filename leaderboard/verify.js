@@ -10,14 +10,17 @@ export function verifyClaim(text,idempotencyKey) {
   if(new TextEncoder().encode(text).length>MAX_REQUEST_BYTES)throw new ClaimError('payload_too_large',413);
   let claim;
   try {claim=parseCanonical(text,7);assertCapacity(claim);} catch(error) {
-    throw new ClaimError(error.message==='evidence_too_large'?'evidence_too_large':'malformed',error.message==='evidence_too_large'?422:400);
+    const code=['evidence_too_large','unknown_profile'].includes(error.message)?error.message:'malformed';
+    throw new ClaimError(code,code==='malformed'?400:422);
   }
   let player;
   try {const {s,...unsigned}=claim;player=recover('player',canonical(unsigned,6),s);} catch {throw new ClaimError('invalid_signature',401);}
   const id=receiptId(claim);
   if(id!==idempotencyKey)throw new ClaimError('idempotency_conflict',409);
   let derived;
-  try {derived=replay(claim);} catch(error) {throw new ClaimError(error.message==='practice_layout'?'practice_layout':'invalid_replay',422);}
+  try {derived=replay(claim);} catch(error) {
+    throw new ClaimError(['practice_layout','ranked_move_limit'].includes(error.message)?error.message:'invalid_replay',422);
+  }
   return {id,claim,text,player,moves:derived.moves,points:derived.points};
 }
 /** Read a bounded stream before parsing or expensive cryptography. */

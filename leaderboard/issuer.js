@@ -11,7 +11,11 @@ export async function admit(storage,verified) {
 export async function broadcastStored(storage,chain,claim) {
   if(!claim.raw || !claim.txid)throw Error('missing_persisted_bytes');
   // An uncertain previous outcome is investigated, never replaced with another spend.
-  if(claim.attempts>0)await chain.lookup(claim.txid,claim.prepared.inputs);
+  if(claim.attempts>0) {
+    const observation=await chain.lookup(claim.txid,claim.prepared.inputs);
+    if(['included','mempool'].includes(observation?.state))return claim;
+    if(observation?.state==='conflict_suspected')throw Error('conflict_suspected');
+  }
   const owned={id:claim.id,owner:claim.owner,generation:claim.generation};
   const attempt=await storage.rpc('broadcast',owned);
   if(attempt.code)return attempt;

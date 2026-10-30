@@ -20,6 +20,29 @@ export const CATALOG = Object.freeze(Object.fromEntries([
   ['fayaa_highRisk',126,'AAC.AAC.GBFFDBHEDIJE']
 ].map(([id,optimum,board,practice=false]) => [id,Object.freeze({optimum,board,practice})])));
 
+export const RANKED_PROFILE = 'hd2';
+export const RANKED_MOVE_MULTIPLIER = 10;
+export const RANKED_MAX_MOVES = Object.freeze(Object.fromEntries(Object.entries(CATALOG)
+  .filter(([,layout])=>!layout.practice).map(([id,layout])=>[id,RANKED_MOVE_MULTIPLIER*layout.optimum])));
+/** Resolve only known immutable profile versions. */
+export function assertProfile(profile) {
+  if(profile!=='hd1' && profile!==RANKED_PROFILE)throw Error('unknown_profile');
+  return profile;
+}
+/** Legacy replay has no ranked move ceiling; hd2 excludes practice unconditionally. */
+export function rankedMoveLimit(profile,layoutId) {
+  assertProfile(profile);
+  if(!Object.hasOwn(CATALOG,layoutId))throw Error('invalid_board');
+  if(CATALOG[layoutId].practice)throw Error('practice_layout');
+  return profile==='hd1'?Infinity:RANKED_MAX_MOVES[layoutId];
+}
+/** Check public move eligibility without mutating or replacing actual local evidence. */
+export function assertRankedMoves(profile,layoutId,moves) {
+  const maximum=rankedMoveLimit(profile,layoutId);
+  if(!Number.isSafeInteger(moves)||moves<1)throw Error('invalid_replay');
+  if(moves>maximum)throw Error('ranked_move_limit');
+}
+
 /** Expand and validate a complete rectangular board. */
 export function positions(board) {
   if (typeof board !== 'string' || !/^[A-J.]{20}$/.test(board)) throw Error('invalid_board');
@@ -54,11 +77,12 @@ export function step(state,symbol) {
 }
 /** Replay the entire actual path and derive integer half-up points. */
 export function replay(claim,{allowPractice=false}={}) {
-  if(claim.p!=='hd1') throw Error('unknown_profile');
+  assertProfile(claim.p);
   const layout=CATALOG[claim.l];
   if(!layout || claim.b!==layout.board) throw Error('invalid_board');
-  if(layout.practice && !allowPractice) throw Error('practice_layout');
+  if(layout.practice && (!allowPractice || claim.p===RANKED_PROFILE)) throw Error('practice_layout');
   if(typeof claim.m!=='string' || !claim.m.length) throw Error('invalid_replay');
+  if(claim.p===RANKED_PROFILE)assertRankedMoves(claim.p,claim.l,claim.m.length);
   let state=positions(claim.b);
   for(const symbol of claim.m) state=step(state,symbol);
   if(state[0]!==13 || claim.m.length<layout.optimum) throw Error('invalid_replay');

@@ -1,3 +1,4 @@
+import { assertProfile } from './profile.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
@@ -15,7 +16,8 @@ export function validName(name) {
 export function canonical(claim,stage=Object.keys(claim).length) {
   if(![6,7,8].includes(stage) || Object.keys(claim).length!==stage ||
      Object.keys(claim).some((key,index)=>key!==KEYS[index])) throw Error('noncanonical');
-  if(claim.p!=='hd1' || !Number.isSafeInteger(claim.w) || claim.w<0 || claim.w>9999999999 ||
+  assertProfile(claim.p);
+  if(!Number.isSafeInteger(claim.w) || claim.w<0 || claim.w>9999999999 ||
      typeof claim.l!=='string' || !/^[A-Za-z0-9_]{1,16}$/.test(claim.l) ||
      typeof claim.b!=='string' || !/^[A-J.]{20}$/.test(claim.b) || !validName(claim.n) ||
      typeof claim.m!=='string' || !/^[A-Za-z0-9_-]+$/.test(claim.m)) throw Error('malformed');
@@ -29,7 +31,10 @@ export function parseCanonical(text,stage) {
   return claim;
 }
 /** Hash the domain, NUL and complete canonical object exactly once. */
-export function digest(domain,text) { return sha256(utf8('huarong/hd1/'+domain+'\0'+text)); }
+export function digest(domain,text) {
+  const profile=assertProfile(JSON.parse(text).p);
+  return sha256(utf8('huarong/'+profile+'/'+domain+'\0'+text));
+}
 /** Encode recoverable signature with hd1's 31+recovery header. */
 export function sign(domain,text,secret) {
   const signature=secp256k1.sign(digest(domain,text),secret,{prehash:false,lowS:true,format:'recovered'});
