@@ -241,6 +241,7 @@ test('acceptance CLI returns nonzero on insufficient fee without signing or raw 
   const program=`
     import assert from 'node:assert/strict';
     import { readFileSync } from 'node:fs';
+    import { fileURLToPath } from 'node:url';
     import { bindings,config,databaseFixture,chainFixture } from './tests/publisher-fixture.js';
     import { runPublisher } from './leaderboard/publisher.js';
     import { admit } from './leaderboard/issuer.js';
@@ -259,7 +260,7 @@ test('acceptance CLI returns nonzero on insufficient fee without signing or raw 
         }
         return chain.fetch(url,init);
       };
-      process.argv=[process.execPath,new URL('./tests/live-publisher-acceptance.js',import.meta.url).pathname.slice(1),
+      process.argv=[process.execPath,fileURLToPath(new URL('./tests/live-publisher-acceptance.js',import.meta.url)),
         '--publish','--name=g/huarong-lb','--max-broadcasts=1','--max-fee-units=1','--max-new-locked-units=1000600'];
       await import('./tests/live-publisher-acceptance.js');
       const state=await storage.read();assert.equal(state.claims[0].raw,null);assert.equal(state.claims[0].state,'queued');
