@@ -51,10 +51,19 @@
         const line=document.createElement('p');line.textContent=row.nickname+' · '+row.points+' т. · '+row.completed+' подредби';rows.append(line);
       }
       for(const row of result.pending||[]) {const line=document.createElement('p');line.textContent='Непотвърдено · '+(row.confirmations||0)+'/6';pending.append(line);}
-      status.textContent=!HUARONG_PUBLIC_ENABLED?'Публичното изпращане е изключено · локалната игра продължава':result.stale?'Данните не са актуални · локалната игра продължава':'Преиграно · не доказва човешка игра';
+      const code=result.publisher?.code??result.code;
+      status.textContent=!HUARONG_PUBLIC_ENABLED?(code==='issuance_disabled'?'Публичното изпращане е изключено · локалната игра продължава':'Публичното изпращане не е достъпно · резултатът е локален'):result.stale?'Данните не са актуални · локалната игра продължава':'Преиграно · не доказва човешка игра';
+      // Separate text node preserves mutation-based translation; never echo arbitrary backend details.
+      if(!HUARONG_PUBLIC_ENABLED&&['issuer_not_configured','storage_not_configured','rate_secret_not_configured','funding_compression_incompatible','invalid_publisher_configuration','schema_upgrade_required','initial_sync','publisher_stale','funds_unavailable','bootstrap_pin_required','identity_configuration_mismatch','checkpoint_mismatch','history_changed','history_page_gap','wrong_network','conflict_suspected','signing_unknown','retry_exhausted','recovery_required'].includes(code)) {
+        const reason=document.createElement('span');reason.textContent=' ('+code+')';status.append(reason);
+      }
       document.getElementById('ranking-public-privacy').classList.remove('hidden');
       panel.querySelector('#hd1-backup').classList.toggle('hidden',!localStorage.getItem('huarong_rod_identity_v1'));
-    }catch {status.textContent='Публичното изпращане не е достъпно · резултатът е локален';}
+    }catch {
+      if(current!==generation)return;
+      HUARONG_PUBLIC_ENABLED=false;
+      status.textContent='Публичното изпращане не е достъпно · резултатът е локален';
+    }
   }
   /** Opt-in only. Persist signed bytes before POST and reuse them after ambiguous failures. */
   async function sync() {

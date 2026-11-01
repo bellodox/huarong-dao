@@ -29,7 +29,8 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
   const url=new URL(request.url);
   try {
     if(url.pathname==='/api/leaderboard' && request.method==='GET') {
-      if(!storage)return json({available:false,code:'issuance_disabled',rows:[],pending:[],stale:true,rewards_enabled:false,assurance:'replayed'});
+      if(!storage)return json({available:false,code:'issuance_disabled',rows:[],pending:[],stale:true,rewards_enabled:false,assurance:'replayed',
+        ...(readiness?{publisher:readiness}:{})});
       const result=await publicLeaderboard(storage,url.searchParams);
       return json({...result,available:available===true,...(readiness?{publisher:readiness}: {})},200,true);
     }
