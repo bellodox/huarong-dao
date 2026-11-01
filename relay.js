@@ -3432,10 +3432,56 @@ function verifyInput(tx, index, previousScript, key) {
 
 // leaderboard/storage.js
 var PUBLIC_RESPONSE_BYTES = 262144;
+var failureEvidence = /* @__PURE__ */ new WeakMap();
+var BACKEND_CODES = /* @__PURE__ */ new Map([
+  ["PGRST301", "authentication"],
+  ["PGRST302", "authentication"],
+  ["PGRST303", "authentication"],
+  ["42501", "permission"],
+  ["PGRST202", "schema"],
+  ["PGRST203", "schema"],
+  ["42P01", "schema"],
+  ["42883", "schema"],
+  ["42703", "schema"],
+  ["22P02", "database_input"],
+  ["22023", "database_input"],
+  ["22003", "database_input"],
+  ["22007", "database_input"],
+  ["23502", "database_constraint"],
+  ["23503", "database_constraint"],
+  ["23505", "database_constraint"],
+  ["23514", "database_constraint"],
+  ["P0001", "database_exception"],
+  ["XX000", "database_internal"],
+  ["57014", "timeout"],
+  ["53300", "upstream_unavailable"],
+  ["PGRST000", "upstream_unavailable"],
+  ["PGRST001", "upstream_unavailable"],
+  ["PGRST002", "upstream_unavailable"],
+  ["PGRST003", "timeout"]
+]);
+function storageFailure(message, category, status = null, code = null) {
+  const error = Error(message), backendCode = BACKEND_CODES.has(code) ? code : null;
+  failureEvidence.set(error, Object.freeze({
+    category: backendCode ? BACKEND_CODES.get(backendCode) : category,
+    ...Number.isInteger(status) && status >= 100 && status <= 599 ? { upstream_status: status } : {},
+    ...backendCode ? { backend_code: backendCode } : {}
+  }));
+  return error;
+}
+function storageDiagnostic(error) {
+  return failureEvidence.get(error) ?? { category: "unexpected" };
+}
 var SupabaseStorage = class {
   constructor(url, serviceKey, transport = fetch) {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash) throw Error("invalid_storage_configuration");
+    let parsed;
+    try {
+      if (typeof url !== "string" || typeof serviceKey !== "string" || !serviceKey.trim() || /[\r\n]/.test(serviceKey)) throw Error();
+      parsed = new URL(url);
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash) throw Error();
+    } catch {
+      throw storageFailure("invalid_storage_configuration", "configuration");
+    }
     this.endpoint = parsed.origin + "/rest/v1/rpc/hd1_rpc";
     this.key = serviceKey;
     this.transport = transport;
@@ -3453,28 +3499,42 @@ var SupabaseStorage = class {
     return this.request("hd1_recovery_read", operation, payload);
   }
   async request(functionName, operation, payload) {
-    const response = await this.transport(this.endpoint.replace(/hd1_rpc$/, functionName), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: this.key, Authorization: "Bearer " + this.key },
-      body: JSON.stringify({ operation, payload }),
-      signal: AbortSignal.timeout(1e4)
-    });
+    let response;
+    try {
+      response = await this.transport.call(globalThis, this.endpoint.replace(/hd1_rpc$/, functionName), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: this.key, Authorization: "Bearer " + this.key },
+        body: JSON.stringify({ operation, payload }),
+        signal: AbortSignal.timeout(1e4)
+      });
+    } catch (error) {
+      if (functionName === "hd1_public" && operation === "readiness" && ["invalid_query", "unsupported_operation", "schema_upgrade_required"].includes(error?.message))
+        throw storageFailure("schema_upgrade_required", "schema");
+      throw storageFailure("storage_unavailable", error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "transport");
+    }
     if (!["hd1_public", "hd1_recovery_read"].includes(functionName)) {
       if (!response.ok) throw Error("storage_unavailable");
       return response.json();
     }
-    const reader = response.body.getReader(), chunks = [];
+    const reader = response.body?.getReader(), chunks = [];
     let length = 0;
+    if (!reader) throw storageFailure("storage_unavailable", "invalid_response", response.status);
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         length += value.length;
-        if (length > PUBLIC_RESPONSE_BYTES) throw Error("public_response_too_large");
+        if (length > PUBLIC_RESPONSE_BYTES) throw storageFailure("public_response_too_large", "response_too_large", response.status);
         chunks.push(value);
       }
+    } catch (error) {
+      if (failureEvidence.has(error)) throw error;
+      throw storageFailure("storage_unavailable", error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "transport", response.status);
     } finally {
-      await reader.cancel();
+      try {
+        await reader.cancel();
+      } catch {
+      }
     }
     const bytes = new Uint8Array(length);
     let offset = 0;
@@ -3482,10 +3542,15 @@ var SupabaseStorage = class {
       bytes.set(chunk, offset);
       offset += chunk.length;
     }
-    const result = JSON.parse(new TextDecoder().decode(bytes));
+    let result;
+    try {
+      result = JSON.parse(new TextDecoder().decode(bytes));
+    } catch {
+      throw storageFailure("storage_unavailable", "invalid_response", response.status);
+    }
     if (!response.ok) {
       if (operation === "readiness" && (result?.code === "P0001" && result.message === "invalid_query" || result?.code === "PGRST202")) throw Error("schema_upgrade_required");
-      throw Error("storage_unavailable");
+      throw storageFailure("storage_unavailable", response.status === 401 ? "authentication" : response.status === 403 ? "permission" : response.status >= 500 ? "upstream_unavailable" : "upstream_rejected", response.status, result?.code);
     }
     return result;
   }
@@ -4866,8 +4931,14 @@ function json(value, status = 200, cache = false) {
   if (utf8(JSON.stringify(value)).length > PUBLIC_RESPONSE_BYTES) throw Error("public_response_too_large");
   return Response.json(value, { status, headers: { "Cache-Control": cache ? "public, max-age=5, s-maxage=5" : "no-store", "X-Content-Type-Options": "nosniff", ...status === 429 ? { "Retry-After": "60" } : {} } });
 }
+function backendUnavailable(stage, error) {
+  const diagnostic = { stage, ...storageDiagnostic(error) };
+  console.error(JSON.stringify({ event: "hd1_backend_failure", ...diagnostic }));
+  return json({ code: "backend_unavailable", retryable: true, diagnostic }, 503);
+}
 async function handleApi(request, { storage = null, issuer = null, available = false, rateSecret = null, readiness = null } = {}) {
   const url = new URL(request.url);
+  let stage = "api";
   try {
     if (url.pathname === "/api/leaderboard" && request.method === "GET") {
       if (!storage) return json({
@@ -4880,12 +4951,14 @@ async function handleApi(request, { storage = null, issuer = null, available = f
         assurance: "replayed",
         ...readiness ? { publisher: readiness } : {}
       });
+      stage = "public_read";
       const result = await publicLeaderboard(storage, url.searchParams);
       return json({ ...result, available: available === true, ...readiness ? { publisher: readiness } : {} }, 200, true);
     }
     const match = /^\/api\/submissions\/([a-f0-9]{64})$/.exec(url.pathname);
     if (match && request.method === "GET") {
       if (!storage) return json({ code: "issuance_disabled", retryable: false }, 503);
+      stage = "public_read";
       const status = await storage.publicRead("status", { id: match[1] });
       return status ? json(status) : json({ code: "not_found" }, 404);
     }
@@ -4920,18 +4993,21 @@ async function handleApi(request, { storage = null, issuer = null, available = f
     return json({ code: "not_found" }, 404);
   } catch (error) {
     if (error instanceof ClaimError) return json({ code: error.code, retryable: false }, error.status);
-    if (["invalid_query", "stale_cursor"].includes(error.message)) return json({ code: error.message }, 400);
-    return json({ code: "backend_unavailable", retryable: true }, 503);
+    if (["invalid_query", "stale_cursor"].includes(error?.message)) return json({ code: error.message }, 400);
+    return backendUnavailable(stage, error);
   }
 }
 async function handleRelayRequest(request, bindings = {}, context = null) {
-  const config = publisherConfig(bindings);
-  let storage = null;
+  let stage = "configuration", storage = null;
   try {
+    const config = publisherConfig(bindings);
+    stage = "storage_construction";
     if ((!config.code || bindings.HD1_READS === "true") && bindings.SUPABASE_URL && bindings.SUPABASE_SERVICE_KEY)
       storage = new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY);
     let readiness = { available: false, code: config.code ?? "initial_sync" };
+    stage = "readiness";
     if (storage && !config.code) readiness = await publisherReadiness(storage, { appKey: config.appKey, markerKey: config.markerKey, baseUrl: config.baseUrl });
+    stage = "api";
     const response = await handleApi(request, {
       storage,
       available: !config.code && readiness?.available === true,
@@ -4941,8 +5017,8 @@ async function handleRelayRequest(request, bindings = {}, context = null) {
     if (request.method === "POST" && new URL(request.url).pathname === "/api/score" && response.status === 202 && context?.waitUntil)
       context.waitUntil(runPublisher(storage, config));
     return response;
-  } catch {
-    return json({ code: "backend_unavailable", retryable: true }, 503);
+  } catch (error) {
+    return backendUnavailable(stage, error);
   }
 }
 async function handleScheduled(bindings = {}) {
@@ -5123,6 +5199,7 @@ export {
   signPlayer,
   signTransaction,
   step,
+  storageDiagnostic,
   utf8,
   validName,
   variable,

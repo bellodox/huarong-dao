@@ -1,4 +1,4 @@
-import { SupabaseStorage,publisherReadiness,PUBLIC_RESPONSE_BYTES } from './storage.js';
+import { SupabaseStorage,publisherReadiness,PUBLIC_RESPONSE_BYTES,storageDiagnostic } from './storage.js';
 import { ClaimError,checkOrigin,readClaim,verifyClaim } from './verify.js';
 import { admit,advance } from './issuer.js';
 import { publicLeaderboard } from './index.js';
@@ -24,19 +24,27 @@ function json(value,status=200,cache=false) {
   if(utf8(JSON.stringify(value)).length>PUBLIC_RESPONSE_BYTES)throw Error('public_response_too_large');
   return Response.json(value,{status,headers:{'Cache-Control':cache?'public, max-age=5, s-maxage=5':'no-store','X-Content-Type-Options':'nosniff',...(status===429?{'Retry-After':'60'}:{})}});
 }
+/** A single bounded record preserves the failed boundary without arbitrary exception fields. */
+function backendUnavailable(stage,error) {
+  const diagnostic={stage,...storageDiagnostic(error)};
+  console.error(JSON.stringify({event:'hd1_backend_failure',...diagnostic}));
+  return json({code:'backend_unavailable',retryable:true,diagnostic},503);
+}
 /** Injectable local fixture boundary; no production chain adapter is presumed verified. */
 export async function handleApi(request,{storage=null,issuer=null,available=false,rateSecret=null,readiness=null}={}) {
-  const url=new URL(request.url);
+  const url=new URL(request.url);let stage='api';
   try {
     if(url.pathname==='/api/leaderboard' && request.method==='GET') {
       if(!storage)return json({available:false,code:'issuance_disabled',rows:[],pending:[],stale:true,rewards_enabled:false,assurance:'replayed',
         ...(readiness?{publisher:readiness}:{})});
+      stage='public_read';
       const result=await publicLeaderboard(storage,url.searchParams);
       return json({...result,available:available===true,...(readiness?{publisher:readiness}: {})},200,true);
     }
     const match=/^\/api\/submissions\/([a-f0-9]{64})$/.exec(url.pathname);
     if(match && request.method==='GET') {
       if(!storage)return json({code:'issuance_disabled',retryable:false},503);
+      stage='public_read';
       const status=await storage.publicRead('status',{id:match[1]});
       return status?json(status):json({code:'not_found'},404);
     }
@@ -71,26 +79,29 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
     return json({code:'not_found'},404);
   }catch(error) {
     if(error instanceof ClaimError)return json({code:error.code,retryable:false},error.status);
-    if(['invalid_query','stale_cursor'].includes(error.message))return json({code:error.message},400);
-    return json({code:'backend_unavailable',retryable:true},503);
+    if(['invalid_query','stale_cursor'].includes(error?.message))return json({code:error.message},400);
+    return backendUnavailable(stage,error);
   }
 }
 
 /** Runtime credentials stay server-only. GET calls only STABLE whitelisted reads. */
 export async function handleRelayRequest(request,bindings={},context=null) {
-  const config=publisherConfig(bindings);
-  let storage=null;
+  let stage='configuration',storage=null;
   try {
+    const config=publisherConfig(bindings);
+    stage='storage_construction';
     if((!config.code||bindings.HD1_READS==='true')&&bindings.SUPABASE_URL&&bindings.SUPABASE_SERVICE_KEY)
       storage=new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY);
     let readiness={available:false,code:config.code??'initial_sync'};
+    stage='readiness';
     if(storage&&!config.code)readiness=await publisherReadiness(storage,{appKey:config.appKey,markerKey:config.markerKey,baseUrl:config.baseUrl});
+    stage='api';
     const response=await handleApi(request,{storage,available:!config.code&&readiness?.available===true,
       rateSecret:bindings.HD1_RATE_HMAC_KEY,readiness});
     if(request.method==='POST'&&new URL(request.url).pathname==='/api/score'&&response.status===202&&context?.waitUntil)
       context.waitUntil(runPublisher(storage,config));
     return response;
-  }catch {return json({code:'backend_unavailable',retryable:true},503);}
+  }catch(error) {return backendUnavailable(stage,error);}
 }
 /** Cron is the autonomous progress path. No HTTP route exposes this operation. */
 export async function handleScheduled(bindings={}) {
