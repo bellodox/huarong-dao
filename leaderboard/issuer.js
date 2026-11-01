@@ -2,6 +2,17 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { parseCanonical,canonical,signApp } from './receipt.js';
 import { buildTransaction,signTransaction } from './chain.js';
 
+/** Reduce untrusted failures to fixed diagnostic categories; never return payload text. */
+export function broadcastDiagnostic(error) {
+  if(['provider_timeout','provider_unavailable','broadcast_txid_mismatch'].includes(error?.message))return error.message;
+  if(error?.message==='provider_error') {
+    const message=typeof error.detail?.message==='string'?error.detail.message.slice(0,200):'';
+    if(/min relay fee|mempool min fee|insufficient fee|fee not met/i.test(message))return 'broadcast_fee_rejected';
+    return 'broadcast_rejected';
+  }
+  return 'broadcast_failed';
+}
+
 /** Admit only a Worker-verified claim using the atomic SQL decision/reservation. */
 export async function admit(storage,verified) {
   const {id,text,player,claim,moves,points}=verified;
@@ -16,6 +27,8 @@ export async function broadcastStored(storage,chain,claim) {
     if(['included','mempool'].includes(observation?.state))return claim;
     if(observation?.state==='conflict_suspected')throw Error('conflict_suspected');
   }
+  // Recovery may require fresh positive-retirement/floor evidence even for exact-byte retries.
+  await chain.beforeBroadcast?.(claim);
   const owned={id:claim.id,owner:claim.owner,generation:claim.generation};
   const attempt=await storage.rpc('broadcast',owned);
   if(attempt.code)return attempt;
@@ -25,7 +38,7 @@ export async function broadcastStored(storage,chain,claim) {
     if(txid!==attempt.txid)throw Error('broadcast_unknown');
     // Acknowledgement is NOT inclusion or confirmation. Keep it pending/unknown.
     return {...attempt,state:'broadcast_pending'};
-  }catch {return {...attempt,state:'broadcast_unknown'};}
+  }catch(error) {return {...attempt,state:'broadcast_unknown',diagnostic:broadcastDiagnostic(error)};}
 }
 /** Fenced signing: never sign on an uncertain begin response and never fetch before finalize. */
 export async function advance(storage,chain,secret,markerKey,id) {

@@ -43,6 +43,7 @@ export function chainFixture() {
     const url=new URL(path,'https://x'),parts=url.pathname.split('/').filter(Boolean),offset=Number(url.searchParams.get('offset')??0);
     if(parts[0]==='info')return {chain:'main',blocks:chain.tip().height,bestblockhash:chain.tip().hash};
     if(parts[0]==='hash')return PROVIDER_DEFAULTS.genesisHash;
+    if(path==='/mempool')return {minrelaytxfee:0.0001,mempoolminfee:0.0001};
     if(parts[0]==='range')return chain.blocks.filter(b=>b.height<=Number(parts[1])&&b.height>Number(parts[1])-offset).slice().reverse();
     if(parts[0]==='history'){const ids=touching(scriptOf(parts[1]));return {txcount:ids.length,tx:ids.slice(offset,offset+10)};}
     if(parts[0]==='transaction') {
@@ -76,6 +77,7 @@ export function chainFixture() {
 export function connectDatabase(db) {
   const storage={rpc:async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value};
   storage.read=()=>storage.rpc('read');
+  storage.recoveryRead=async(operation='inspect',payload={})=>(await db.query('select public.hd1_recovery_read($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value;
   storage.publicRead=async(operation,payload={})=>(await db.query('select public.hd1_public($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value;
   return storage;
 }

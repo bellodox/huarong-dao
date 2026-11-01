@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { migrations } from './schema.js';
-import { buildTransaction,signTransaction,serialize,payScript,address,parseTransaction,hash256 } from '../leaderboard/chain.js';
+import { buildTransaction,signTransaction,serialize,payScript,address,parseTransaction,hash256,estimatedSignedBytes } from '../leaderboard/chain.js';
 import { bytesToHex,hexToBytes,canonical,receiptId,signApp } from '../leaderboard/receipt.js';
 import { verifyClaim } from '../leaderboard/verify.js';
 import { admit,advance } from '../leaderboard/issuer.js';
@@ -47,6 +47,7 @@ function mockChain() {
     const offset=Number(url.searchParams.get('offset')??0);
     if(parts[0]==='info'){const t=chain.tip();return ok({chain:chain.chainName,blocks:t.height,bestblockhash:t.hash,headers:t.height,mediantime:t.time});}
     if(parts[0]==='hash')return ok(chain.genesis);
+    if(path==='/mempool')return ok({minrelaytxfee:0.0001,mempoolminfee:0.0001});
     if(parts[0]==='range'){const top=Number(parts[1]),rows=[];for(let h=top-(offset-1);h<=top;h++){const b=chain.blocks[h-BASE];if(b)rows.push({...b,confirmations:chain.tip().height-h+1});}return ok(rows.reverse());}
     if(parts[0]==='history'){const script=scriptOf(parts[1]);if(!script)return {error:{code:404,message:'Invalid address length'},id:'api-server'};
       const list=touching(script).sort((a,b)=>(a.height||1e9)-(b.height||1e9)).reverse().map(e=>e.txid);
@@ -220,6 +221,32 @@ test('established lineage reconstructs from anchored history, prepares an update
   assert.equal(rebuilt.transactions.filter(t=>t.raw===update.raw).length,1);
   const lookup=await live.lookup(update.txid);assert.equal(lookup.state,'included');assert.equal(lookup.confirmations,7);
   assert.equal((await live.prepare({bytes:canonical(playerClaim,7)})).head,update.txid+':0');
+});
+test('funding handles exact no-change, dust boundary and multiple inputs with bounded signed fees',async()=>{
+  const baseline=fundedChain();
+  const initial=await provider(baseline.chain,{allowUnprovenNameAbsence:true}).prepare({bytes:canonical(playerClaim,7)});
+  const baseFee=initial.prepared.fee;
+  for(const surplus of [-3400,-1,0,1,599,600]) {
+    const chain=mockChain();chain.mine();chain.mine([payment(800,appKey,1000600+baseFee+surplus)]);
+    const live=provider(chain,{allowUnprovenNameAbsence:true});
+    const observation=await live.prepare({bytes:canonical(playerClaim,7)});
+    const tx=buildTransaction(observation.prepared,signApp(playerClaim,secret),appKey,markerKey);
+    assert.equal(tx.outputs.length,surplus<600?2:3);
+    assert.equal(observation.prepared.fee,surplus<600?baseFee+surplus:baseFee);
+    assert(observation.prepared.fee>=signTransaction(tx,secret).raw.length/2*100);
+    assert(observation.prepared.fee<=estimatedSignedBytes(tx)*100+(surplus<600?3999:0));
+  }
+  const chain=mockChain();chain.mine();chain.mine([payment(801,appKey,600000),payment(802,appKey,600000)]);
+  const observation=await provider(chain,{allowUnprovenNameAbsence:true}).prepare({bytes:canonical(playerClaim,7)});
+  assert.equal(observation.prepared.inputs.length,2);
+  const tx=buildTransaction(observation.prepared,signApp(playerClaim,secret),appKey,markerKey);
+  assert.equal(observation.prepared.fee,estimatedSignedBytes(tx)*100);
+  assert(observation.prepared.fee>=signTransaction(tx,secret).raw.length/2*100);
+});
+test('funding refuses estimates above the absolute cap without signing',async()=>{
+  const {chain}=fundedChain();
+  await assert.rejects(provider(chain,{allowUnprovenNameAbsence:true}).prepare({bytes:canonical({...playerClaim,m:'A'.repeat(900)},7)}),/excessive_fee|relay_fee_policy_incompatible/);
+  assert.equal(chain.mempool.length,0);
 });
 test('registration without a pinned bootstrap is never taken over',async()=>{
   const {chain}=await registered();

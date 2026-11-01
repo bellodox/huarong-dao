@@ -1,5 +1,12 @@
 # Execution checklist — hd1-plan-3 design
 
+## Experimental fee/recovery amendment — 2026-10-31
+
+All work remains **experimental until further notice**, per the user's standing instruction. The [normative amendment](plan.md#experimental-fee-and-positive-conflict-recovery-amendment--2026-10-31) governs the revised estimated-signed-byte fee bound and service-only positive-conflict recovery; earlier work and historical checkboxes below are retained, not approvals for this delta. Apply missing migrations in order through [007](../supabase/migrations/007_failed_transaction_recovery.sql) for recovery capability 7; ordinary readiness remains capability 4. Installation never refunds or widens original authority, and no automatic alternate spend is authorized. Exact [operator commands](../docs/cloudflare-deployment.md#experimental-positive-conflict-recovery) and local-versus-live limits apply. Current validation, final scoped verdicts and authorized administrative OSG persistence evidence are recorded **only in the [handoff](../tests/release-evidence.md#experimental-fee-and-recovery-current-scope)**.
+
+- [x] Local fee/recovery implementation, completed full validation and parent-owned final scoped reviews; evidence and limits only in the handoff.
+- [ ] Hosted migrations/access and funded recovery acceptance; existing failed transaction not repaired live.
+
 ## Authorized live completion extension — 2026-10-30
 
 The [current extension](plan.md#14-live-public-leaderboard-execution-extension) supersedes older implementation/policy stops, selects experimental hd2 ranked ceilings of 10 times each frozen optimum (820–1260 moves) and replaces human confirmation checkpoints with autonomous evidence checks. Preserve hd1 semantics and unlimited complete local paths; implementation must prove the complete signed 2,048-byte bound. Historical unchecked items below remain carried scope, not silently completed. The original planning-only boundary is historical; implementation and local validation are complete, while hosted/funded acceptance remains open; secret reads, pushes/deployment and unspecified spending remain excluded.

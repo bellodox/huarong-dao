@@ -6,9 +6,11 @@ import { createSpaceXpanseProvider,PROVIDER_DEFAULTS } from './provider.js';
 import { reconstruct,deriveReceipt } from './reconcile.js';
 import { epoch,medianTime } from './profile.js';
 import { advance } from './issuer.js';
-import { publisherReadiness } from './storage.js';
+import { publisherReadiness,recoveryReadiness,recoveryStorage } from './storage.js';
+import { authenticateRetirement,authenticateOriginal } from './recovery.js';
 
 const RECHECK=30,CHUNK=100,CHECKPOINT_LAG=60;
+const RELAY_FEE_FAILURES=new Set(['relay_fee_unavailable','relay_fee_insufficient','relay_fee_policy_incompatible']);
 const FINITE_FAILURES=new Set(['finite_scope_required','claim_outside_scope','transaction_budget_exhausted','broadcast_budget_exhausted','spend_budget_exhausted','invalid_budget_plan']);
 /** Public-only hash-to-curve marker: domain-separated from receipt signatures and funding.
  * No known private scalar is generated or required; never use this address for funding. */
@@ -85,6 +87,7 @@ function snapshotOf(document,config,bootstrap,tip=document.headers.at(-1)) {
  * Known prefix overlap supports incremental newest-first discovery; full count is rechecked. */
 async function acquire(runtime,provider,storage,job) {
   const api=provider.primitives,document=structuredClone(runtime.document),tip=await api.tipInfo();
+  const bootstrap=runtime.effective_bootstrap??runtime.bootstrap;
   const headers=document.headers??[],anchor=document.headerAnchor??runtime.config.anchor;
   const from=headers.length?Math.max(headers[0].height,Math.min(headers.at(-1).height,tip.height)-RECHECK+1):anchor.height;
   const high=Math.min(tip.height,from+CHUNK-1),fresh=await api.fetchHeaders(from,high);
@@ -152,16 +155,16 @@ async function acquire(runtime,provider,storage,job) {
   // A removed checkpoint operation cannot be replayed by this bounded suffix: fail closed.
   for(const row of document.checkpoint?.lineage??[])if(!document.ids.includes(row.txid))throw Error('checkpoint_mismatch');
   const config={...runtime.config,ownedName:api.ownedName,allowUnobservedBootstrap:!!runtime.bootstrap_claim};
-  if(!runtime.bootstrap&&Object.values(document.observations).some(row=>row.owned))throw Error('bootstrap_pin_required');
-  const snapshot=snapshotOf(document,config,runtime.bootstrap);
+  if(!bootstrap&&Object.values(document.observations).some(row=>row.owned))throw Error('bootstrap_pin_required');
+  const snapshot=snapshotOf(document,config,bootstrap);
   const unconfirmed=document.ids.some(id=>document.observations[id]?.height===null&&document.observations[id]?.owned);
   // Rolling checkpoint is sixty blocks behind the verified tip. Reorgs crossing it fail closed,
   // retaining all journals. Ten predecessor timestamps preserve exact MTP/weekly-close semantics.
   const cut=tip.height-CHECKPOINT_LAG;
-  if(runtime.bootstrap&&snapshot.head&&cut>(document.checkpoint?.height??anchor.height+10)&&document.headers.some(row=>row.height===cut)) {
-    const header=document.headers.find(row=>row.height===cut),checkpoint=snapshotOf(document,config,runtime.bootstrap,header);
+  if(bootstrap&&snapshot.head&&cut>(document.checkpoint?.height??anchor.height+10)&&document.headers.some(row=>row.height===cut)) {
+    const header=document.headers.find(row=>row.height===cut),checkpoint=snapshotOf(document,config,bootstrap,header);
     if(checkpoint.head) {
-      document.checkpoint={...checkpoint,bootstrap:runtime.bootstrap};
+      document.checkpoint={...checkpoint,bootstrap};
       document.headers=document.headers.filter(row=>row.height>=cut-10);
       document.headerAnchor={height:document.headers[0].height,hash:document.headers[0].hash};
       document.transactions=document.transactions.filter(row=>row.height>cut);
@@ -177,7 +180,7 @@ async function acquire(runtime,provider,storage,job) {
   }
   // Unused installations also roll forward; no need to retain years of empty headers before
   // first consent. Original anchor stays immutable in config, this link-derived cursor is durable.
-  if(!runtime.bootstrap&&document.headers.length>CHUNK) {
+  if(!bootstrap&&document.headers.length>CHUNK) {
     document.headers=document.headers.slice(-(CHECKPOINT_LAG+11));
     document.headerAnchor={height:document.headers[0].height,hash:document.headers[0].hash};
   }
@@ -186,15 +189,15 @@ async function acquire(runtime,provider,storage,job) {
 }
 /** One scheduler tick, safe under overlap, timeout and isolate restart. Never invoked by GET.
  * Job leases fence acquisition only; the SQL signing barrier remains non-expiring. */
-export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetch,providerOptions={},scope=null}={}) {
+export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetch,providerOptions={},scope=null,recovery=null}={}) {
   if(config.code)return {code:config.code};
-  const capability=await publisherReadiness(storage);
-  if(capability.code==='schema_upgrade_required')return {code:capability.code};
+  const capability=await (recovery?recoveryReadiness(storage):publisherReadiness(storage));
+  if(['schema_upgrade_required','recovery_schema_upgrade_required'].includes(capability.code))return {code:capability.code};
   const backend=storage;
-  storage={read:()=>backend.read(),rpc:(operation,payload={})=>backend.rpc(operation,{...payload,scope})};
+  storage={read:()=>backend.read(),rpc:(operation,payload={})=>backend.rpc(operation,{...payload,scope,recovery})};
   const job=crypto.randomUUID();let runtime=await storage.rpc('job',{owner:job});
   if(runtime.code==='job_busy')return {code:'job_busy'};
-  if(!runtime.owner)return {code:FINITE_FAILURES.has(runtime.code)?runtime.code:'publisher_unavailable'};
+  if(!runtime.owner)return {code:FINITE_FAILURES.has(runtime.code)||runtime.code?.startsWith('recovery_')?runtime.code:'publisher_unavailable'};
   let calls=0;const deadline=Date.now()+55000;
   const boundedFetch=(...args)=>{if(++calls>36||Date.now()>deadline)throw Error('provider_unavailable');return fetcher(...args);};
   const makeProvider=(anchor,bootstrap)=>createSpaceXpanseProvider({appKey:config.appKey,markerKey:config.markerKey,anchor,
@@ -205,8 +208,11 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
     if(runtime.config) {
       const current=await storage.read(),active=current.claims.find(row=>row.id===current.coordinator.active);
       if(active&&['signing_started','signing_unknown'].includes(active.state))throw Error('signing_unknown');
+      if(recovery&&(runtime.recovery?.id!==recovery||runtime.recovery.envelope.scope_id!==scope))throw Error('recovery_mismatch');
+      if(recovery&&['signing_started','signing_unknown'].includes(runtime.recovery.attempt.state))throw Error('signing_unknown');
     }
     if(!runtime.config) {
+      if(recovery)throw Error('recovery_runtime_required');
       const probe=makeProvider(config.anchor??{height:0,hash:PROVIDER_DEFAULTS.genesisHash},config.bootstrap),api=probe.primitives;
       const tip=await api.tipInfo(),height=config.anchor?.height??Math.max(0,tip.height-10),[header]=await api.fetchHeaders(height,height);
       let anchor=config.anchor??{height,hash:header.hash};if(header.hash!==anchor.hash)throw Error('anchor_mismatch');
@@ -224,7 +230,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
       runtime=await mutate(storage,'initialize',{job,config:{appKey:config.appKey,markerKey:config.markerKey,baseUrl:config.baseUrl,anchor},
         bootstrap,bootstrap_claim:own?.id??null,document:{headers:[],transactions:[],previous:[],ids:[],observations:{}}});
     }
-    const provider=makeProvider(runtime.config.anchor,runtime.bootstrap),acquired=await acquire(runtime,provider,storage,job);
+    const provider=makeProvider(runtime.config.anchor,runtime.effective_bootstrap??runtime.bootstrap),acquired=await acquire(runtime,provider,storage,job);
     if(!acquired)return {code:'initial_sync'};
     runtime=acquired.runtime;
     const {snapshot,api,tip,unconfirmed}=acquired;
@@ -233,13 +239,29 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
       if(!unspent.some(row=>row.txid+':'+row.index===snapshot.head))throw Error('conflict_suspected');
     }
     const state=await storage.read();
+    let journal=runtime.recovery;
+    if(recovery) {
+      const original=state.claims.find(row=>row.id===journal.original_id);
+      authenticateOriginal(original,config);
+      if(snapshot.lineage.some(row=>row.txid===original.txid)) {
+        if(journal.transactions>0)throw Error('recovery_proof_reorg');
+        await mutate(storage,'synchronize',{job,version:runtime.version,revision:state.coordinator.revision,
+          epoch:snapshot.epoch,head:snapshot.head,snapshot:{...snapshot,stale:false}});
+        await mutate(storage,'recovery_original_included',{job});
+        return {code:'original_included'};
+      }
+      const retired=await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof);
+      if(retired.tip.hash!==tip.hash)throw Error('history_changed');
+      journal=await mutate(storage,'recovery_prove',{job,recovery_revision:journal.revision,...retired,tip_hash:tip.hash});
+    }
     const active=state.claims.find(row=>row.id===state.coordinator.active);
-    if(unconfirmed&&Object.entries(runtime.document.observations).some(([id,row])=>row.owned&&row.height===null&&id!==active?.txid))throw Error('conflict_suspected');
+    if(unconfirmed&&Object.entries(runtime.document.observations).some(([id,row])=>row.owned&&row.height===null&&id!==active?.txid&&
+      (!recovery||id!==journal.attempt.txid)))throw Error('conflict_suspected');
     if(active&&['signing_started','signing_unknown'].includes(active.state))throw Error('signing_unknown');
-    if(active?.raw&&active.attempts>=4&&!snapshot.lineage.some(row=>row.txid===active.txid))throw Error('retry_exhausted');
-    runtime=await mutate(storage,'synchronize',{job,version:runtime.version,revision:state.coordinator.revision,
+    if(!recovery&&active?.raw&&active.attempts>=4&&!snapshot.lineage.some(row=>row.txid===active.txid))throw Error('retry_exhausted');
+    runtime=await mutate(storage,recovery?'recovery_synchronize':'synchronize',{job,version:runtime.version,revision:state.coordinator.revision,
       epoch:snapshot.epoch,head:snapshot.head,snapshot:{...snapshot,stale:false}});
-    const claim=await storage.rpc('next');
+    const claim=recovery?runtime.recovery.attempt:await storage.rpc('next');
     if(claim&&['signing_started','signing_unknown'].includes(claim.state))throw Error('signing_unknown');
     if(claim?.raw&&claim.attempts>=4&&!['included','confirmed'].includes(claim.state))throw Error('retry_exhausted');
     if(!runtime.ready)return {code:runtime.code};
@@ -247,9 +269,14 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
       prepare:async row=>{
         if(unconfirmed)throw Error('unconfirmed_pending');
         const current={head:snapshot.head,lineage:snapshot.lineage,observed:{evidence:{tip}}};
-        return {epoch:snapshot.epoch,head:snapshot.head,prepared:await api.fund(row,current)};
+        return {epoch:snapshot.epoch,head:snapshot.head,prepared:await api.fund(row,current),bytes:row.bytes};
       },
       validate:async observation=>{
+        await api.validateFee(observation.prepared,observation.bytes);
+        if(recovery) {
+          const original=state.claims.find(row=>row.id===journal.original_id);
+          await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof);
+        }
         const fresh=await api.tipInfo();if(fresh.hash!==tip.hash)return false;
         const first=await api.historyPage(0),observed=runtime.document.ids.slice(0,10);
         if(first.count!==runtime.document.ids.length||JSON.stringify(first.tx)!==JSON.stringify(observed))return false;
@@ -268,22 +295,31 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
           return {state:'unknown',txid};
         }
       },
+      beforeBroadcast:recovery?async row=>{
+        await api.validateFee(row.prepared,row.bytes);
+        const original=state.claims.find(row=>row.id===journal.original_id);
+        await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof);
+      }:undefined,
       broadcast:raw=>provider.broadcast(raw)
     };
     if(claim) {
-      const scoped={read:()=>storage.read(),rpc:(operation,payload={})=>storage.rpc(operation,{...payload,job})};
+      const scoped=recovery?recoveryStorage(storage,recovery,scope,job):{read:()=>storage.read(),rpc:(operation,payload={})=>storage.rpc(operation,{...payload,job})};
       const result=await advance(scoped,chain,config.secret,hexToBytes(config.markerKey),claim.id);
       if(result.code&& !['retry_later','signer_busy','stale_state'].includes(result.code))throw Error(result.code);
-      return {code:result.code??result.state};
+      return {code:result.code??result.state,...(result.diagnostic?{diagnostic:result.diagnostic}:{})};
     }
     // Preflight exact spendable raws (including maturity) without signing. The conservative
     // reserve uses the existing fee ceiling; split funding is valid within the same input bound.
+    await api.relayFee();
     const reserve=(snapshot.head?0:NETWORK.nameMinimum)+FEE_POLICY.maximum+NETWORK.dust;
     await api.selectFunding(tip,snapshot.head,inputs=>inputs.reduce((total,input)=>total+input.amount,0)>=reserve);
     return {code:'ready'};
   }catch(error) {
-    try {await storage.rpc('job_error',{job,code:error.message});}catch {}
-    return {code:FINITE_FAILURES.has(error.message)?error.message:'publisher_unavailable'};
+    // Existing SQL whitelist stores only its supported generic code; precise fee diagnostics
+    // use the scheduler/acceptance result channel, without widening persisted payloads.
+    const code=RELAY_FEE_FAILURES.has(error.message)||FINITE_FAILURES.has(error.message)||recovery&&/^(recovery_|signing_unknown|epoch_changed|not_improved)/.test(error.message)?error.message:'publisher_unavailable';
+    try {await storage.rpc(recovery?'recovery_pause':'job_error',{job,code:RELAY_FEE_FAILURES.has(error.message)?'invalid_provider_config':error.message});}catch {}
+    return {code};
   }finally {
     try {await storage.rpc('job_done',{job});}catch {}
   }

@@ -2,9 +2,125 @@
 
 ## Status and authority
 
-2026-10-30. Explicit user instructions authorize experimental live-publisher policy/implementation and local validation, not deployment, unrestricted spending, restricted secret-file reads, commits or pushes. The [execution extension](../tasks/plan.md#14-live-public-leaderboard-execution-extension) governs. This is the **single current implementation/review handoff**; older approvals do not approve the current changes.
+## Experimental fee and recovery current scope
+
+2026-10-31. The user explicitly characterizes **all work as experimental until further notice**. The experimental fee/positive-conflict recovery implementation is locally implemented; **live recovery is not established**. This section supersedes earlier current-scope/approval language for this new delta only. Earlier reports below remain historical, including the obsolete unsigned-byte ceiling and earlier bounded review verdicts; they do not approve this implementation. Current final scoped verdicts are recorded below. Parent retains final status and memory ownership; this executor performs authorized administrative docs and existing-store OSG persistence on the parent behalf, without source/test edits, app reruns, live actions, secret reads or new reviews/subtasks.
+
+| Supplied evidence (not this documentation writer's execution) | Result and limit |
+| --- | --- |
+| Implementer build | Exit **0**. |
+| Implementer full test snapshot | **153/153 passed**, before independent additions; not a fresh full-suite green after those additions. |
+| Implementer parity | **44 cases**, supplied passing result. |
+| Independent additions | [Independent recovery tests](independent-recovery.test.js) added; focused run **51/51 passed, exit 0**. |
+| Fresh full manifest run | Parent-supplied command: cmd.exe /d /c "npm.cmd test"; **exit 0, 156/156 passed, zero failed/skipped/cancelled**, **2026-10-31 14:12:50–14:26:05 UTC**; elapsed **795.323s**, Node **789.511s**. Relay parity precheck passed; hashes unchanged throughout full run. |
+| Superseded attempts | Two **300s / exit 124** timeouts remain inconclusive attempts, not passes; completed run establishes no hang. **20,030-block catch-up: 232.159s**. |
+| Final parent Code Reviewer | **APPROVE** local experimental integration, no findings; fresh **13 tests**, SQL/provider/reorg probes and artifact check. |
+| Final parent Vulnerability Checker | **NO BLOCKING FINDINGS**, no confirmed vulnerabilities in same current delta; fresh **16 focused + 13 recovery**, zero failed/skipped, artifact check. No dependency audit (manifest unchanged). |
+
+Both final verdicts apply only to current reviewed changes against HEAD **add679911f8d1cfcb186cb56548b930f19ed7129**, not future substantive changes, deployment or live recovery. Counts are separate supplied snapshots, not additive full-suite totals; no application tests were rerun by this administrative executor.
+
+Controlling user instruction: **all remains experimental until further notice**. Fee target **100 base units per conservative estimated signed byte**, absolute **100,000**, omitted-change surplus at most **3,999**; no unsigned-byte ceiling or actual-byte-rate guarantee. Missing-only atomic migrations through **007** provide recovery capability **7**, additive to ordinary **4**. Recovery uses one immutable envelope, one signing, **1–4 broadcasts**, separate journal/budgets, preserved original journal/counters, permanent ordinary/original-scope fence and separate effective bootstrap. Retirement requires an authenticated **different original-input spend**, **six confirmations**, at most **2,000 proof-to-tip headers** and reorg stop; absence/fee rejection is not retirement. No automatic alternate spend or public recovery mutation endpoint.
+
+Actual hosted migrations/access and funded recovery remain **unexecuted** in this scope. Existing failed transaction **not repaired live**. No secrets, live signing/broadcast, deployment or push. Historical credential exposure remains separate and unresolved.
+
+Inspected source: [fee construction](../leaderboard/chain.js), [provider](../leaderboard/provider.js), [issuer](../leaderboard/issuer.js), [publisher](../leaderboard/publisher.js), [storage](../leaderboard/storage.js), [recovery](../leaderboard/recovery.js), [SQL 007](../supabase/migrations/007_failed_transaction_recovery.sql) and [strict acceptance grammar](live-publisher-acceptance.js:18). Durable contracts and operator commands are in the [normative amendment](../tasks/plan.md#experimental-fee-and-positive-conflict-recovery-amendment--2026-10-31) and [runbook](../docs/cloudflare-deployment.md#experimental-positive-conflict-recovery). No hosted migration installation, authenticated live retirement, replacement broadcast/inclusion, six-confirmation recovered ranking, deployment or incident containment is established by these local results. The earlier credential-exposure incident remains unresolved; no secret values were inspected or reproduced here.
+
+Documentation baseline: branch **leaderboard**, HEAD **add679911f8d1cfcb186cb56548b930f19ed7129**. Git status included intent-to-add entries and concurrent unstaged implementation/docs changes; cached diff was empty. No staging, unstaging or reset was performed. Preserve those changes and the historical evidence below.
+
+Earlier documentation-only checks: **379 local links/fragments/citation bounds, zero errors** across the seven edited Markdown files. Scoped working-tree and cached whitespace checks passed with LF/CRLF warnings only; final diffs and Git status were inspected, cached diff remained empty. These are documentation checks, not application reruns or review approval. No temporary utility, server or memory write was created by this documentation executor.
+
+### Fee/recovery administrative validation and OSG persistence
+
+Fresh executor documentation checks: **154 local links/fragments/citation bounds, zero errors; 171 captured non-document raw SHA-256 values unchanged; scoped working-tree and cached whitespace checks exit 0**. Only this handoff and factual checklist labels were edited. No application rerun, source change or server launch. Initial patch access and multiline CMD quoting attempts failed before writing; bounded edits succeeded. Git branch **leaderboard**, HEAD **add679911f8d1cfcb186cb56548b930f19ed7129**; intent-to-add/concurrent edits preserved, cached diff empty, no staging/unstaging/reset.
+
+Every public OSG command explicitly targeted **C:/Users/VSCode/source/repos/huarong-dao**. Bounded context, resolved-entity history, sync → embed → stable entity/source check → remember → embed → verify → representative context each exited **0** with successful envelopes. No timeout or duplicate run; no init/migrate/repair, legacy bank/NotebookLM, installation or ignore expansion.
+
+- Sync: **2,014 changes / 79 files / zero renames**, graph **c99a94c8158063887a5a8c1f79e277b66174c533e7bd13d212a5557581512f0e9**; **1,899 AMBIGUOUS_DECLARATION warnings**, skipped declarations, not exhaustive indexing.
+- First embed: Xenova/all-MiniLM-L6-v2@q8; **2,691 total / 178 embedded / 2,513 reused / 28 removed / zero remaining or skipped**, complete=true, no warnings.
+- Stable related historical handoff heading resolved through context/history, directly verified and **stale=false** immediately before remember; it is an anchor, not current approval authority. Remember resolved **one entity**: episode **agent:episode:625314f253b74c04baad22f1**, graph **c2f3f33ce858d9a619fa9f8b1d4308070de116dd6d63a4743616fe05366b4efcf**. **POLICY_REFS_UNAVAILABLE**: host-loaded rule hashes not verified/recorded; no authenticated approval provenance claimed.
+- Second embed: **2,692 total / one embedded / 2,691 reused / zero remaining, removed or skipped**, complete=true, no warnings. Verify: **38 commits / 45,022 elements**, no warnings. Representative blended context returned the new episode, **anchors ok**, actual Git leaderboard/revision above, no warnings.
+
+Graph branch main remains distinct from Git leaderboard; no repair attempted. Integrity and complete eligible-text vector coverage do not establish exhaustive indexing, measured retrieval quality, application correctness or live acceptance. Saved command outputs/exit records were inspected; all seven executor-owned temporary files were removed. Final recheck again passed 154 links, 171 unchanged hashes and both whitespace checks. A zero-match inline regex attempt was rejected before the corrected nonzero final check. Final Git status including untracked files was inspected; cached diff remained empty. Concurrent index drift changed six recovery additions from intent-to-add to untracked (recovery module, SQL 007 and four recovery test/fixture files); this executor performed no staging/unstaging/reset and preserved their content. This final factual persistence transcription follows sync and is **not recursively remembered or claimed reindexed**; file-hash citations can become stale and require current source verification. Administrative closeout and authorized memory persistence complete; parent retains final status. Hosted/funded/live and unresolved credential limits above remain unchanged.
+
+### Historical status and authority before the fee/recovery delta
+
+2026-10-31. This is the **single current implementation/review and incident handoff**. Parent-authorized final factual closeout covers only this file, the [operator runbook](../docs/cloudflare-deployment.md), one bounded public read-only check and delegated existing-store OSG persistence. No application edits/reruns, restricted-file reads, cloud operations, staging/reset, commits or pushes are authorized. Parent retains final status ownership. The [execution extension](../tasks/plan.md#14-live-public-leaderboard-execution-extension) and frozen exact-byte/finite-authority contracts remain binding; documentation does not create retry authority.
 
 ## Live publisher current scope
+
+**Local repairs and final scoped reviews completed; live acceptance remains BLOCKED.** Parent-supplied Code Reviewer **APPROVE** after three fixes; Vulnerability Checker **NO BLOCKING FINDINGS** for the local patch. Scope and evidence are recorded below; subsequent administrative closeout does not extend approval. Credential incident containment is **NOT complete**. No deployed URL, hosted publication success or six-confirmation ranking proof is established by the supplied local results.
+
+Documentation inspection baseline: Git branch leaderboard, HEAD **add679911f8d1cfcb186cb56548b930f19ed7129**. Filename-only status at closeout start showed 14 unstaged modified files, eight untracked files and no staged changes, including externally reported staging drift; no staging/reset operation was performed. Restricted untracked content was not read. OSG bounded context/history succeeded without warnings; graph branch main differs from actual Git leaderboard and retrieved citations/episode anchors were stale or changed. The resolved status-and-authority heading was directly checked in this current file; historical memory is navigation, not approval.
+
+### October 31 provider observations and immutable authority
+
+The following are **supplied diagnostic/subtask reports, not executions by this documentation writer**. Historical signed transaction **40657978880fd5fb38929db8939255dfa3d92e629b04852638047c8d34e5db9f** is exactly **639 bytes**, fee **12,820 base units**. Scope **33e98e66-02a4-4c1f-b96a-0be750e939b7** is immutable: signed transactions **1/1**, broadcasts **1/1**, cumulative fees **12,820/12,820**, new locks **1,000,600/1,000,600**. These counters are not refundable, resettable or extendable by continuation.
+
+Fresh supplied diagnostics, **2026-10-31 08:24–08:32** (timezone not specified in the supplied report): provider returned **−5 / no transaction**, its mempool was empty and the funding input remained unspent. Ranking returned **zero rows**, with pending **SYNTHETIC02**, **rear_guard**, **82 moves / 820 points / zero confirmations**, stale. These observations do not prove global absence or authorize a competing spend.
+
+The report authenticated **1,235 headers**, heights **4,269,265–4,270,499**, retained anchor **4,269,274**, and stable tip **70be04591669449794db077e946985afdae74882b7b97230eb1d1449357bed94**. This is single-provider-anchored evidence, not independent consensus, exhaustive global discovery or omission proof.
+
+Final closeout executor public read-only check, **2026-10-31 10:03:03.716737–10:03:04.423915 UTC**, queried the documented public provider once per endpoint. Transaction lookup returned HTTP **200**, result null, RPC error **−5**, “No such mempool or blockchain transaction. Use gettransaction for wallet transactions.” GET /mempool returned HTTP **200**, error null, loaded true, size **0**, bytes **0**, empty tx list, minrelaytxfee **0.001** and mempoolminfee **0.001 ROD/kB**. This refreshes provider-local absence/floor only; no funding-input, ranking, authenticated inclusion or global-absence check was performed. No broadcast, reconciliation, credentials or state mutation was used.
+
+The current reported relay floor is **0.001 ROD/kB = 100 base units/byte**: the existing 639-byte transaction would require **63,900 units**, versus its actual **12,820** fee. The conservative unsigned lower bound is **533 bytes**, so the unchanged 100-unit/unsigned-byte ceiling permits at most **53,300 units** for this transaction shape. A simple configuration raise therefore cannot reconcile current relay policy with the frozen safety cap. The **original rejection cause is unavailable**; today's floor is not retrospective proof of that cause.
+
+There is **no legitimate retry cap extension under the frozen contract**. No extra broadcast, replacement/new claim, signature or authority is permitted by these findings. Retain exact bytes, journals, reservations and the signing barrier. Exhausted authority and policy incompatibility fail closed; observational status is not retry authorization. Live acceptance still lacks canonical inclusion, reconciled successor behavior, six-confirmation ranking, independent confirmed-history reconstruction and hosted/deployed end-to-end proof. External prerequisites do not erase the unresolved signed transaction.
+
+### Credential exposure incident — unresolved containment
+
+A prior diagnostic tool unexpectedly exposed credentials from a restricted local credential file into the transcript. **Treat the exposed credentials as compromised. Containment is NOT complete; this incident is not resolved.** No secret values are reproduced here, and this writer did not open that file or other restricted secret files. Prevent further disclosure; any secure revocation/rotation and transcript-access containment require appropriate separately authorized capabilities and evidence before being marked complete.
+
+App-key rotation or movement of funds cannot be performed casually while the immutable signed transaction remains outstanding: preserve its exact-byte, input and identity obligations rather than introducing a conflicting spend or silently replacing identity. Provider-account rotation capabilities have **not been established**. No rotation, revocation, funds movement, transcript erasure or successful containment is claimed.
+
+### Completed local repairs and attributed validation
+
+Inspected durable contracts are documented in the [runbook](../docs/cloudflare-deployment.md#5-runtime-configuration-and-live-publisher): missing-only atomic migration order **001 → 002 → 003 → 004 → 005 → 006**; live mempool relay-floor checks instead of the hardcoded fee estimate; unchanged 20-unit estimate and 100-unit/unsigned-byte safety cap; fail-closed policy incompatibility; allowlisted invocation-local diagnostics, not persisted raw errors or retrospective diagnoses; additive publication eligibility distinct from legacy claim retryability, with browser denial respected in both languages. **005 was previously installed per historical supplied evidence; 006 is local and NOT installed in that reported environment.** Readiness capability revision 4 alone does not establish 006 installation. No frozen specification was amended to enable retry.
+
+Repair source scope: [provider](../leaderboard/provider.js), [issuer](../leaderboard/issuer.js), [publisher](../leaderboard/publisher.js), [storage](../leaderboard/storage.js), [relay distribution](../relay.js), [public UI](../public/leaderboard-ui.js), [HTML/English translation map](../public/index.html) and [SQL 006](../supabase/migrations/006_publication_retry_status.sql). Test scope: [provider tests](provider.test.js), [publisher fixture](publisher-fixture.js), [live defects](live-defects.test.js), [independent live status](independent-live-status.test.js) and [browser retry status](qa_retry_status.py). Preexisting [005](../supabase/migrations/005_safeupdate_rebuild.sql) and its [safe-update regression](safeupdate-rebuild.test.js) were preserved, not replaced by this repair.
+
+All results below are **attributed to supplied subtask reports, not this writer's test execution**. Counts are separate run snapshots and must not be added together.
+
+| Reported check | Result and boundary |
+| --- | --- |
+| Implementation full manifest suite | **126/126 passed, exit 0**, plus passing build/parity. This run preceded subsequent test additions; the current full suite after those additions was **not rerun**. No current full-suite pass is inferred. |
+| Independent focused tests | **9/9 passed**; synthetic no-extra-broadcast and diagnostic-filtering checks. |
+| Executable SQL matrix | **13 cases passed**, SQL 001–006 in local PGlite; not hosted Supabase/PostgREST, permissions or independent hosted sessions. |
+| Local real workerd HTTP/browser | **Six public-UI scenarios passed**; real local runtime/browser, synthetic chain only. |
+| Subsequent bilingual UI regressions | **58 regressions passed** across Bulgarian/English. |
+| Subsequent affected Node checks | **15/15 passed**; affected scope, not a fresh full manifest suite. |
+| Subsequent public UI and artifact checks | **Six public-UI scenarios passed**, syntax/parity passed. No deployed URL or hosted publication proof. |
+| Final full-suite snapshot | **131 total: 130 passed, one outdated-mock failure**. The mock was corrected and **10 affected tests passed**; no fresh full-suite green result is claimed. |
+| Final Code Reviewer evidence | **56 targeted tests passed plus parity**, after three fixes: authoritative POST/GET status parity, unsigned minimum 600-unit remaining new-lock allowance, and acceptance per-tick allowlisted diagnostics alongside unchanged outcomes. |
+| Final Vulnerability Checker evidence | **34 focused tests passed, PGlite 13 cases/roles plus parity**; local patch only, not hosted permissions or live acceptance. |
+
+These checks establish local repair behavior only. They do not turn synthetic chain inclusion into live confirmation, resolve the credential incident or grant another funded attempt. Unrelated application suites were not repeated for this documentation-only task.
+
+The earlier **58 bilingual regressions and six public-UI scenarios preceded the latest backend fixes**; they are not post-fix browser validation. No application tests were rerun by this closeout executor.
+
+### Final parent-attributed reviews and factual closeout
+
+- Final Code Reviewer: parent reports **APPROVE after three fixes**, with fresh 56 targeted passes and parity. Final Vulnerability Checker: parent reports **NO BLOCKING FINDINGS for the local patch**, with fresh 34 focused passes, PGlite 13 cases/roles and parity. Counts are distinct snapshots, not additive.
+- Reviewed delta against **add679911f8d1cfcb186cb56548b930f19ed7129** includes provider, issuer, publisher, [relay entry](../leaderboard/relay-entry.js), storage, relay distribution, public UI/HTML, SQL 005/006 interactions, new/changed tests and runbook. These verdicts do not approve deployment, funded continuation or incident containment. Subsequent changes in this closeout are administrative only and do not extend approval.
+- Concrete live blockers: fee **12,820 versus 63,900 required** at the refreshed floor; frozen unsigned-shape cap **53,300**; immutable scope already signed/broadcast **1/1**, with no supported additional finite authority; canonical inclusion and six-confirmation ranking absent. Migration **006 is NOT installed** in the reported environment; no deployment occurred. This is not a claim that all possible solutions were exhausted.
+- **High credential-transcript exposure remains unresolved**: no containment/rotation permissions or capabilities are available in this closeout, and app-key/funds movement is unsafe while signed input/identity obligations remain outstanding. No secret values, containment, revocation or rotation are claimed.
+- Delegated OSG persistence and fresh documentation checks are recorded here after their actual results; parent retains final status ownership.
+
+### October 31 administrative validation and delegated OSG persistence
+
+Fresh documentation validation checked **157 local links/anchors/citation line bounds, zero errors** across the two authorized documents. Scoped working-tree and staged whitespace checks exited **0**, with LF/CRLF conversion warnings only. An initial inline expression matched zero links and was rejected; the corrected task-owned validator supplied the nonzero count and was removed. No application tests were rerun. No servers/processes were started by this executor; loopback ports **8787/8788/8790/9230/9231 were closed**. No unrelated process was killed. Filename-only final Git status is returned to the parent without inspecting restricted content or modifying staging.
+
+Every public OSG command explicitly targeted **C:/Users/VSCode/source/repos/huarong-dao**. Context, refined context, resolved-entity history, sync, first embed, current entity context, remember, second embed, verify and representative task context each exited **0** with successful envelopes. No timeout, duplicate run, init, repair, migration, installation or ignore edit occurred.
+
+- Sync: **1,596 changes / 74 files / zero renames**, graph **c1fbfe1de2a74f14c59e8e6ee7b0ceafefeb72b41525a032b92f9ff67034fc49d**. **1,724 AMBIGUOUS_DECLARATION warnings** mean skipped declarations, not exhaustive indexing. Output and actual exit were saved and inspected before the owned output file was removed.
+- First embed: Xenova/all-MiniLM-L6-v2@q8, **2,540 total / 94 embedded / 2,446 reused / two removed / zero remaining or skipped**, complete=true, no warnings. The actual resolved status-and-authority heading was retrieved **stale=false** after sync and directly verified in this file before remember.
+- Remember: **one resolved entity**, episode **agent:episode:e6c57a97dc256cb14815bacd**, graph **c074030f60a86a0c2a312a3a732396f4ea5c8a392ea895eccf5214a9918ac1c96**. **POLICY_REFS_UNAVAILABLE** means host-loaded rule hashes were not recorded; no authenticated approval provenance is claimed.
+- Second embed: **2,541 total / one embedded / 2,540 reused / zero remaining, removed or skipped**, complete=true, no warnings. Verify: **36 commits / 43,006 elements**, no warnings. Representative blended task context returned the new episode with **anchors ok**, actual Git leaderboard/revision **add679911f8d1cfcb186cb56548b930f19ed7129**, no warnings.
+
+Graph main remains different from Git leaderboard; no repair was attempted. Complete eligible-text embedding and graph integrity do not prove exhaustive coverage, measured retrieval quality, application correctness or live acceptance. This factual post-persistence transcription is not recursively remembered or claimed reindexed; subsequent file-hash citations may be stale and require source verification. Local factual closeout and delegated memory refresh are complete; live/security blockers above remain unresolved and parent retains final status ownership.
+
+### Historical October 30 live-publisher closeout
+
+The following October 30 paragraphs, results, reviews and persistence IDs are retained as historical evidence only. Their completion language, missing-binding statements and migration order describe that prior boundary, not the October 31 incident/repair state above.
 
 Implementation and local validation are complete for the authorized experimental hd2/provider/publisher path. **Parent-supplied final Code Reviewer: APPROVE, targeted to the three fixes/current local regression; final security: NO BLOCKING FINDINGS, scoped to those three fixes.** Earlier broader security coverage is separately attributed below; neither verdict is live acceptance. Hosted SQL/Worker and funded E1 acceptance remain blocked/unverified: the parent reports no required runtime bindings available locally. The user reports a WIF in Cloudflare; its value, binding and remote availability were not inspected. No deployment, hosted writes, funded broadcast, secret-file read, commit or push occurred in this closeout. Parent-owned factual status and OSG persistence are performed here on the parent's behalf, without implementation changes or new review agents.
 

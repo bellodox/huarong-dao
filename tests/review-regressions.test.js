@@ -9,6 +9,7 @@ import { canonical,parseCanonical,signPlayer,signApp,recover,receiptId,bytesToHe
 import { CATALOG } from '../leaderboard/profile.js';
 import { verifyClaim } from '../leaderboard/verify.js';
 import { handleApi } from '../worker.js';
+import { publicStatus } from '../leaderboard/storage.js';
 import { reconcile } from '../leaderboard/reconcile.js';
 import { admit,advance } from '../leaderboard/issuer.js';
 import { parseTransaction } from '../leaderboard/chain.js';
@@ -333,7 +334,12 @@ test('all eleven ranked layouts roundtrip both signatures and pass Worker verifi
     assert.deepEqual(parseCanonical(canonical(receipt,8),8),receipt);
     assert.equal(recover('player',canonical(unsigned,6),player.s),bytesToHex(secp256k1.getPublicKey(secret(1))));
     assert.equal(recover('app',canonical(player,7),receipt.a),bytesToHex(secp256k1.getPublicKey(secret(2))));
-    const storage={rpc:async(operation,payload)=>operation==='rate'?{code:'ok'}:{...payload,state:'queued'}};
+    let admitted;
+    const storage={rpc:async(operation,payload)=>operation==='rate'?{code:'ok'}:(admitted={...payload,state:'queued'}),
+      publicRead:async(operation,payload)=>{
+        assert.equal(operation,'status');assert.equal(payload.id,admitted.id);
+        return publicStatus(admitted);
+      }};
     const response=await handleApi(new Request('https://game.test/api/score',{method:'POST',headers:{origin:'https://game.test','cf-connecting-ip':'192.0.2.1','content-type':'application/json','idempotency-key':receiptId(player)},body:canonical(player,7)}),
       {storage,available:true,rateSecret:'public-nonfunded-fixture-hmac-key-01'});
     const body=await response.json();

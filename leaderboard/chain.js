@@ -4,8 +4,9 @@ import { ripemd160 } from '@noble/hashes/legacy.js';
 import { bytesToHex,hexToBytes,utf8,base58check,canonical } from './receipt.js';
 export const APP_NAME='g/huarong-lb';
 export const NETWORK=Object.freeze({address:60,wif:78,nameMinimum:1000000,dust:600});
-// Experimental base-unit caps, not a claim about live relay policy. No adapter override.
-export const FEE_POLICY=Object.freeze({maximum:100000,perByte:100});
+// Estimation-rate ceiling, NOT an actual-byte effective-rate ceiling. DER savings and
+// omitted change may raise the effective rate, but only within the bounds checked below.
+export const FEE_POLICY=Object.freeze({maximum:100000,perByte:100,signedInputBytes:108});
 export const concat=(...parts)=>Uint8Array.from(parts.flatMap(part=>Array.from(part)));
 export const hash256=bytes=>sha256(sha256(bytes));
 export const hash160=bytes=>ripemd160(sha256(bytes));
@@ -35,8 +36,26 @@ export function nameScript(operation,receipt,key) {
 /** Serialize non-witness legacy transaction with integer amounts only. */
 export function serialize(tx,scripts=tx.inputs.map(input=>input.script||new Uint8Array())) {
   return concat(le(tx.version??2,4),varint(tx.inputs.length),...tx.inputs.map((input,index)=>concat(
-    hexToBytes(input.txid).slice().reverse(),le(input.index,4),variable(scripts[index]),le(0xffffffff,4))),
+    hexToBytes(input.txid).slice().reverse(),le(input.index,4),variable(scripts[index]),le(input.sequence??0xffffffff,4))),
     varint(tx.outputs.length),...tx.outputs.map(output=>concat(le(output.amount,8),variable(output.script))),le(tx.locktime??0,4));
+}
+/** Exact legacy serialization with maximum compressed-key unlocking scripts (DER <=72).
+ * Reuses compact sizes and the actual variable-length name output; never signs to estimate. */
+export function estimatedSignedBytes(tx) {
+  return serialize(tx,tx.inputs.map(()=>new Uint8Array(FEE_POLICY.signedInputBytes))).length;
+}
+/** Shared bounded fee check. Missing floor is allowed only for offline construction;
+ * live preparation must supply an observed floor. No-change may retain at most the
+ * omitted P2PKH output cost plus sub-dust, never arbitrary surplus. */
+export function checkTransactionFee(tx,fee,relayFloor=0) {
+  if(!Number.isSafeInteger(relayFloor)||relayFloor<0)throw Error('relay_fee_unavailable');
+  if(relayFloor>FEE_POLICY.perByte)throw Error('relay_fee_policy_incompatible');
+  if(!Number.isSafeInteger(fee)||fee<=0||fee>FEE_POLICY.maximum)throw Error('excessive_fee');
+  const estimatedBytes=estimatedSignedBytes(tx);
+  const omittedChange=tx.outputs.length===2?34*FEE_POLICY.perByte+NETWORK.dust-1:0;
+  if(fee>estimatedBytes*FEE_POLICY.perByte+omittedChange)throw Error('excessive_fee_rate');
+  if(fee<estimatedBytes*relayFloor)throw Error('relay_fee_insufficient');
+  return estimatedBytes;
 }
 /** Legacy SIGHASH_ALL commits to the complete previous script, with no upstream parser. */
 export function sighash(tx,index,previousScript) {
@@ -46,11 +65,19 @@ export function sighash(tx,index,previousScript) {
 /** Sign every reserved app-owned input once after the durable barrier. */
 export function signTransaction(tx,secret) {
   const key=secp256k1.getPublicKey(secret);
+  const fee=tx.inputs.every(input=>Number.isSafeInteger(input.amount))?
+    tx.inputs.reduce((total,input)=>total+input.amount,0)-tx.outputs.reduce((total,output)=>total+output.amount,0):null;
+  if(fee!==null)checkTransactionFee(tx,fee,tx.relayFloor??0);
   tx.inputs.forEach((input,index)=>{
     const signature=secp256k1.sign(sighash(tx,index,input.previousScript),secret,{prehash:false,lowS:true,format:'der'});
     input.script=concat(push(concat(signature,[1])),push(key));
   });
   const bytes=serialize(tx);if(bytes.length*4>=40000)throw Error('transaction_weight');
+  if(bytes.length>estimatedSignedBytes(tx))throw Error('signed_size_exceeded');
+  if(fee!==null) {
+    checkTransactionFee(tx,fee,tx.relayFloor??0);
+    if(fee<bytes.length*(tx.relayFloor??0))throw Error('relay_fee_insufficient');
+  }
   return {raw:bytesToHex(bytes),txid:bytesToHex(hash256(bytes).reverse()),weight:bytes.length*4};
 }
 /** Build only a reserved register/update, with a separate dedicated marker output. */
@@ -62,7 +89,8 @@ export function buildTransaction(prepared,receipt,appKey,markerKey) {
   if(bytesToHex(appKey)===bytesToHex(markerKey))throw Error('marker_not_dedicated');
   let total=0;
   const mapped=inputs.map(input=>{
-    if(!/^[a-f0-9]{64}$/.test(input.txid)||!Number.isSafeInteger(input.index)||input.index<0||!Number.isSafeInteger(input.amount)||input.amount<0)throw Error('invalid_input');
+    if(!/^[a-f0-9]{64}$/.test(input.txid)||!Number.isSafeInteger(input.index)||input.index<0||!Number.isSafeInteger(input.amount)||input.amount<0||
+      input.sequence!==undefined&&input.sequence!==0xffffffff)throw Error('invalid_input');
     const previous=parseTransaction(input.previousRaw,{funding:true}),output=previous.outputs[input.index];
     if(previous.txid!==input.txid||!output||output.amount!==input.amount||bytesToHex(output.script)!==input.script)throw Error('unauthenticated_prevout');
     const previousScript=output.script;
@@ -80,11 +108,8 @@ export function buildTransaction(prepared,receipt,appKey,markerKey) {
   if(!Number.isSafeInteger(change)||change<0||(change>0&&change<NETWORK.dust))throw Error('funds_unavailable');
   const outputs=[{amount:nameAmount,script:nameScript(operation,receipt,appKey)},{amount:markerAmount,script:payScript(markerKey)}];
   if(change)outputs.push({amount:change,script:payScript(appKey)});
-  const transaction={version:2,inputs:mapped,outputs,locktime:0};
-  // Empty unlocking scripts give a conservative lower byte bound before any signing.
-  // Actual signed bytes can only be larger, so their fee rate cannot exceed this check.
-  const minimumBytes=serialize(transaction,mapped.map(()=>new Uint8Array())).length;
-  if(fee>minimumBytes*FEE_POLICY.perByte)throw Error('excessive_fee_rate');
+  const transaction={version:2,inputs:mapped,outputs,locktime:0,relayFloor:prepared.relayFloor??0};
+  checkTransactionFee(transaction,fee,transaction.relayFloor);
   return transaction;
 }
 /** Bounded canonical raw reader, rejecting truncated/nonminimal compact sizes. */

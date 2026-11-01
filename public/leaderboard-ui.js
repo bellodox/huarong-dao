@@ -27,6 +27,11 @@
   /** Status is distinct from confirmed ranking; arbitrary backend strings are never rendered as HTML. */
   function showStatus(row) {
     const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално',ranked_move_limit:'Над лимита hd2 · целият път е запазен локално',practice_layout:'Тренировка · без публично изпращане'};
+    const retryReasons={retry_exhausted:'изчерпани опити за публикуване',broadcast_budget_exhausted:'изчерпан бюджет за излъчване',transaction_budget_exhausted:'изчерпан бюджет за транзакции',spend_budget_exhausted:'изчерпан бюджет за разходи',claim_outside_scope:'извън разрешения обхват'};
+    if(row.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(row.status)) {
+      status.textContent='Повторното публикуване не е достъпно'+(Object.hasOwn(retryReasons,row.retry_code)?' · '+retryReasons[row.retry_code]:'');
+      return;
+    }
     status.textContent=text[row.status||row.code]||'Публичното изпращане не е достъпно · резултатът е локален';
   }
   /** Viewing is walletless. Availability contains no secret or binding value. */
@@ -68,6 +73,8 @@
           if(!consented())return;
           if(known.ok) {
             const state=await known.json();if(!consented())return;showStatus(state);
+            // Publication authority is separate from local consent and legacy claim retryability.
+            if(state.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(state.status))return;
             // GET only observes. An explicit consented retry reuses the same signed POST.
             if(!['not_improved','queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown'].includes(state.status))return;
           }

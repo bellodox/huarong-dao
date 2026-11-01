@@ -1,4 +1,4 @@
-import { parseTransaction,parseName,payScript,address,hash256,concat,le,serialize,nameScript,buildTransaction,APP_NAME,NETWORK,FEE_POLICY } from './chain.js';
+import { parseTransaction,parseName,payScript,address,hash256,concat,le,nameScript,buildTransaction,estimatedSignedBytes,APP_NAME,NETWORK,FEE_POLICY } from './chain.js';
 import { bytesToHex,hexToBytes,parseCanonical } from './receipt.js';
 import { reconstruct } from './reconcile.js';
 import { epoch,medianTime } from './profile.js';
@@ -10,14 +10,12 @@ export const PROVIDER_DEFAULTS=Object.freeze({
   genesisHash:'5d4b20be4fc87d2333aea5235d9de1c685696fc935f806a9ffd71c9f9abf3c57',
   timeoutMs:10000,retries:2,retryDelayMs:250,maxResponseBytes:4000000,
   pageSize:10,maxHistoryPages:500,rangeChunk:100,maxHeaderSpan:20000,reorgRecheckDepth:30,acquisitionAttempts:3,
-  feePerByte:20,markerAmount:NETWORK.dust,nameAmount:NETWORK.nameMinimum,maxFundingInputs:9,maxFundingCandidates:12,coinbaseMaturity:100,
+  feePerByte:FEE_POLICY.perByte,markerAmount:NETWORK.dust,nameAmount:NETWORK.nameMinimum,maxFundingInputs:9,maxFundingCandidates:12,coinbaseMaturity:100,
   allowUnprovenNameAbsence:false
 });
 /** Explicit trust statement attached to every acquisition; never a consensus/completeness proof. */
 export const PROVIDER_TRUST='provider_anchored: one provider\'s stable responses, recomputed header hashes/merkle roots and hash-linked headers from a pinned anchor; not independent consensus or proof that nothing was omitted';
 const HEX64=/^[a-f0-9]{64}$/, KEY=/^0[23][a-f0-9]{64}$/, ZERO=('0').repeat(64);
-// Signed P2PKH unlocking script upper bound: push(DER<=72 + hashtype) + push(33-byte key).
-const SIGNED_INPUT_BYTES=108;
 const RETRYABLE_TRANSPORT=new Set(['provider_timeout','provider_unavailable']);
 const RETRYABLE_ACQUISITION=new Set(['history_changed','history_page_gap','tip_changed','reorg_detected']);
 const ALREADY_KNOWN=/already in block chain|txn-already-in-mempool|txn-already-known|already have transaction/i;
@@ -152,6 +150,18 @@ export function createSpaceXpanseProvider(options={}) {
     if(!HEX64.test(info.bestblockhash)||!Number.isSafeInteger(info.blocks)||info.blocks<0)throw providerError('provider_shape','info');
     if(!networkChecked){if(await transport.get('/hash/0')!==config.genesisHash)throw providerError('wrong_network','genesis');networkChecked=true;}
     return {height:info.blocks,hash:info.bestblockhash};
+  }
+  /** Ordinary node relay floors, in ROD/kB (1 ROD = 100,000,000 base units).
+   * /fee is a hardcoded estimate upstream and must never authorize preparation. */
+  async function relayFee() {
+    const info=await transport.get('/mempool');
+    const values=[info?.minrelaytxfee,info?.mempoolminfee];
+    if(values.some(value=>typeof value!=='number'||!Number.isFinite(value)||value<0))throw providerError('relay_fee_unavailable');
+    const perByte=Math.ceil(Math.max(...values)*100000);
+    if(!Number.isSafeInteger(perByte))throw providerError('relay_fee_unavailable');
+    if(perByte>FEE_POLICY.perByte)throw providerError('relay_fee_policy_incompatible');
+    if(perByte>config.feePerByte)throw providerError('relay_fee_insufficient');
+    return perByte;
   }
   async function fetchHeaders(low,high) {
     const out=[];
@@ -305,6 +315,7 @@ export function createSpaceXpanseProvider(options={}) {
   }
   /** Deterministic value-aware funding with fee <= policy, folded sub-dust change. */
   async function fund(claim,current) {
+    const relayFloor=await relayFee();
     const tip=current.observed.evidence.tip,operation=current.head?'update':'register';
     const receipt={...parseCanonical(claim.bytes,7),a:'A'.repeat(87)};
     const inputs=[];let nameAmount=config.nameAmount;
@@ -318,31 +329,45 @@ export function createSpaceXpanseProvider(options={}) {
       const total=inputs.reduce((sum,input)=>sum+input.amount,0);
       const shape={version:2,inputs:inputs.map(({txid,index})=>({txid,index})),locktime:0,outputs:[{amount:nameAmount,script:nameScript(operation,receipt,appKey)},
         {amount:config.markerAmount,script:payScript(markerKey)},{amount:NETWORK.dust,script:payScript(appKey)}]};
-      let fee=(serialize(shape,inputs.map(()=>new Uint8Array())).length+inputs.length*SIGNED_INPUT_BYTES)*config.feePerByte;
+      let fee=estimatedSignedBytes(shape)*config.feePerByte;
       const change=total-fee-config.markerAmount-nameAmount;
-      if(change<0)return null;
-      if(change<NETWORK.dust)fee+=change;
-      const prepared={operation,fee,markerAmount:config.markerAmount,nameAmount,inputs:inputs.map(input=>({...input}))};
+      if(change<NETWORK.dust) {
+        const noChange={...shape,outputs:shape.outputs.slice(0,2)};
+        const available=total-config.markerAmount-nameAmount;
+        if(available<estimatedSignedBytes(noChange)*config.feePerByte)return null;
+        fee=available;
+      }
+      const prepared={operation,fee,relayFloor,markerAmount:config.markerAmount,nameAmount,inputs:inputs.map(input=>({...input}))};
       try {buildTransaction(prepared,receipt,appKey,markerKey);return prepared;}
-      catch(error){if(['funds_unavailable','excessive_fee','excessive_fee_rate'].includes(error.message))return null;throw error;}
+      catch(error){
+        if(['excessive_fee','excessive_fee_rate'].includes(error.message))throw providerError('relay_fee_policy_incompatible');
+        if(error.message==='funds_unavailable')return null;throw error;
+      }
     };
     return selectFunding(tip,current.head,selected=>{inputs.push(selected.at(-1));return plan();});
+  }
+  /** Rebuild the selected exact shape against a fresh observed floor before the barrier. */
+  async function validateFee(prepared,bytes) {
+    const relayFloor=await relayFee();
+    const receipt={...parseCanonical(bytes,7),a:'A'.repeat(87)};
+    return buildTransaction({...prepared,relayFloor},receipt,appKey,markerKey);
   }
   return Object.freeze({
     config:Object.freeze({...config,transport:undefined,fetch:undefined,appAddress,markerAddress}),
     // The durable Worker follower persists verified observations between bounded invocations.
     // These are adapter methods, not HTTP endpoints or generic RPC forwarding.
-    primitives:Object.freeze({tipInfo,fetchHeaders,transaction,rawOf,historyPage,fund,fundingInput,selectFunding,confirmedUnspent,
+    primitives:Object.freeze({tipInfo,relayFee,validateFee,fetchHeaders,transaction,rawOf,historyPage,fund,fundingInput,selectFunding,confirmedUnspent,
       ownedName:tx=>namedApp(tx,ownerScript),ownerScript,appAddress,markerAddress}),
     /** Issuer: authenticated head/epoch plus fully raw-authenticated prepared inputs. */
     async prepare(claim) {
       const current=await state();
       if(current.pending)throw providerError('unconfirmed_pending');
       const prepared=await fund(claim,current);
-      return {epoch:current.epoch,head:current.head,prepared,mode:current.mode,evidence:current.observed.evidence};
+      return {epoch:current.epoch,head:current.head,prepared,bytes:claim.bytes,mode:current.mode,evidence:current.observed.evidence};
     },
     /** Issuer pre-barrier recheck: same head/epoch, no pending lineage, inputs still confirmed-unspent. */
     async validate(observation) {
+      await validateFee(observation.prepared,observation.bytes);
       const current=await state();
       if(current.pending||current.epoch!==observation.epoch||current.head!==observation.head)return false;
       const unspent=new Set((await confirmedUnspent(current.observed.evidence.tip)).map(row=>row.txid+':'+row.index));

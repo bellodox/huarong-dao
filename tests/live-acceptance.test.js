@@ -194,27 +194,27 @@ test('cumulative fee, locked value and transaction ceilings reject successor bef
   }
 });
 
-test('multiple authorized transactions accumulate once, and later consent cannot enter the original scope',async()=>{
+test('signed-size fees exhaust cumulative scope before a second successor; later consent stays excluded',async()=>{
   const {db,storage}=await databaseFixture(),chain=chainFixture();
   try {
     await queueClaim(storage,chain);await runPublisher(storage,config,{fetch:chain.fetch});
     const registration=(await storage.read()).claims[0];chain.mine([registration.raw]);await runPublisher(storage,config,{fetch:chain.fetch});
     await queueOther(storage,4);await queueOther(storage,5);await queueOther(storage,6);
-    const scope=await openScope(storage);
+    const scope=await openScope(storage);assert(scope.id,'finite scope must be installed');
     const later=await queueOther(storage,7);
-    for(let index=0;index<2;index++) {
-      assert.equal((await runPublisher(storage,config,{fetch:chain.fetch,scope:scope.id})).code,'broadcast_pending');
-      const raw=chain.broadcasts.at(-1);chain.mine([raw]);
-    }
-    assert.equal((await runPublisher(storage,config,{fetch:chain.fetch,scope:scope.id})).code,'transaction_budget_exhausted');
+    assert.equal((await runPublisher(storage,config,{fetch:chain.fetch,scope:scope.id})).code,'broadcast_pending');
+    chain.mine([chain.broadcasts.at(-1)]);
+    assert.equal((await runPublisher(storage,config,{fetch:chain.fetch,scope:scope.id})).code,'spend_budget_exhausted');
     const state=await storage.read(),signed=state.claims.filter(row=>row.raw&&row.id!==registration.id);
     const saved=(await storage.rpc('operational')).finite_scope;
-    assert.equal(saved.transactions,2);assert.equal(saved.broadcasts,2);assert.equal(saved.new_locked_units,1200);
+    assert.equal(saved.transactions,1);assert.equal(saved.broadcasts,1);assert.equal(saved.new_locked_units,600);
+    assert.equal(saved.max_fee_units,100000);assert.equal(signed.length,1);assert.equal(state.coordinator.generation,2);
     assert.equal(saved.fee_units,signed.reduce((sum,row)=>sum+row.prepared.fee,0));
-    assert.equal(Object.keys(saved.reservations).length,2);assert.equal(chain.broadcasts.length,3);
+    assert.equal(Object.keys(saved.reservations).length,1);assert.equal(chain.broadcasts.length,2);
     const lease=await storage.rpc('job',{owner:'later',scope:scope.id});assert.equal(lease.owner,'later');
     assert.equal((await storage.rpc('prepare',{id:later,scope:scope.id,job:'later'})).code,'claim_outside_scope');
-    assert.equal(state.claims.filter(row=>!row.raw).length,2);
+    assert.equal(state.claims.filter(row=>!row.raw).length,3);
+    assert(state.claims.filter(row=>!row.raw).every(row=>row.state==='queued'&&row.attempts===0));
   }finally {await db.close();}
 });
 

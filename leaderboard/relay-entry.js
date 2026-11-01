@@ -1,4 +1,4 @@
-import { SupabaseStorage,publicStatus,publisherReadiness,PUBLIC_RESPONSE_BYTES } from './storage.js';
+import { SupabaseStorage,publisherReadiness,PUBLIC_RESPONSE_BYTES } from './storage.js';
 import { ClaimError,checkOrigin,readClaim,verifyClaim } from './verify.js';
 import { admit,advance } from './issuer.js';
 import { publicLeaderboard } from './index.js';
@@ -17,6 +17,7 @@ export * from './index.js';
 export * from './chain.js';
 export * from './reconcile.js';
 export * from './publisher.js';
+export * from './recovery.js';
 
 /** Responses never serialize bindings, caught exceptions, raw journals or private keys. */
 function json(value,status=200,cache=false) {
@@ -61,7 +62,10 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
         catch {result=(await storage.read()).claims.find(row=>row.id===verified.id);}
       }
       if(result.code)result=(await storage.read()).claims.find(row=>row.id===verified.id);
-      return json(publicStatus(result),result.state==='not_improved'||result.state==='confirmed'?200:202);
+      // Use the same bounded authoritative finite-scope projection as GET, including duplicate admission.
+      const status=await storage.publicRead('status',{id:verified.id});
+      if(!status)throw Error('storage_unavailable');
+      return json(status,status.status==='not_improved'||status.status==='confirmed'?200:202);
     }
     return json({code:'not_found'},404);
   }catch(error) {

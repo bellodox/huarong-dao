@@ -9,3 +9,4 @@ node_modules/
 /tests/.wrangler/tmp/
 /tests/.runtime-fixture/
 /tests/.runtime-prod/
+/.local

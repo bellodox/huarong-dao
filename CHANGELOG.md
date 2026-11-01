@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — experimental fee and positive-conflict recovery, 2026-10-31
+
+- Revised [fee construction](leaderboard/chain.js:9) to target 100 units per conservative estimated signed byte, retaining the 100,000-unit absolute cap and at most 3,999-unit omitted-change surplus. Observed relay-floor checks remain fail-closed; this supersedes the earlier unsigned-byte ceiling, not historical transaction evidence.
+- Added [migration 007](supabase/migrations/007_failed_transaction_recovery.sql) and [service-only recovery](leaderboard/recovery.js): additive capability 7, one immutable bounded envelope/one signing, positive six-confirmation original-input conflict proof, bounded ancestry and permanent original-authority fence. Original outbox/counters/bootstrap remain preserved; effective bootstrap is separate. The [operator runbook](docs/cloudflare-deployment.md#experimental-positive-conflict-recovery) documents strict inspection/raw export, non-signing installation and finite matching-ID continuation; no public recovery mutation endpoint or automatic alternate spend.
+- All work remains experimental until further notice. Local implementation is not live recovery, relay acceptance or deployment evidence; current validation and parent-owned gates belong only in the [handoff](tests/release-evidence.md#experimental-fee-and-recovery-current-scope).
+
 ## Unreleased — experimental live-publisher implementation, 2026-10-30
 
 - Corrected schema gating to require migration 004's readiness capability revision 4 before HTTP availability or publisher job/preparation/signing; 003-only fails closed. Added immutable finite-scope continuation to the [operator commands](docs/cloudflare-deployment.md#read-only-versus-finite-funded-acceptance), with no budget replacement or ordinary-cron reconciliation. Shared value-aware funding authenticates at most 12 candidates and selects at most nine funding inputs within the 36-fetch tick budget.
