@@ -250,7 +250,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
         await mutate(storage,'recovery_original_included',{job});
         return {code:'original_included'};
       }
-      const retired=await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof);
+      const retired=await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof,journal.envelope);
       if(retired.tip.hash!==tip.hash)throw Error('history_changed');
       journal=await mutate(storage,'recovery_prove',{job,recovery_revision:journal.revision,...retired,tip_hash:tip.hash});
     }
@@ -275,7 +275,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
         await api.validateFee(observation.prepared,observation.bytes);
         if(recovery) {
           const original=state.claims.find(row=>row.id===journal.original_id);
-          await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof);
+          await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof,journal.envelope);
         }
         const fresh=await api.tipInfo();if(fresh.hash!==tip.hash)return false;
         const first=await api.historyPage(0),observed=runtime.document.ids.slice(0,10);
@@ -298,7 +298,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
       beforeBroadcast:recovery?async row=>{
         await api.validateFee(row.prepared,row.bytes);
         const original=state.claims.find(row=>row.id===journal.original_id);
-        await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof);
+        await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof,journal.envelope);
       }:undefined,
       broadcast:raw=>provider.broadcast(raw)
     };

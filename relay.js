@@ -4469,6 +4469,14 @@ function createSpaceXpanseProvider(options = {}) {
 // leaderboard/recovery.js
 var RECOVERY_CONFIRMATIONS = 6;
 var RECOVERY_HEADER_BOUND = 2e3;
+var ADMIN_RESTART = Object.freeze({
+  scope_id: "33e98e66-02a4-4c1f-b96a-0be750e939b7",
+  claim_id: "cb7919da2141eb641b29f53b4a7fbc641c59a1d69dc0afbbcc84f0ec2d7ee4f3",
+  original_txid: "40657978880fd5fb38929db8939255dfa3d92e629b04852638047c8d34e5db9f",
+  generation: 1,
+  retirement_mode: "operator_override_2026_11_01",
+  retirement_reason: "Explicit experimental operator authority; no confirmed conflict or original inclusion required; original and replacement may still confirm."
+});
 async function inspectRecovery(storage, rawTxid = null) {
   const ready = await recoveryReadiness(storage);
   if (ready.code === "recovery_schema_upgrade_required") return { ok: false, code: ready.code };
@@ -4518,8 +4526,28 @@ function authenticateOriginal(original, config) {
   });
   return tx;
 }
-async function authenticateRetirement(api, original, conflictTxid, config, document, saved = null) {
+async function authenticateRetirement(api, original, conflictTxid, config, document, saved = null, envelope = null) {
   const originalTx = authenticateOriginal(original, config);
+  if (envelope?.retirement_mode === ADMIN_RESTART.retirement_mode) {
+    if (Object.entries(ADMIN_RESTART).some(([key, value]) => envelope[key] !== value) || original.id !== ADMIN_RESTART.claim_id || original.txid !== ADMIN_RESTART.original_txid || original.generation !== 1 || envelope.max_signings !== 1 || envelope.max_broadcasts !== 1 || envelope.max_fee_units !== 1e5 || envelope.max_new_locked_units !== 1000600 || envelope.consent_claim !== original.id || conflictTxid !== void 0) throw Error("recovery_override_mismatch");
+    const tip2 = await api.tipInfo();
+    let observed;
+    try {
+      observed = await api.transaction(original.txid);
+    } catch (error) {
+      if (error.message !== "not_found") throw error;
+    }
+    if (observed) throw Error(observed.height === null ? "recovery_original_unconfirmed" : "recovery_original_observed");
+    if ((await api.tipInfo()).hash !== tip2.hash) throw Error("history_changed");
+    const proof2 = {
+      kind: ADMIN_RESTART.retirement_mode,
+      original_txid: original.txid,
+      reason: ADMIN_RESTART.retirement_reason,
+      original_may_confirm: true
+    };
+    if (saved && JSON.stringify(saved) !== JSON.stringify(proof2) && (Object.keys(saved).length !== 4 || Object.entries(proof2).some(([key, value]) => saved[key] !== value))) throw Error("recovery_override_mismatch");
+    return { proof: proof2, tip: tip2, confirmations: 0 };
+  }
   if (!/^[a-f0-9]{64}$/.test(conflictTxid ?? "") || conflictTxid === original.txid) throw Error("recovery_invalid_conflict");
   const tip = await api.tipInfo();
   let conflict;
@@ -4843,7 +4871,7 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
         await mutate(storage, "recovery_original_included", { job });
         return { code: "original_included" };
       }
-      const retired = await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof);
+      const retired = await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof, journal.envelope);
       if (retired.tip.hash !== tip.hash) throw Error("history_changed");
       journal = await mutate(storage, "recovery_prove", { job, recovery_revision: journal.revision, ...retired, tip_hash: tip.hash });
     }
@@ -4873,7 +4901,7 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
         await api.validateFee(observation.prepared, observation.bytes);
         if (recovery) {
           const original = state.claims.find((row) => row.id === journal.original_id);
-          await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof);
+          await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof, journal.envelope);
         }
         const fresh = await api.tipInfo();
         if (fresh.hash !== tip.hash) return false;
@@ -4897,7 +4925,7 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
       beforeBroadcast: recovery ? async (row) => {
         await api.validateFee(row.prepared, row.bytes);
         const original = state.claims.find((row2) => row2.id === journal.original_id);
-        await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof);
+        await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof, journal.envelope);
       } : void 0,
       broadcast: (raw) => provider.broadcast(raw)
     };
@@ -5111,6 +5139,7 @@ if (import.meta.main === true && typeof process !== "undefined" && process.versi
   });
 }
 export {
+  ADMIN_RESTART,
   ALPHABET,
   APP_NAME,
   CATALOG,

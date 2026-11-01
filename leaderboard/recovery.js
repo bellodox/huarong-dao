@@ -5,6 +5,13 @@ import { verifyClaim } from './verify.js';
 import { recoveryReadiness } from './storage.js';
 
 export const RECOVERY_CONFIRMATIONS=6,RECOVERY_HEADER_BOUND=2000;
+export const ADMIN_RESTART=Object.freeze({
+  scope_id:'33e98e66-02a4-4c1f-b96a-0be750e939b7',
+  claim_id:'cb7919da2141eb641b29f53b4a7fbc641c59a1d69dc0afbbcc84f0ec2d7ee4f3',
+  original_txid:'40657978880fd5fb38929db8939255dfa3d92e629b04852638047c8d34e5db9f',
+  generation:1,retirement_mode:'operator_override_2026_11_01',
+  retirement_reason:'Explicit experimental operator authority; no confirmed conflict or original inclusion required; original and replacement may still confirm.'
+});
 /** Service-only inspection; raw export is explicit and content-address checked, never a signer. */
 export async function inspectRecovery(storage,rawTxid=null) {
   const ready=await recoveryReadiness(storage);
@@ -56,8 +63,25 @@ export function authenticateOriginal(original,config) {
 /** Positive retirement proof under the existing single-provider anchored trust model.
  * Not-found, unspent status and fee rejection are deliberately not evidence of retirement.
  * Recheck the entire bounded proof-to-tip path on EVERY attempt, including exact retries. */
-export async function authenticateRetirement(api,original,conflictTxid,config,document,saved=null) {
+export async function authenticateRetirement(api,original,conflictTxid,config,document,saved=null,envelope=null) {
   const originalTx=authenticateOriginal(original,config);
+  if(envelope?.retirement_mode===ADMIN_RESTART.retirement_mode) {
+    if(Object.entries(ADMIN_RESTART).some(([key,value])=>envelope[key]!==value)||
+      original.id!==ADMIN_RESTART.claim_id||original.txid!==ADMIN_RESTART.original_txid||original.generation!==1||
+      envelope.max_signings!==1||envelope.max_broadcasts!==1||envelope.max_fee_units!==100000||
+      envelope.max_new_locked_units!==1000600||envelope.consent_claim!==original.id||conflictTxid!==undefined)throw Error('recovery_override_mismatch');
+    const tip=await api.tipInfo();
+    let observed;
+    try {observed=await api.transaction(original.txid);}
+    catch(error){if(error.message!=='not_found')throw error;}
+    if(observed)throw Error(observed.height===null?'recovery_original_unconfirmed':'recovery_original_observed');
+    if((await api.tipInfo()).hash!==tip.hash)throw Error('history_changed');
+    const proof={kind:ADMIN_RESTART.retirement_mode,original_txid:original.txid,
+      reason:ADMIN_RESTART.retirement_reason,original_may_confirm:true};
+    if(saved&&JSON.stringify(saved)!==JSON.stringify(proof)&&
+      (Object.keys(saved).length!==4||Object.entries(proof).some(([key,value])=>saved[key]!==value)))throw Error('recovery_override_mismatch');
+    return {proof,tip,confirmations:0};
+  }
   if(!/^[a-f0-9]{64}$/.test(conflictTxid??'')||conflictTxid===original.txid)throw Error('recovery_invalid_conflict');
   const tip=await api.tipInfo();let conflict;
   try {conflict=await api.transaction(conflictTxid);}
