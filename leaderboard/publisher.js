@@ -2,7 +2,7 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { decodeWif,base58check,utf8,bytesToHex,hexToBytes } from './receipt.js';
 import { NETWORK,FEE_POLICY,APP_NAME,parseTransaction,parseName,payScript,verifyInput } from './chain.js';
-import { createSpaceXpanseProvider,PROVIDER_DEFAULTS } from './provider.js';
+import { createSpaceXpanseProvider,PROVIDER_DEFAULTS,providerError } from './provider.js';
 import { reconstruct,deriveReceipt } from './reconcile.js';
 import { epoch,medianTime } from './profile.js';
 import { advance } from './issuer.js';
@@ -10,6 +10,21 @@ import { publisherReadiness,recoveryReadiness,recoveryStorage } from './storage.
 import { authenticateRetirement,authenticateOriginal } from './recovery.js';
 
 const RECHECK=30,CHUNK=100,CHECKPOINT_LAG=60;
+const PROVIDER_FETCH_LIMIT=36,PUBLISHER_DEADLINE_MS=55000;
+const DIAGNOSTIC_CODES=new Set(['provider_unavailable','provider_timeout','provider_http_error',
+  'provider_request_budget_exhausted','publisher_deadline_exceeded','provider_response_too_large',
+  'provider_non_json','provider_envelope','provider_error','provider_shape']);
+const DIAGNOSTIC_CATEGORIES=new Set(['transport','timeout','http_error','electrumx_error']);
+function safeProviderRoute(path) {
+  if(typeof path!=='string')return null;
+  if(['/info','/mempool','/hash/0'].includes(path))return path.slice(1).replace('/','_');
+  if(/^\/range\/[0-9]+(?:\?offset=[0-9]+)?$/.test(path))return 'range';
+  if(/^\/history\/[a-zA-Z0-9]+(?:\?offset=[0-9]+)?$/.test(path))return 'history';
+  if(/^\/transaction\/[a-f0-9]{64}$/.test(path))return 'transaction';
+  if(/^\/unspent\/[a-zA-Z0-9]+$/.test(path))return 'unspent';
+  if(path==='/broadcast')return 'broadcast';
+  return null;
+}
 const RELAY_FEE_FAILURES=new Set(['relay_fee_unavailable','relay_fee_insufficient','relay_fee_policy_incompatible']);
 const FINITE_FAILURES=new Set(['finite_scope_required','claim_outside_scope','transaction_budget_exhausted','broadcast_budget_exhausted','spend_budget_exhausted','invalid_budget_plan']);
 /** Public-only hash-to-curve marker: domain-separated from receipt signatures and funding.
@@ -198,8 +213,12 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
   const job=crypto.randomUUID();let runtime=await storage.rpc('job',{owner:job});
   if(runtime.code==='job_busy')return {code:'job_busy'};
   if(!runtime.owner)return {code:FINITE_FAILURES.has(runtime.code)||runtime.code?.startsWith('recovery_')?runtime.code:'publisher_unavailable'};
-  let calls=0;const deadline=Date.now()+55000;
-  const boundedFetch=(...args)=>{if(++calls>36||Date.now()>deadline)throw Error('provider_unavailable');return fetcher.call(globalThis,...args);};
+  let calls=0;const startedAt=Date.now(),deadline=startedAt+PUBLISHER_DEADLINE_MS;
+  const boundedFetch=(...args)=>{
+    if(Date.now()>deadline)throw providerError('publisher_deadline_exceeded');
+    if(calls>=PROVIDER_FETCH_LIMIT)throw providerError('provider_request_budget_exhausted');
+    calls++;return fetcher.call(globalThis,...args);
+  };
   const makeProvider=(anchor,bootstrap)=>createSpaceXpanseProvider({appKey:config.appKey,markerKey:config.markerKey,anchor,
     bootstrap:bootstrap?{txid:bootstrap}:null,baseUrl:config.baseUrl,fetch:boundedFetch,retries:0,acquisitionAttempts:1,...providerOptions});
   try {
@@ -315,10 +334,25 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
     await api.selectFunding(tip,snapshot.head,inputs=>inputs.reduce((total,input)=>total+input.amount,0)>=reserve);
     return {code:'ready'};
   }catch(error) {
-    // Existing SQL whitelist stores only its supported generic code; precise fee diagnostics
-    // use the scheduler/acceptance result channel, without widening persisted payloads.
+    // Log only fixed-vocabulary diagnostics. Never log provider response bodies,
+    // dynamic URLs, addresses, transaction IDs, secrets or signed transaction bytes.
+    const diagnosticCode=DIAGNOSTIC_CODES.has(error?.message)?error.message:'publisher_unavailable';
+    const diagnosticCategory=DIAGNOSTIC_CATEGORIES.has(error?.detail?.category)?error.detail.category:null;
+    const route=safeProviderRoute(error?.detail?.path);
+    const status=Number.isInteger(error?.detail?.status)&&error.detail.status>=100&&error.detail.status<=599
+      ?error.detail.status:null;
+    console.error(JSON.stringify({event:'hd1_publisher_failure',code:diagnosticCode,
+      provider_requests:calls,provider_request_limit:PROVIDER_FETCH_LIMIT,
+      elapsed_ms:Math.max(0,Date.now()-startedAt),deadline_ms:PUBLISHER_DEADLINE_MS,
+      ...(diagnosticCategory?{category:diagnosticCategory}:{}),...(route?{route}:{}),
+      ...(status?{http_status:status}:{})}));
+    // SQL 003/009 persists an intentional fixed whitelist. Retain that contract
+    // rather than changing a live recovery journal/schema for diagnostics.
+    const persistedCode=error?.message==='provider_request_budget_exhausted'?'provider_unavailable':
+      error?.message==='publisher_deadline_exceeded'?'provider_timeout':
+      error?.message==='provider_http_error'?'publisher_unavailable':error?.message;
     const code=RELAY_FEE_FAILURES.has(error.message)||FINITE_FAILURES.has(error.message)||recovery&&/^(recovery_|signing_unknown|epoch_changed|not_improved)/.test(error.message)?error.message:'publisher_unavailable';
-    try {await storage.rpc(recovery?'recovery_pause':'job_error',{job,code:RELAY_FEE_FAILURES.has(error.message)?'invalid_provider_config':error.message});}catch {}
+    try {await storage.rpc(recovery?'recovery_pause':'job_error',{job,code:RELAY_FEE_FAILURES.has(error.message)?'invalid_provider_config':persistedCode});}catch {}
     return {code};
   }finally {
     try {await storage.rpc('job_done',{job});}catch {}

@@ -17,6 +17,7 @@ export const PROVIDER_DEFAULTS=Object.freeze({
 export const PROVIDER_TRUST='provider_anchored: one provider\'s stable responses, recomputed header hashes/merkle roots and hash-linked headers from a pinned anchor; not independent consensus or proof that nothing was omitted';
 const HEX64=/^[a-f0-9]{64}$/, KEY=/^0[23][a-f0-9]{64}$/, ZERO=('0').repeat(64);
 const RETRYABLE_TRANSPORT=new Set(['provider_timeout','provider_unavailable']);
+const PUBLISHER_LIMIT_ERRORS=new Set(['provider_request_budget_exhausted','publisher_deadline_exceeded']);
 const RETRYABLE_ACQUISITION=new Set(['history_changed','history_page_gap','tip_changed','reorg_detected']);
 const ALREADY_KNOWN=/already in block chain|txn-already-in-mempool|txn-already-known|already have transaction/i;
 
@@ -27,7 +28,7 @@ export function classifyEnvelope(error) {
   const message=String(error?.message??'').slice(0,200);
   if(error?.code===-5)return providerError('not_found',{providerCode:-5,message});
   if(/history too large/i.test(message))return providerError('history_too_large',{message});
-  if(/ElectrumX/i.test(message))return providerError('provider_unavailable',{message});
+  if(/ElectrumX/i.test(message))return providerError('provider_unavailable',{message,category:'electrumx_error'});
   return providerError('provider_error',{providerCode:error?.code??null,message});
 }
 /** Bounded HTTPS JSON transport: timeout, size cap, envelope validation, GET-only retries. */
@@ -63,12 +64,18 @@ export function createTransport({baseUrl=PROVIDER_DEFAULTS.baseUrl,fetch:fetcher
     }catch(error) {
       const timedOut=controller.signal.aborted;
       cancel();controller.abort();
-      if(error.code==='provider_response_too_large'||error.code==='provider_timeout')throw error;
-      throw providerError(timedOut?'provider_timeout':'provider_unavailable',{path});
+      if(error?.code==='provider_response_too_large'||error?.code==='provider_timeout')throw error;
+      // Publisher guards originate outside the HTTP adapter. Preserve their precise
+      // categories and attach only our fixed relative API path, never a full URL.
+      if(PUBLISHER_LIMIT_ERRORS.has(error?.code))throw providerError(error.code,{path});
+      throw providerError(timedOut?'provider_timeout':'provider_unavailable',{path,category:timedOut?'timeout':'transport'});
     }finally {clearTimeout(timer);reader?.releaseLock();}
     let text;try {text=new TextDecoder('utf-8',{fatal:true}).decode(bytes.subarray(0,length));}
     catch {throw providerError('provider_non_json',{path});}
-    if(!response.ok)throw providerError(response.status===429||response.status>=500?'provider_unavailable':'provider_http',{path,status:response.status});
+    // Keep GET retry semantics for 429/5xx, but distinguish an HTTP rejection
+    // from a transport exception in server-only diagnostics.
+    if(!response.ok)throw providerError(response.status===429||response.status>=500?'provider_unavailable':'provider_http_error',
+      {path,status:response.status,category:'http_error'});
     let body;try {body=JSON.parse(text);}catch {throw providerError('provider_non_json',{path});}
     if(!body||typeof body!=='object'||Array.isArray(body)||!('error' in body))throw providerError('provider_envelope',{path});
     if(body.error!==null&&body.error!==undefined){const error=classifyEnvelope(body.error);error.detail={...error.detail,path};throw error;}
