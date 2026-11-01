@@ -54,7 +54,7 @@
       const code=result.publisher?.code??result.code;
       status.textContent=!HUARONG_PUBLIC_ENABLED?(code==='issuance_disabled'?'Публичното изпращане е изключено · локалната игра продължава':'Публичното изпращане не е достъпно · резултатът е локален'):result.stale?'Данните не са актуални · локалната игра продължава':'Преиграно · не доказва човешка игра';
       // Separate text node preserves mutation-based translation; never echo arbitrary backend details.
-      if(!HUARONG_PUBLIC_ENABLED&&['issuer_not_configured','storage_not_configured','rate_secret_not_configured','funding_compression_incompatible','invalid_publisher_configuration','schema_upgrade_required','initial_sync','publisher_stale','funds_unavailable','bootstrap_pin_required','identity_configuration_mismatch','checkpoint_mismatch','history_changed','history_page_gap','wrong_network','conflict_suspected','signing_unknown','retry_exhausted','recovery_required'].includes(code)) {
+      if(!HUARONG_PUBLIC_ENABLED&&['issuer_not_configured','storage_not_configured','rate_secret_not_configured','funding_compression_incompatible','invalid_publisher_configuration','schema_upgrade_required','initial_sync','publisher_stale','provider_timeout','provider_unavailable','publisher_unavailable','funds_unavailable','bootstrap_pin_required','identity_configuration_mismatch','checkpoint_mismatch','history_changed','history_page_gap','wrong_network','conflict_suspected','signing_unknown','retry_exhausted','recovery_required'].includes(code)) {
         const reason=document.createElement('span');reason.textContent=' ('+code+')';status.append(reason);
       }
       document.getElementById('ranking-public-privacy').classList.remove('hidden');

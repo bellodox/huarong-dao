@@ -34,7 +34,7 @@ with sync_playwright() as p:
         expected = 'Public submission unavailable' if locale == 'en-US' else 'Публичното изпращане не е достъпно'
         page.wait_for_function('(text) => document.getElementById("hd1-status").textContent.includes(text)', arg=expected)
         assert 'issuer_not_configured' in page.locator('#hd1-status').text_content()
-        for code in ['initial_sync', 'schema_upgrade_required', 'publisher_stale', 'recovery_required']:
+        for code in ['initial_sync', 'schema_upgrade_required', 'publisher_stale', 'provider_timeout', 'provider_unavailable', 'publisher_unavailable', 'recovery_required']:
             state['publisher']['code'] = code
             page.evaluate('hd1UI.refresh()')
             page.wait_for_function('(text) => document.getElementById("hd1-status").textContent.includes(text)', arg=expected)
