@@ -4796,7 +4796,7 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
   const deadline = Date.now() + 55e3;
   const boundedFetch = (...args) => {
     if (++calls > 36 || Date.now() > deadline) throw Error("provider_unavailable");
-    return fetcher(...args);
+    return fetcher.call(globalThis, ...args);
   };
   const makeProvider = (anchor, bootstrap) => createSpaceXpanseProvider({
     appKey: config.appKey,

@@ -66,7 +66,7 @@ async function recoveryAcceptance(bindings,args,fetcher) {
   for(let i=0;i<ticks;i++) {
     const result=await runPublisher(storage,config,{fetch:guarded,scope:journal.envelope.scope_id,recovery:resume});
     outcomes.push(result.code);if(result.diagnostic)diagnostics.push({tick:i+1,diagnostic:result.diagnostic});
-    if(!progress.has(result.code))break;
+    if(!progress.has(result.code)||['confirmed','original_included'].includes(result.code))break;
   }
   const result=await inspectRecovery(storage),failure=outcomes.find(code=>!progress.has(code));
   return {...result,ok:!failure,mode:'recovery_resume',outcomes,diagnostics,broadcasts_sent:broadcasts,...(failure?{code:failure}:{})};

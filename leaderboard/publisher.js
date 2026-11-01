@@ -199,7 +199,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
   if(runtime.code==='job_busy')return {code:'job_busy'};
   if(!runtime.owner)return {code:FINITE_FAILURES.has(runtime.code)||runtime.code?.startsWith('recovery_')?runtime.code:'publisher_unavailable'};
   let calls=0;const deadline=Date.now()+55000;
-  const boundedFetch=(...args)=>{if(++calls>36||Date.now()>deadline)throw Error('provider_unavailable');return fetcher(...args);};
+  const boundedFetch=(...args)=>{if(++calls>36||Date.now()>deadline)throw Error('provider_unavailable');return fetcher.call(globalThis,...args);};
   const makeProvider=(anchor,bootstrap)=>createSpaceXpanseProvider({appKey:config.appKey,markerKey:config.markerKey,anchor,
     bootstrap:bootstrap?{txid:bootstrap}:null,baseUrl:config.baseUrl,fetch:boundedFetch,retries:0,acquisitionAttempts:1,...providerOptions});
   try {
