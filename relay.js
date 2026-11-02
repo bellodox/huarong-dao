@@ -3989,6 +3989,7 @@ var HEX64 = /^[a-f0-9]{64}$/;
 var KEY = /^0[23][a-f0-9]{64}$/;
 var ZERO = "0".repeat(64);
 var RETRYABLE_TRANSPORT = /* @__PURE__ */ new Set(["provider_timeout", "provider_unavailable"]);
+var PUBLISHER_LIMIT_ERRORS = /* @__PURE__ */ new Set(["provider_request_budget_exhausted", "publisher_deadline_exceeded"]);
 var RETRYABLE_ACQUISITION = /* @__PURE__ */ new Set(["history_changed", "history_page_gap", "tip_changed", "reorg_detected"]);
 var ALREADY_KNOWN = /already in block chain|txn-already-in-mempool|txn-already-known|already have transaction/i;
 function providerError(code, detail) {
@@ -4001,7 +4002,7 @@ function classifyEnvelope(error) {
   const message = String(error?.message ?? "").slice(0, 200);
   if (error?.code === -5) return providerError("not_found", { providerCode: -5, message });
   if (/history too large/i.test(message)) return providerError("history_too_large", { message });
-  if (/ElectrumX/i.test(message)) return providerError("provider_unavailable", { message });
+  if (/ElectrumX/i.test(message)) return providerError("provider_unavailable", { message, category: "electrumx_error" });
   return providerError("provider_error", { providerCode: error?.code ?? null, message });
 }
 function createTransport({
@@ -4009,6 +4010,7 @@ function createTransport({
   fetch: fetcher = globalThis.fetch,
   timeoutMs = PROVIDER_DEFAULTS.timeoutMs,
   retries = PROVIDER_DEFAULTS.retries,
+  addressReadRetries = 0,
   retryDelayMs = PROVIDER_DEFAULTS.retryDelayMs,
   maxResponseBytes = PROVIDER_DEFAULTS.maxResponseBytes,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -4017,6 +4019,7 @@ function createTransport({
   if (base.protocol !== "https:" || base.username || base.password || base.search || base.hash) throw providerError("invalid_provider_url");
   const root = base.href.replace(/\/$/, "");
   if (!Number.isSafeInteger(maxResponseBytes) || maxResponseBytes < 1) throw providerError("invalid_provider_config", "maxResponseBytes");
+  if (!Number.isSafeInteger(addressReadRetries) || addressReadRetries < 0 || addressReadRetries > 2) throw providerError("invalid_provider_config", "addressReadRetries");
   async function once(path, init) {
     let reader, response, bytes, length = 0;
     const controller = new AbortController(), cancel = () => {
@@ -4028,8 +4031,12 @@ function createTransport({
       cancel();
     }, timeoutMs);
     try {
-      response = await fetcher(root + path, { ...init, redirect: "error", signal: controller.signal });
+      response = await fetcher(root + path, { ...init, redirect: "manual", signal: controller.signal });
       reader = response.body?.getReader();
+      if (response.status >= 300 && response.status < 400) throw providerError(
+        "provider_http_error",
+        { path, status: response.status, category: "http_error" }
+      );
       if (Number(response.headers.get("content-length")) > maxResponseBytes) throw providerError("provider_response_too_large", { path });
       bytes = new Uint8Array(Math.min(65536, maxResponseBytes));
       if (reader) for (; ; ) {
@@ -4049,8 +4056,9 @@ function createTransport({
       const timedOut = controller.signal.aborted;
       cancel();
       controller.abort();
-      if (error.code === "provider_response_too_large" || error.code === "provider_timeout") throw error;
-      throw providerError(timedOut ? "provider_timeout" : "provider_unavailable", { path });
+      if (["provider_response_too_large", "provider_timeout", "provider_http_error"].includes(error?.code)) throw error;
+      if (PUBLISHER_LIMIT_ERRORS.has(error?.code)) throw providerError(error.code, { path });
+      throw providerError(timedOut ? "provider_timeout" : "provider_unavailable", { path, category: timedOut ? "timeout" : "transport" });
     } finally {
       clearTimeout(timer);
       reader?.releaseLock();
@@ -4061,7 +4069,10 @@ function createTransport({
     } catch {
       throw providerError("provider_non_json", { path });
     }
-    if (!response.ok) throw providerError(response.status === 429 || response.status >= 500 ? "provider_unavailable" : "provider_http", { path, status: response.status });
+    if (!response.ok) throw providerError(
+      response.status === 429 || response.status >= 500 ? "provider_unavailable" : "provider_http_error",
+      { path, status: response.status, category: "http_error" }
+    );
     let body;
     try {
       body = JSON.parse(text);
@@ -4083,7 +4094,9 @@ function createTransport({
       try {
         return await once(path, init);
       } catch (error) {
-        if (!idempotent || attempt >= retries || !RETRYABLE_TRANSPORT.has(error.message)) throw error;
+        const addressRead = error?.detail?.category === "electrumx_error" && (path.startsWith("/history/") || path.startsWith("/unspent/"));
+        const limit = addressRead ? Math.max(retries, addressReadRetries) : retries;
+        if (!idempotent || attempt >= limit || !RETRYABLE_TRANSPORT.has(error.message)) throw error;
         await sleep(retryDelayMs * (attempt + 1));
       }
     }
@@ -4319,8 +4332,8 @@ function createSpaceXpanseProvider(options = {}) {
     if (isCoinbase(parsed) && tip.height - tx.height + 1 < config.coinbaseMaturity) return null;
     return { txid: row.txid, index: row.index, amount: output.amount, script: ownerScript, previousRaw: tx.raw };
   }
-  async function selectFunding(tip, head, accept) {
-    const rows = (await confirmedUnspent(tip)).filter((row) => row.txid + ":" + row.index !== head).sort((a, b) => b.value - a.value || a.height - b.height || (a.txid < b.txid ? -1 : a.txid > b.txid ? 1 : 0) || a.index - b.index);
+  async function selectFunding(tip, head, accept, verifiedUnspent = null) {
+    const rows = (verifiedUnspent ?? await confirmedUnspent(tip)).filter((row) => row.txid + ":" + row.index !== head).sort((a, b) => b.value - a.value || a.height - b.height || (a.txid < b.txid ? -1 : a.txid > b.txid ? 1 : 0) || a.index - b.index);
     const selected = [], seen = /* @__PURE__ */ new Set();
     let inspected = 0;
     for (const row of rows) {
@@ -4337,7 +4350,7 @@ function createSpaceXpanseProvider(options = {}) {
     }
     throw providerError("funds_unavailable");
   }
-  async function fund(claim, current) {
+  async function fund(claim, current, verifiedUnspent = null) {
     const relayFloor = await relayFee();
     const tip = current.observed.evidence.tip, operation = current.head ? "update" : "register";
     const receipt = { ...parseCanonical(claim.bytes, 7), a: "A".repeat(87) };
@@ -4378,7 +4391,7 @@ function createSpaceXpanseProvider(options = {}) {
     return selectFunding(tip, current.head, (selected) => {
       inputs.push(selected.at(-1));
       return plan();
-    });
+    }, verifiedUnspent);
   }
   async function validateFee(prepared, bytes) {
     const relayFloor = await relayFee();
@@ -4581,10 +4594,70 @@ async function authenticateRetirement(api, original, conflictTxid, config, docum
   return { proof, tip, confirmations: tip.height - conflict.height + 1 };
 }
 
+// leaderboard/tip-guard.js
+async function tipExtends(api, pinned, observed, expectedEpoch = null) {
+  if (observed.height === pinned.height) return observed.hash === pinned.hash;
+  if (observed.height < pinned.height || observed.height - pinned.height > 10) return false;
+  const low = expectedEpoch === null ? pinned.height : Math.max(0, observed.height - 10);
+  const chain = await api.fetchHeaders(low, observed.height);
+  if (chain[0]?.height !== low || chain.at(-1)?.hash !== observed.hash) return false;
+  if (chain.find((row) => row.height === pinned.height)?.hash !== pinned.hash) return false;
+  return expectedEpoch === null || epoch(medianTime(chain.slice(-11).map((row) => row.time))) === expectedEpoch;
+}
+
 // leaderboard/publisher.js
 var RECHECK = 30;
 var CHUNK = 100;
 var CHECKPOINT_LAG = 60;
+var PROVIDER_FETCH_LIMIT = 36;
+var PUBLISHER_DEADLINE_MS = 55e3;
+var DIAGNOSTIC_CODES = /* @__PURE__ */ new Set([
+  "provider_unavailable",
+  "provider_timeout",
+  "provider_http_error",
+  "provider_request_budget_exhausted",
+  "publisher_deadline_exceeded",
+  "provider_response_too_large",
+  "provider_non_json",
+  "provider_envelope",
+  "provider_error",
+  "provider_shape",
+  "history_changed",
+  "reorg_detected",
+  "reconciliation_required"
+]);
+var DIAGNOSTIC_CATEGORIES = /* @__PURE__ */ new Set(["transport", "timeout", "http_error", "electrumx_error"]);
+var DIAGNOSTIC_PHASES = /* @__PURE__ */ new Set([
+  "initialize",
+  "acquire",
+  "head_utxo",
+  "synchronize",
+  "prepare",
+  "pre_sign_validate",
+  "lookup",
+  "before_broadcast",
+  "broadcast",
+  "preflight",
+  "header_tip",
+  "marker_scan",
+  "marker_page",
+  "final_tip",
+  "pre_sign_tip",
+  "pre_sign_history"
+]);
+function phaseError(code, phase) {
+  return providerError(code, { phase });
+}
+function safeProviderRoute(path) {
+  if (typeof path !== "string") return null;
+  if (["/info", "/mempool", "/hash/0"].includes(path)) return path.slice(1).replace("/", "_");
+  if (/^\/range\/[0-9]+(?:\?offset=[0-9]+)?$/.test(path)) return "range";
+  if (/^\/history\/[a-zA-Z0-9]+(?:\?offset=[0-9]+)?$/.test(path)) return "history";
+  if (/^\/transaction\/[a-f0-9]{64}$/.test(path)) return "transaction";
+  if (/^\/unspent\/[a-zA-Z0-9]+$/.test(path)) return "unspent";
+  if (path === "/broadcast") return "broadcast";
+  return null;
+}
 var RELAY_FEE_FAILURES = /* @__PURE__ */ new Set(["relay_fee_unavailable", "relay_fee_insufficient", "relay_fee_policy_incompatible"]);
 var FINITE_FAILURES = /* @__PURE__ */ new Set(["finite_scope_required", "claim_outside_scope", "transaction_budget_exhausted", "broadcast_budget_exhausted", "spend_budget_exhausted", "invalid_budget_plan"]);
 function deriveMarker(appKey) {
@@ -4697,13 +4770,13 @@ async function acquire(runtime, provider, storage, job) {
     await mutate(storage, "save", { job, version: runtime.version, document });
     return null;
   }
-  if (fresh.at(-1).hash !== tip.hash) throw Error("history_changed");
+  if (fresh.at(-1).hash !== tip.hash) throw phaseError("reorg_detected", "header_tip");
   const first = await api.historyPage(0);
   let scan = document.scan;
   if (!scan || scan.count !== first.count || JSON.stringify(scan.first) !== JSON.stringify(first.tx)) scan = { count: first.count, first: first.tx, offset: 0, ids: [] };
   const page = scan.offset === 0 ? first : await api.historyPage(scan.offset);
-  if (page.count !== scan.count) throw Error("history_changed");
-  if (page.tx.some((id) => scan.ids.includes(id))) throw Error("history_changed");
+  if (page.count !== scan.count) throw phaseError("history_changed", "marker_scan");
+  if (page.tx.some((id) => scan.ids.includes(id))) throw phaseError("history_changed", "marker_scan");
   scan.ids.push(...page.tx);
   scan.offset += page.tx.length;
   const overlap = page.tx.find((id) => document.ids.includes(id));
@@ -4719,7 +4792,7 @@ async function acquire(runtime, provider, storage, job) {
     await mutate(storage, "save", { job, version: runtime.version, document });
     return null;
   }
-  if (scan.ids.length !== scan.count) throw Error("history_changed");
+  if (scan.ids.length !== scan.count) throw phaseError("history_changed", "marker_scan");
   document.transactions = document.transactions.filter((row) => scan.ids.includes(parseTransaction(row.raw, { funding: true }).txid));
   const checkpointHeight = document.checkpoint?.height ?? -1;
   const todo = scan.ids.filter((id) => {
@@ -4744,7 +4817,9 @@ async function acquire(runtime, provider, storage, job) {
     document.observations[id] = { height: observed.height, blockHash: observed.blockHash, checkedHash: tip.hash, owned, raw: owned ? observed.raw : void 0 };
   }
   const end = await api.tipInfo(), last = await api.historyPage(0);
-  if (end.hash !== tip.hash || JSON.stringify(last) !== JSON.stringify(first)) throw Error("history_changed");
+  if (JSON.stringify(last) !== JSON.stringify(first)) throw phaseError("history_changed", "marker_page");
+  const pinnedEpoch = epoch(medianTime(document.headers.slice(-11).map((row) => row.time)));
+  if (!await tipExtends(api, tip, end, pinnedEpoch)) throw phaseError("history_changed", "final_tip");
   const unfinished = todo.length > 1;
   document.ids = scan.ids;
   document.scan = null;
@@ -4792,10 +4867,12 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
   let runtime = await storage.rpc("job", { owner: job });
   if (runtime.code === "job_busy") return { code: "job_busy" };
   if (!runtime.owner) return { code: FINITE_FAILURES.has(runtime.code) || runtime.code?.startsWith("recovery_") ? runtime.code : "publisher_unavailable" };
-  let calls = 0;
-  const deadline = Date.now() + 55e3;
+  let calls = 0, phase = "initialize";
+  const startedAt = Date.now(), deadline = startedAt + PUBLISHER_DEADLINE_MS;
   const boundedFetch = (...args) => {
-    if (++calls > 36 || Date.now() > deadline) throw Error("provider_unavailable");
+    if (Date.now() > deadline) throw providerError("publisher_deadline_exceeded");
+    if (calls >= PROVIDER_FETCH_LIMIT) throw providerError("provider_request_budget_exhausted");
+    calls++;
     return fetcher.call(globalThis, ...args);
   };
   const makeProvider = (anchor, bootstrap) => createSpaceXpanseProvider({
@@ -4806,6 +4883,7 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
     baseUrl: config.baseUrl,
     fetch: boundedFetch,
     retries: 0,
+    addressReadRetries: 2,
     acquisitionAttempts: 1,
     ...providerOptions
   });
@@ -4845,13 +4923,16 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
         document: { headers: [], transactions: [], previous: [], ids: [], observations: {} }
       });
     }
+    phase = "acquire";
     const provider = makeProvider(runtime.config.anchor, runtime.effective_bootstrap ?? runtime.bootstrap), acquired = await acquire(runtime, provider, storage, job);
     if (!acquired) return { code: "initial_sync" };
     runtime = acquired.runtime;
     const { snapshot, api, tip, unconfirmed } = acquired;
+    let verifiedUnspent = null;
     if (snapshot.head && !unconfirmed) {
-      const unspent = await api.confirmedUnspent(tip);
-      if (!unspent.some((row) => row.txid + ":" + row.index === snapshot.head)) throw Error("conflict_suspected");
+      phase = "head_utxo";
+      verifiedUnspent = await api.confirmedUnspent(tip);
+      if (!verifiedUnspent.some((row) => row.txid + ":" + row.index === snapshot.head)) throw Error("conflict_suspected");
     }
     const state = await storage.read();
     let journal = runtime.recovery;
@@ -4879,6 +4960,7 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
     if (unconfirmed && Object.entries(runtime.document.observations).some(([id, row]) => row.owned && row.height === null && id !== active?.txid && (!recovery || id !== journal.attempt.txid))) throw Error("conflict_suspected");
     if (active && ["signing_started", "signing_unknown"].includes(active.state)) throw Error("signing_unknown");
     if (!recovery && active?.raw && active.attempts >= 4 && !snapshot.lineage.some((row) => row.txid === active.txid)) throw Error("retry_exhausted");
+    phase = "synchronize";
     runtime = await mutate(storage, recovery ? "recovery_synchronize" : "synchronize", {
       job,
       version: runtime.version,
@@ -4893,24 +4975,27 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
     if (!runtime.ready) return { code: runtime.code };
     const chain = {
       prepare: async (row) => {
+        phase = "prepare";
         if (unconfirmed) throw Error("unconfirmed_pending");
         const current = { head: snapshot.head, lineage: snapshot.lineage, observed: { evidence: { tip } } };
-        return { epoch: snapshot.epoch, head: snapshot.head, prepared: await api.fund(row, current), bytes: row.bytes };
+        return { epoch: snapshot.epoch, head: snapshot.head, prepared: await api.fund(row, current, verifiedUnspent), bytes: row.bytes };
       },
       validate: async (observation) => {
+        phase = "pre_sign_validate";
         await api.validateFee(observation.prepared, observation.bytes);
         if (recovery) {
           const original = state.claims.find((row) => row.id === journal.original_id);
           await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof, journal.envelope);
         }
         const fresh = await api.tipInfo();
-        if (fresh.hash !== tip.hash) return false;
+        if (!await tipExtends(api, tip, fresh, snapshot.epoch)) throw phaseError("reorg_detected", "pre_sign_tip");
         const first = await api.historyPage(0), observed = runtime.document.ids.slice(0, 10);
-        if (first.count !== runtime.document.ids.length || JSON.stringify(first.tx) !== JSON.stringify(observed)) return false;
+        if (first.count !== runtime.document.ids.length || JSON.stringify(first.tx) !== JSON.stringify(observed)) throw phaseError("history_changed", "pre_sign_history");
         const unspent = new Set((await api.confirmedUnspent(fresh)).map((row) => row.txid + ":" + row.index));
         return observation.prepared.inputs.every((input) => unspent.has(input.txid + ":" + input.index));
       },
       lookup: async (txid, inputs) => {
+        phase = "lookup";
         try {
           const observed = await api.transaction(txid);
           if (observed.height !== null) return { state: "included", txid };
@@ -4923,11 +5008,15 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
         }
       },
       beforeBroadcast: recovery ? async (row) => {
+        phase = "before_broadcast";
         await api.validateFee(row.prepared, row.bytes);
         const original = state.claims.find((row2) => row2.id === journal.original_id);
         await authenticateRetirement(api, original, journal.envelope.conflict_txid, config, runtime.document, journal.proof, journal.envelope);
       } : void 0,
-      broadcast: (raw) => provider.broadcast(raw)
+      broadcast: (raw) => {
+        phase = "broadcast";
+        return provider.broadcast(raw);
+      }
     };
     if (claim) {
       const scoped = recovery ? recoveryStorage(storage, recovery, scope, job) : { read: () => storage.read(), rpc: (operation, payload = {}) => storage.rpc(operation, { ...payload, job }) };
@@ -4935,14 +5024,33 @@ async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch
       if (result.code && !["retry_later", "signer_busy", "stale_state"].includes(result.code)) throw Error(result.code);
       return { code: result.code ?? result.state, ...result.diagnostic ? { diagnostic: result.diagnostic } : {} };
     }
+    phase = "preflight";
     await api.relayFee();
     const reserve = (snapshot.head ? 0 : NETWORK.nameMinimum) + FEE_POLICY.maximum + NETWORK.dust;
-    await api.selectFunding(tip, snapshot.head, (inputs) => inputs.reduce((total, input) => total + input.amount, 0) >= reserve);
+    await api.selectFunding(tip, snapshot.head, (inputs) => inputs.reduce((total, input) => total + input.amount, 0) >= reserve, verifiedUnspent);
     return { code: "ready" };
   } catch (error) {
+    const diagnosticCode = DIAGNOSTIC_CODES.has(error?.message) ? error.message : "publisher_unavailable";
+    const diagnosticCategory = DIAGNOSTIC_CATEGORIES.has(error?.detail?.category) ? error.detail.category : null;
+    const diagnosticPhase = DIAGNOSTIC_PHASES.has(error?.detail?.phase) ? error.detail.phase : phase;
+    const route = safeProviderRoute(error?.detail?.path);
+    const status = Number.isInteger(error?.detail?.status) && error.detail.status >= 100 && error.detail.status <= 599 ? error.detail.status : null;
+    console.error(JSON.stringify({
+      event: "hd1_publisher_failure",
+      code: diagnosticCode,
+      provider_requests: calls,
+      provider_request_limit: PROVIDER_FETCH_LIMIT,
+      elapsed_ms: Math.max(0, Date.now() - startedAt),
+      deadline_ms: PUBLISHER_DEADLINE_MS,
+      ...diagnosticCategory ? { category: diagnosticCategory } : {},
+      ...diagnosticPhase ? { phase: diagnosticPhase } : {},
+      ...route ? { route } : {},
+      ...status ? { http_status: status } : {}
+    }));
+    const persistedCode = error?.message === "provider_request_budget_exhausted" ? "provider_unavailable" : error?.message === "publisher_deadline_exceeded" ? "provider_timeout" : error?.message === "provider_http_error" ? "publisher_unavailable" : error?.message;
     const code = RELAY_FEE_FAILURES.has(error.message) || FINITE_FAILURES.has(error.message) || recovery && /^(recovery_|signing_unknown|epoch_changed|not_improved)/.test(error.message) ? error.message : "publisher_unavailable";
     try {
-      await storage.rpc(recovery ? "recovery_pause" : "job_error", { job, code: RELAY_FEE_FAILURES.has(error.message) ? "invalid_provider_config" : error.message });
+      await storage.rpc(recovery ? "recovery_pause" : "job_error", { job, code: RELAY_FEE_FAILURES.has(error.message) ? "invalid_provider_config" : persistedCode });
     } catch {
     }
     return { code };

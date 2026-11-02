@@ -1,43 +1,67 @@
-# Huarong Dao publisher stability fix (Cloudflare / GitHub)
+# Huarong Dao — experimental leaderboard
 
-Target: `bellodox/huarong-dao`, branch `leaderboard`, verified source at HEAD `b08b3b9540b4c883f105880a8e9fabf8f5b63370` (2026-11-02). The modified source files' baseline Git blob hashes are `provider.js=9efe9cddaa6649f70150863d8397f5a478ff59ab` and `publisher.js=c20bbc543d4e3ed3d4cc127156aa2718ddaf1a7c`. The publisher remains disabled by existing `HD1_PUBLISHER="false"` in `wrangler.jsonc`; **this patch does not re-enable it**.
+A browser sliding-block puzzle with 14 layouts, local score/evidence persistence, Bulgarian/English UI and an optional consent-based ROD public leaderboard. Local play does not require a wallet or public-score consent. Public receipts retain the complete move path; chain confirmation, not database rows alone, establishes ranking evidence.
 
-## Findings
+All work remains experimental. Current validation, live leaderboard and ROD endpoint proof, historical observations, review scope and remaining blockers belong only in the [execution handoff](tests/release-evidence.md#live-leaderboard-working-and-rod-api-reads-verified--2026-11-02). The [normative plan](tasks/plan.md), [checklist](tasks/todo.md) and [operator runbook](docs/cloudflare-deployment.md) define requirements and operational boundaries.
 
-1. Existing `acquire()` throws `history_changed` when the ROD tip changes between two `/info` calls, even if the old tip is still canonical and the marker `/history` page is identical. This makes normal block production appear to be a history integrity failure.
-2. Existing post-preparation `validate()` rejects all tip extensions, even if the original tip is still canonical, the marker history is unchanged and the current MTP epoch is identical.
-3. For an established ROD name, the same scheduler tick repeats the read-only `/unspent` request for head verification and for funding selection, before a separate necessary fresh `/unspent` verification immediately before signing. One of these early reads can be reused safely.
-4. Logs do not indicate whether failures occur in acquisition, funding, post-preparation validation or broadcast, so `/unspent` errors could not be localized precisely from previous reports.
+## Architecture
 
-## Changes
+| Boundary | Source and responsibility |
+| --- | --- |
+| Browser game | [HTML asset](public/index.html): ordered game, scoring, solver, local persistence and translation scripts. Training starts by default; three practice layouts and assisted runs are excluded from public scoring. |
+| Public consent and signing | [UI](public/leaderboard-ui.js), [signing source](leaderboard/client.js), generated [browser bundle](public/leaderboard-client.js). Identity creation/signing requires explicit public consent. |
+| Worker and portable relay | [Worker](worker.js) delegates API/scheduled work to generated [relay](relay.js), whose [entry source](leaderboard/relay-entry.js) also supports a Node CLI. Static assets use the assets binding. |
+| Verification and chain | [Profile](leaderboard/profile.js), [receipts](leaderboard/receipt.js), [verification](leaderboard/verify.js), [transaction construction](leaderboard/chain.js), [reconstruction](leaderboard/reconcile.js). hd2 has inclusive 10× optimum ceilings for eleven ranked layouts; hd1 semantics remain distinct. |
+| Publication | [Publisher](leaderboard/publisher.js), [provider](leaderboard/provider.js), [tip guard](leaderboard/tip-guard.js), [issuer](leaderboard/issuer.js) and [storage](leaderboard/storage.js). Provider-anchored authentication is not independent consensus or proof of exhaustive discovery. |
+| Durable authority | [SQL migrations](supabase/migrations/001_leaderboard.sql) through [009](supabase/migrations/009_recovery_completion.sql) retain ownership, signing barriers, exact outbox and separate bounded authority journals. |
 
-- `leaderboard/tip-guard.js` **new**: validate that a newer observed tip extends the pinned block through a contiguous, hash-linked `/range` segment (at most 10 new blocks). During both acquisition and pre-sign checks, verify the current 11-header median-time epoch matches the pinned score epoch. Same-height fork, rollback, changed canonical ancestor or epoch change always fail closed.
-- `leaderboard/publisher.js`: use that guard at the end of acquisition and at pre-sign validation; keep marker history equality and fresh UTXO checks. Add restricted, non-sensitive per-stage diagnostics. Cache initial verified UTXOs for funding selection within the same tick; never cache the final pre-sign read.
-- `leaderboard/provider.js`: accept already verified UTXO rows for this tick's funding selection; do not change the default behavior for any other callers.
-- `tests/publisher-tip-guard.test.js` **new**: nine isolated safety and extension checks (passed locally).
-- `tests/publisher-live-tip.test.js` **new**: four full-repository regression scenarios using existing PGlite/mock-chain fixtures (requires running the Cloudflare build's `npm test`).
+The [configuration](wrangler.jsonc) currently sets the publisher flag to true and schedules a one-minute cron. This is **not disabled/static configuration**, nor proof that runtime secrets, SQL readiness, funding or hosted service are healthy. Static-only operators must explicitly disable publication and review remote bindings using the [runbook](docs/cloudflare-deployment.md#2-primary-workflow-github-push-to-workers-builds). No deployment, signing or spending is authorized by this README.
 
-## Installation with GitHub-connected Cloudflare Workers
+The Worker also exposes a temporary fixed-target read-only diagnostic through the [probe module](tests/rod-transport-probe.worker.js). It never probes broadcast or verifies current private runtime identity; successful reads do not guarantee later publication.
 
-In GitHub's `leaderboard` branch, replace the two existing JS files with the corresponding files from this package, and add the three new files. Alternatively use `huarong-runtime-fix.patch` in a checkout. No CLI or local Node is required if you edit/commit files through GitHub; Cloudflare's existing build `npm ci --include=dev --no-audit --no-fund && npm run build && npm test` will regenerate `relay.js` on deployment. Keep all other configuration, Supabase rows, and recovery journals unchanged.
+## Local setup
 
-Do not upload local test-only `profile.js` or `package.json` from analysis work; **they are not part of this ZIP**.
+Use Node 24.14.1 from the [version file](.nvmrc) and dependencies pinned by the [lockfile](package-lock.json). If dependencies are absent, install them before building:
 
-## Rollout
+```bat
+npm ci --include=dev --no-audit --no-fund
+npm run build
+npm test
+```
 
-1. Commit changes while `HD1_PUBLISHER="false"` remains committed in `wrangler.jsonc`.
-2. Confirm all Cloudflare build/test steps pass, including the new tests. If any fail, do not enable publication.
-3. When ready, remove the disabled setting or set it to `"true"`, commit, and allow Cloudflare to deploy.
-4. Check `/probe` and scheduled logs. Each `hd1_publisher_failure` now reports a safe `phase`, such as `acquire`, `head_utxo` or `pre_sign_validate`. A genuine backend read failure can still occur; no change can make a failed live UTXO check safe to ignore.
-5. Submit a **new** unassisted score after readiness returns; the old `Player32410` record is cancelled and must remain cancelled. The `SYNTHETIC02` original and confirmed replacement are deliberately unchanged.
+Build regenerates both checked-in distributions and checks relay parity. Tests and Wrangler reject stale relay bytes rather than repairing them. These instructions are not evidence that this checkout passes; consult the handoff. Do not hand-edit generated bundles.
 
-## Security / scope
+For local play, use a shell without application credentials, disable dotenv loading and explicitly disable publication:
 
-This does **not** introduce a new WIF, change signed/raw transactions, remove any SQL fences, change recovery authority, reset Supabase, bypass the marker history checks, skip the independent fresh UTXO read, retry broadcasts, or claim that a successful `/probe` proves subsequent API calls will succeed. No ROD API changes. The scope remains constrained by the 36-fetch/55-second publisher limits and the existing transaction issuance budgets.
+```bat
+set WRANGLER_SEND_METRICS=false
+set CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false
+npm run dev -- --var HD1_PUBLISHER:false
+```
 
-## Verification performed
+Open http://127.0.0.1:8787. Do not load restricted secret files or use cloud login/deploy as a local prerequisite. The [loopback launcher](tests/runtime_servers.py) and [fixture Worker](tests/runtime-worker.js) are test-only; stop only launcher-owned processes with its stop option. Never deploy fixture keys/configuration.
 
-- `node --check`: both changed existing JS files, new module and both new test modules: passed.
-- `node --test tests/publisher-tip-guard.test.js`: nine passed locally, using verbatim `epoch()`/`medianTime()` implementations extracted from `leaderboard/profile.js` for isolated execution.
-- `git apply --check` against a clean checkout of the exact baseline provider/publisher Git blob versions: passed.
-- Full PGlite integration suite and live Cloudflare deployment: **not run here**. GitHub connector does not have repository write permission (403); no remote commit or deployment has been performed.
+## Available local QA commands
+
+The [manifest](package.json) provides these commands; no lint/typecheck/CI command is defined.
+
+| Command | Purpose |
+| --- | --- |
+| npm run build | Regenerate relay and browser bundle, then check relay bytes. |
+| npm run check:relay | Non-writing generated-relay parity check. |
+| npm test | Relay precheck, then sequential Node test files under the root tests directory. |
+| npm run dev | Loopback Wrangler development server; use the disabled-publication override above. |
+
+Existing browser QA includes the [original UI suite](tests/qa_v14.py), [deep independent BFS suite](tests/qa_deep_independent.py), [public UI suite](tests/qa_public_ui.py) and [runtime launcher](tests/runtime_servers.py). Inspect each suite's setup before execution; browser/fixture checks are not hosted acceptance. All tests and validation utilities belong under the root tests directory. The manifest deployment command is a remote operation, not local QA; it requires separate authorization.
+
+## Migration and recovery contracts
+
+Apply only missing complete atomic migrations in order, never reset existing journals to retry publication. Ordinary readiness requires capability 4 from [004](supabase/migrations/004_finite_publication.sql); [007](supabase/migrations/007_failed_transaction_recovery.sql) adds recovery capability 7. General positive-conflict recovery requires an authenticated different spend of an original input, six confirmations and bounded ancestry proof. Absence or fee rejection is not retirement. The narrowly pinned [008 override](supabase/migrations/008_operator_restart_override.sql) and [009 completion](supabase/migrations/009_recovery_completion.sql) are explicit exceptions, not general alternate-spend permission.
+
+Completion preserves historical raw journals/counters/bootstrap and separate effective bootstrap; continuing authority is separately capped and server-resolved. No database transaction spans network/signing. Exact raw persistence precedes broadcast, ambiguous signing remains fenced, and at most one app transaction is unconfirmed globally. One reconciled canonical confirmation permits successors, six establish ranking and twelve close a week. Follow the [recovery runbook](docs/cloudflare-deployment.md#experimental-positive-conflict-recovery), not ad hoc flags or reset scripts.
+
+## Validation evidence and limits
+
+The [handoff](tests/release-evidence.md) distinguishes freshly executed checks from historical implementer/reviewer and user-supplied hosted reports. Later changes do not inherit older approval. Local mocks/PGlite/browser evidence cannot establish hosted Supabase concurrency, continuous scheduler health, live fee acceptance, exhaustive discovery, deployment or analytics correctness.
+
+Earlier patch-installation notes are retained in Git history (not current repository setup instructions), including the publisher tip-extension change at revision 2aee9a1. Its historical disabled-publisher statement no longer matches current configuration. Normal remote deployment is a separately authorized operator push to GitHub-connected Workers Builds on the leaderboard branch; agents must not commit, push or deploy as part of local analysis.
