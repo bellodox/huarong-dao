@@ -316,8 +316,10 @@ export function createSpaceXpanseProvider(options={}) {
   /** Value-first discovery is bounded separately from the nine selected funding inputs.
    * Untrusted values only order candidates; exact raw, inclusion, script and maturity
    * checks decide spendability. Both readiness and preparation use this same path. */
-  async function selectFunding(tip,head,accept) {
-    const rows=(await confirmedUnspent(tip)).filter(row=>row.txid+':'+row.index!==head)
+  async function selectFunding(tip,head,accept,verifiedUnspent=null) {
+    // Reuse this tick's already checked chain-head UTXOs. Signing still requires
+    // the independent fresh /unspent call in chain.validate after SQL prepare.
+    const rows=(verifiedUnspent??await confirmedUnspent(tip)).filter(row=>row.txid+':'+row.index!==head)
       .sort((a,b)=>b.value-a.value||a.height-b.height||(a.txid<b.txid?-1:a.txid>b.txid?1:0)||a.index-b.index);
     const selected=[],seen=new Set();let inspected=0;
     for(const row of rows) {
@@ -331,7 +333,7 @@ export function createSpaceXpanseProvider(options={}) {
     throw providerError('funds_unavailable');
   }
   /** Deterministic value-aware funding with fee <= policy, folded sub-dust change. */
-  async function fund(claim,current) {
+  async function fund(claim,current,verifiedUnspent=null) {
     const relayFloor=await relayFee();
     const tip=current.observed.evidence.tip,operation=current.head?'update':'register';
     const receipt={...parseCanonical(claim.bytes,7),a:'A'.repeat(87)};
@@ -361,7 +363,7 @@ export function createSpaceXpanseProvider(options={}) {
         if(error.message==='funds_unavailable')return null;throw error;
       }
     };
-    return selectFunding(tip,current.head,selected=>{inputs.push(selected.at(-1));return plan();});
+    return selectFunding(tip,current.head,selected=>{inputs.push(selected.at(-1));return plan();},verifiedUnspent);
   }
   /** Rebuild the selected exact shape against a fresh observed floor before the barrier. */
   async function validateFee(prepared,bytes) {

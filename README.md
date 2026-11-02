@@ -1,66 +1,43 @@
-# Huarong Dao /probe: all publisher endpoints
+# Huarong Dao publisher stability fix (Cloudflare / GitHub)
 
-Based on `bellodox/huarong-dao`, branch `leaderboard`, HEAD `a462741725cadd56527e9329c10549eb1477d1cf` (2026-11-02).
+Target: `bellodox/huarong-dao`, branch `leaderboard`, verified source at HEAD `b08b3b9540b4c883f105880a8e9fabf8f5b63370` (2026-11-02). The modified source files' baseline Git blob hashes are `provider.js=9efe9cddaa6649f70150863d8397f5a478ff59ab` and `publisher.js=c20bbc543d4e3ed3d4cc127156aa2718ddaf1a7c`. The publisher remains disabled by existing `HD1_PUBLISHER="false"` in `wrangler.jsonc`; **this patch does not re-enable it**.
 
-The `/probe` endpoint now checks all **seven read-only routes actually used** by the publisher, plus the original TCP/TLS checks. The generated publisher `relay.js` is unchanged by the probe itself. The existing `worker.js` already forwards `/probe` to `tests/rod-transport-probe.worker.js`; no worker.js modification is necessary.
+## Findings
 
-## Endpoint coverage
+1. Existing `acquire()` throws `history_changed` when the ROD tip changes between two `/info` calls, even if the old tip is still canonical and the marker `/history` page is identical. This makes normal block production appear to be a history integrity failure.
+2. Existing post-preparation `validate()` rejects all tip extensions, even if the original tip is still canonical, the marker history is unchanged and the current MTP epoch is identical.
+3. For an established ROD name, the same scheduler tick repeats the read-only `/unspent` request for head verification and for funding selection, before a separate necessary fresh `/unspent` verification immediately before signing. One of these early reads can be reused safely.
+4. Logs do not indicate whether failures occur in acquisition, funding, post-preparation validation or broadcast, so `/unspent` errors could not be localized precisely from previous reports.
 
-| Key | Target | Purpose |
-| --- | --- | --- |
-| info | `GET /info` | Mainnet and tip (original probe) |
-| genesis | `GET /hash/0` | Verify genesis availability |
-| range | `GET /range/<current_info_height>?offset=1` | Exercise block/header route |
-| history | `GET /history/RFoscLnDa1fuff9exRhy4SkeKzTet1Yxpc?offset=0` | Marker address history, **not public key** |
-| unspent | `GET /unspent/RCdhuRDQkwM5aYo4zTCWWk6KQEdFGQByu6` | App wallet UTXOs |
-| transaction | `GET /transaction/439112cbfdcec5301cd3302eab22749186382a388b412405966181953e95348c` | Known confirmed transaction details |
-| mempool | `GET /mempool` | Actual relay-fee source; `/fee` is not used for publication |
-| broadcast | `POST /broadcast` | **Never requested**; reported as `skipped` because mutating |
+## Changes
 
-The addresses and txid are public, confirmed Huarong Dao test identities from operator observations in the conversation. They are intentionally **pinned**, not derived from the WIF or SQL; **if the configured app/marker keys change, update these public probe constants** before interpreting results. Public probes do not prove that the identities match current secret bindings. The results explicitly state `pinned_public_deployment_addresses_not_runtime_key_verification`.
+- `leaderboard/tip-guard.js` **new**: validate that a newer observed tip extends the pinned block through a contiguous, hash-linked `/range` segment (at most 10 new blocks). During both acquisition and pre-sign checks, verify the current 11-header median-time epoch matches the pinned score epoch. Same-height fork, rollback, changed canonical ancestor or epoch change always fail closed.
+- `leaderboard/publisher.js`: use that guard at the end of acquisition and at pre-sign validation; keep marker history equality and fresh UTXO checks. Add restricted, non-sensitive per-stage diagnostics. Cache initial verified UTXOs for funding selection within the same tick; never cache the final pre-sign read.
+- `leaderboard/provider.js`: accept already verified UTXO rows for this tick's funding selection; do not change the default behavior for any other callers.
+- `tests/publisher-tip-guard.test.js` **new**: nine isolated safety and extension checks (passed locally).
+- `tests/publisher-live-tip.test.js` **new**: four full-repository regression scenarios using existing PGlite/mock-chain fixtures (requires running the Cloudflare build's `npm test`).
 
-## JSON response
+## Installation with GitHub-connected Cloudflare Workers
 
-Original `fetch`, `tcp`, `tls`, `interpretation` and `note` fields remain. New fields:
+In GitHub's `leaderboard` branch, replace the two existing JS files with the corresponding files from this package, and add the three new files. Alternatively use `huarong-runtime-fix.patch` in a checkout. No CLI or local Node is required if you edit/commit files through GitHub; Cloudflare's existing build `npm ci --include=dev --no-audit --no-fund && npm run build && npm test` will regenerate `relay.js` on deployment. Keep all other configuration, Supabase rows, and recovery journals unchanged.
 
-- `endpoints`: each read route's `ok`, path, elapsed time, HTTP status, response shape, bounded schema summary and optional sanitized `api_error_kind`/`api_error_code`.
-- `endpoints.broadcast`: `tested:false`, `skipped:true`, explanatory reason; no write is sent.
-- `publisher_reads`: summary of seven independently checked read paths; false if even one fails.
-- `public_identity`: fixed public addresses used in the test.
+Do not upload local test-only `profile.js` or `package.json` from analysis work; **they are not part of this ZIP**.
 
-For errors, the probe separates `electrumx_error` from `address_rejected`, HTTP redirects, invalid envelopes, responses over **4 MB** and transport/TLS errors. It never returns raw transactions, transaction hex, WIF, provider response bodies, Supabase data, or arbitrary destinations. The API responses are bounded to the same 4 MB ceiling as the publisher. Tests use mocked responses; **live Cloudflare behavior remains to be verified after deployment.**
+## Rollout
 
-The check is observational, not a complete cryptographic validation or a guarantee that a subsequent publisher request will succeed. `/probe` is a public route; the expanded endpoint set adds read requests, so leave it enabled only as long as diagnostics are needed or apply suitable rate limiting.
+1. Commit changes while `HD1_PUBLISHER="false"` remains committed in `wrangler.jsonc`.
+2. Confirm all Cloudflare build/test steps pass, including the new tests. If any fail, do not enable publication.
+3. When ready, remove the disabled setting or set it to `"true"`, commit, and allow Cloudflare to deploy.
+4. Check `/probe` and scheduled logs. Each `hd1_publisher_failure` now reports a safe `phase`, such as `acquire`, `head_utxo` or `pre_sign_validate`. A genuine backend read failure can still occur; no change can make a failed live UTXO check safe to ignore.
+5. Submit a **new** unassisted score after readiness returns; the old `Player32410` record is cancelled and must remain cancelled. The `SYNTHETIC02` original and confirmed replacement are deliberately unchanged.
 
-## Install
+## Security / scope
 
-From the root of your local `leaderboard` checkout:
-
-**If the previous ElectrumX resilience patch is already applied:**
-
-```sh
-git apply --check /path/to/huarong-probe-only.patch
-git apply /path/to/huarong-probe-only.patch
-node --test tests/rod-transport-probe.test.js
-```
-
-**If the previous patch was NOT applied:**
-
-```sh
-git apply --check /path/to/huarong-full-probe-and-resilience.patch
-git apply /path/to/huarong-full-probe-and-resilience.patch
-npm ci --include=dev
-npm run build
-npm test
-```
-
-Both patches were tested against the original Git blob SHA baseline for these paths. Alternatively, the ZIP contains complete modified files for a manually checked replacement. Do not apply both patches. Do not deploy without reviewing the diff and running the project tests. `npm run build` is mandatory when the publisher source changes because it regenerates `relay.js`.
-
-To view, open `https://huarong-dao.spacexpanseorg.workers.dev/probe` after deployment. The request remains `GET /probe` with no query parameters; POST and arbitrary URL queries are still rejected. No live deployment or ROD broadcast was performed.
+This does **not** introduce a new WIF, change signed/raw transactions, remove any SQL fences, change recovery authority, reset Supabase, bypass the marker history checks, skip the independent fresh UTXO read, retry broadcasts, or claim that a successful `/probe` proves subsequent API calls will succeed. No ROD API changes. The scope remains constrained by the 36-fetch/55-second publisher limits and the existing transaction issuance budgets.
 
 ## Verification performed
 
-- All **13** old+new `rod-transport-probe.test.js` tests pass locally (Node 22).
-- `node --check` passes for the modified probe and tests.
-- `git apply --check` and byte comparison pass for both patch variants against the inspected original source.
-- Full repository publisher integration test suite not executed in this runtime (no installed npm packages).
+- `node --check`: both changed existing JS files, new module and both new test modules: passed.
+- `node --test tests/publisher-tip-guard.test.js`: nine passed locally, using verbatim `epoch()`/`medianTime()` implementations extracted from `leaderboard/profile.js` for isolated execution.
+- `git apply --check` against a clean checkout of the exact baseline provider/publisher Git blob versions: passed.
+- Full PGlite integration suite and live Cloudflare deployment: **not run here**. GitHub connector does not have repository write permission (403); no remote commit or deployment has been performed.

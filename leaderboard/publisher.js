@@ -8,13 +8,18 @@ import { epoch,medianTime } from './profile.js';
 import { advance } from './issuer.js';
 import { publisherReadiness,recoveryReadiness,recoveryStorage } from './storage.js';
 import { authenticateRetirement,authenticateOriginal } from './recovery.js';
+import { tipExtends } from './tip-guard.js';
 
 const RECHECK=30,CHUNK=100,CHECKPOINT_LAG=60;
 const PROVIDER_FETCH_LIMIT=36,PUBLISHER_DEADLINE_MS=55000;
 const DIAGNOSTIC_CODES=new Set(['provider_unavailable','provider_timeout','provider_http_error',
   'provider_request_budget_exhausted','publisher_deadline_exceeded','provider_response_too_large',
-  'provider_non_json','provider_envelope','provider_error','provider_shape']);
+  'provider_non_json','provider_envelope','provider_error','provider_shape',
+  'history_changed','reorg_detected','reconciliation_required']);
 const DIAGNOSTIC_CATEGORIES=new Set(['transport','timeout','http_error','electrumx_error']);
+const DIAGNOSTIC_PHASES=new Set(['initialize','acquire','head_utxo','synchronize','prepare','pre_sign_validate','lookup','before_broadcast','broadcast','preflight',
+  'header_tip','marker_scan','marker_page','final_tip','pre_sign_tip','pre_sign_history']);
+function phaseError(code,phase) {return providerError(code,{phase});}
 function safeProviderRoute(path) {
   if(typeof path!=='string')return null;
   if(['/info','/mempool','/hash/0'].includes(path))return path.slice(1).replace('/','_');
@@ -117,13 +122,13 @@ async function acquire(runtime,provider,storage,job) {
   if(high<tip.height) {
     await mutate(storage,'save',{job,version:runtime.version,document});return null;
   }
-  if(fresh.at(-1).hash!==tip.hash)throw Error('history_changed');
+  if(fresh.at(-1).hash!==tip.hash)throw phaseError('reorg_detected','header_tip');
   const first=await api.historyPage(0);
   let scan=document.scan;
   if(!scan||scan.count!==first.count||JSON.stringify(scan.first)!==JSON.stringify(first.tx))scan={count:first.count,first:first.tx,offset:0,ids:[]};
   const page=scan.offset===0?first:await api.historyPage(scan.offset);
-  if(page.count!==scan.count)throw Error('history_changed');
-  if(page.tx.some(id=>scan.ids.includes(id)))throw Error('history_changed');
+  if(page.count!==scan.count)throw phaseError('history_changed','marker_scan');
+  if(page.tx.some(id=>scan.ids.includes(id)))throw phaseError('history_changed','marker_scan');
   scan.ids.push(...page.tx);scan.offset+=page.tx.length;
   // A stable known suffix may be reused, but only with exact count and order agreement.
   const overlap=page.tx.find(id=>document.ids.includes(id));
@@ -135,7 +140,7 @@ async function acquire(runtime,provider,storage,job) {
   }
   document.scan=scan;
   if(scan.offset<scan.count){await mutate(storage,'save',{job,version:runtime.version,document});return null;}
-  if(scan.ids.length!==scan.count)throw Error('history_changed');
+  if(scan.ids.length!==scan.count)throw phaseError('history_changed','marker_scan');
   // Removed observations are retained as evidence, but not attributed to the new canonical
   // suffix. The 002 rebuild records removed lineage permanently and keeps issuance paused.
   document.transactions=document.transactions.filter(row=>scan.ids.includes(parseTransaction(row.raw,{funding:true}).txid));
@@ -163,7 +168,10 @@ async function acquire(runtime,provider,storage,job) {
     document.observations[id]={height:observed.height,blockHash:observed.blockHash,checkedHash:tip.hash,owned,raw:owned?observed.raw:undefined};
   }
   const end=await api.tipInfo(),last=await api.historyPage(0);
-  if(end.hash!==tip.hash||JSON.stringify(last)!==JSON.stringify(first))throw Error('history_changed');
+  if(JSON.stringify(last)!==JSON.stringify(first))throw phaseError('history_changed','marker_page');
+  // Do not publish an old-week readiness snapshot if a new tip crossed MTP week.
+  const pinnedEpoch=epoch(medianTime(document.headers.slice(-11).map(row=>row.time)));
+  if(!await tipExtends(api,tip,end,pinnedEpoch))throw phaseError('history_changed','final_tip');
   const unfinished=todo.length>1;
   document.ids=scan.ids;document.scan=null;
   if(unfinished){await mutate(storage,'save',{job,version:runtime.version,document});return null;}
@@ -213,7 +221,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
   const job=crypto.randomUUID();let runtime=await storage.rpc('job',{owner:job});
   if(runtime.code==='job_busy')return {code:'job_busy'};
   if(!runtime.owner)return {code:FINITE_FAILURES.has(runtime.code)||runtime.code?.startsWith('recovery_')?runtime.code:'publisher_unavailable'};
-  let calls=0;const startedAt=Date.now(),deadline=startedAt+PUBLISHER_DEADLINE_MS;
+  let calls=0,phase='initialize';const startedAt=Date.now(),deadline=startedAt+PUBLISHER_DEADLINE_MS;
   const boundedFetch=(...args)=>{
     if(Date.now()>deadline)throw providerError('publisher_deadline_exceeded');
     if(calls>=PROVIDER_FETCH_LIMIT)throw providerError('provider_request_budget_exhausted');
@@ -249,13 +257,16 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
       runtime=await mutate(storage,'initialize',{job,config:{appKey:config.appKey,markerKey:config.markerKey,baseUrl:config.baseUrl,anchor},
         bootstrap,bootstrap_claim:own?.id??null,document:{headers:[],transactions:[],previous:[],ids:[],observations:{}}});
     }
+    phase='acquire';
     const provider=makeProvider(runtime.config.anchor,runtime.effective_bootstrap??runtime.bootstrap),acquired=await acquire(runtime,provider,storage,job);
     if(!acquired)return {code:'initial_sync'};
     runtime=acquired.runtime;
     const {snapshot,api,tip,unconfirmed}=acquired;
+    let verifiedUnspent=null;
     if(snapshot.head&&!unconfirmed) {
-      const unspent=await api.confirmedUnspent(tip);
-      if(!unspent.some(row=>row.txid+':'+row.index===snapshot.head))throw Error('conflict_suspected');
+      phase='head_utxo';
+      verifiedUnspent=await api.confirmedUnspent(tip);
+      if(!verifiedUnspent.some(row=>row.txid+':'+row.index===snapshot.head))throw Error('conflict_suspected');
     }
     const state=await storage.read();
     let journal=runtime.recovery;
@@ -278,6 +289,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
       (!recovery||id!==journal.attempt.txid)))throw Error('conflict_suspected');
     if(active&&['signing_started','signing_unknown'].includes(active.state))throw Error('signing_unknown');
     if(!recovery&&active?.raw&&active.attempts>=4&&!snapshot.lineage.some(row=>row.txid===active.txid))throw Error('retry_exhausted');
+    phase='synchronize';
     runtime=await mutate(storage,recovery?'recovery_synchronize':'synchronize',{job,version:runtime.version,revision:state.coordinator.revision,
       epoch:snapshot.epoch,head:snapshot.head,snapshot:{...snapshot,stale:false}});
     const claim=recovery?runtime.recovery.attempt:await storage.rpc('next');
@@ -286,23 +298,27 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
     if(!runtime.ready)return {code:runtime.code};
     const chain={
       prepare:async row=>{
+        phase='prepare';
         if(unconfirmed)throw Error('unconfirmed_pending');
         const current={head:snapshot.head,lineage:snapshot.lineage,observed:{evidence:{tip}}};
-        return {epoch:snapshot.epoch,head:snapshot.head,prepared:await api.fund(row,current),bytes:row.bytes};
+        return {epoch:snapshot.epoch,head:snapshot.head,prepared:await api.fund(row,current,verifiedUnspent),bytes:row.bytes};
       },
       validate:async observation=>{
+        phase='pre_sign_validate';
         await api.validateFee(observation.prepared,observation.bytes);
         if(recovery) {
           const original=state.claims.find(row=>row.id===journal.original_id);
           await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof,journal.envelope);
         }
-        const fresh=await api.tipInfo();if(fresh.hash!==tip.hash)return false;
+        const fresh=await api.tipInfo();
+        if(!await tipExtends(api,tip,fresh,snapshot.epoch))throw phaseError('reorg_detected','pre_sign_tip');
         const first=await api.historyPage(0),observed=runtime.document.ids.slice(0,10);
-        if(first.count!==runtime.document.ids.length||JSON.stringify(first.tx)!==JSON.stringify(observed))return false;
+        if(first.count!==runtime.document.ids.length||JSON.stringify(first.tx)!==JSON.stringify(observed))throw phaseError('history_changed','pre_sign_history');
         const unspent=new Set((await api.confirmedUnspent(fresh)).map(row=>row.txid+':'+row.index));
         return observation.prepared.inputs.every(input=>unspent.has(input.txid+':'+input.index));
       },
       lookup:async(txid,inputs)=>{
+        phase='lookup';
         try {
           const observed=await api.transaction(txid);
           if(observed.height!==null)return {state:'included',txid};
@@ -315,11 +331,12 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
         }
       },
       beforeBroadcast:recovery?async row=>{
+        phase='before_broadcast';
         await api.validateFee(row.prepared,row.bytes);
         const original=state.claims.find(row=>row.id===journal.original_id);
         await authenticateRetirement(api,original,journal.envelope.conflict_txid,config,runtime.document,journal.proof,journal.envelope);
       }:undefined,
-      broadcast:raw=>provider.broadcast(raw)
+      broadcast:raw=>{phase='broadcast';return provider.broadcast(raw);}
     };
     if(claim) {
       const scoped=recovery?recoveryStorage(storage,recovery,scope,job):{read:()=>storage.read(),rpc:(operation,payload={})=>storage.rpc(operation,{...payload,job})};
@@ -329,22 +346,24 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
     }
     // Preflight exact spendable raws (including maturity) without signing. The conservative
     // reserve uses the existing fee ceiling; split funding is valid within the same input bound.
+    phase='preflight';
     await api.relayFee();
     const reserve=(snapshot.head?0:NETWORK.nameMinimum)+FEE_POLICY.maximum+NETWORK.dust;
-    await api.selectFunding(tip,snapshot.head,inputs=>inputs.reduce((total,input)=>total+input.amount,0)>=reserve);
+    await api.selectFunding(tip,snapshot.head,inputs=>inputs.reduce((total,input)=>total+input.amount,0)>=reserve,verifiedUnspent);
     return {code:'ready'};
   }catch(error) {
     // Log only fixed-vocabulary diagnostics. Never log provider response bodies,
     // dynamic URLs, addresses, transaction IDs, secrets or signed transaction bytes.
     const diagnosticCode=DIAGNOSTIC_CODES.has(error?.message)?error.message:'publisher_unavailable';
     const diagnosticCategory=DIAGNOSTIC_CATEGORIES.has(error?.detail?.category)?error.detail.category:null;
+    const diagnosticPhase=DIAGNOSTIC_PHASES.has(error?.detail?.phase)?error.detail.phase:phase;
     const route=safeProviderRoute(error?.detail?.path);
     const status=Number.isInteger(error?.detail?.status)&&error.detail.status>=100&&error.detail.status<=599
       ?error.detail.status:null;
     console.error(JSON.stringify({event:'hd1_publisher_failure',code:diagnosticCode,
       provider_requests:calls,provider_request_limit:PROVIDER_FETCH_LIMIT,
       elapsed_ms:Math.max(0,Date.now()-startedAt),deadline_ms:PUBLISHER_DEADLINE_MS,
-      ...(diagnosticCategory?{category:diagnosticCategory}:{}),...(route?{route}:{}),
+      ...(diagnosticCategory?{category:diagnosticCategory}:{}),...(diagnosticPhase?{phase:diagnosticPhase}:{}),...(route?{route}:{}),
       ...(status?{http_status:status}:{})}));
     // SQL 003/009 persists an intentional fixed whitelist. Retain that contract
     // rather than changing a live recovery journal/schema for diagnostics.
