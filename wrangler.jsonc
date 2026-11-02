@@ -4,7 +4,7 @@
   "compatibility_date": "2026-10-23",
   "vars": {
     "SUPABASE_URL": "https://wyqyhutmqlqakswzrwbq.supabase.co",
-    "HD1_PUBLISHER": "false"
+    "HD1_PUBLISHER": "true"
   },
   "triggers": { "crons": ["* * * * *"] },
   "observability": {
