@@ -10,7 +10,11 @@ test('workerd configured enabled and disabled GETs preserve native fetch receive
     const calls=[];
     const runtime=new Miniflare(convertV4MiniflareOptions({
       modules:[{type:'ESModule',path:'worker.js',contents:readFileSync(new URL('../worker.js',import.meta.url),'utf8')},
-        {type:'ESModule',path:'relay.js',contents:readFileSync(new URL('../relay.js',import.meta.url),'utf8')}],
+        {type:'ESModule',path:'relay.js',contents:readFileSync(new URL('../relay.js',import.meta.url),'utf8')},
+        // worker.js now imports the fixed-target, read-only /probe module.
+        // Miniflare needs every local import supplied explicitly in module mode.
+        {type:'ESModule',path:'tests/rod-transport-probe.worker.js',
+          contents:readFileSync(new URL('./rod-transport-probe.worker.js',import.meta.url),'utf8')}],
       compatibilityDate:'2026-10-23',log:new Log(LogLevel.NONE),
       bindings:{...bindings,...(!enabled?{HD1_PUBLISHER:'false',HD1_READS:'true'}:{})},
       outboundService:async request=>{
