@@ -33,12 +33,13 @@ export function classifyEnvelope(error) {
 }
 /** Bounded HTTPS JSON transport: timeout, size cap, envelope validation, GET-only retries. */
 export function createTransport({baseUrl=PROVIDER_DEFAULTS.baseUrl,fetch:fetcher=globalThis.fetch,timeoutMs=PROVIDER_DEFAULTS.timeoutMs,
-  retries=PROVIDER_DEFAULTS.retries,retryDelayMs=PROVIDER_DEFAULTS.retryDelayMs,maxResponseBytes=PROVIDER_DEFAULTS.maxResponseBytes,
+  retries=PROVIDER_DEFAULTS.retries,addressReadRetries=0,retryDelayMs=PROVIDER_DEFAULTS.retryDelayMs,maxResponseBytes=PROVIDER_DEFAULTS.maxResponseBytes,
   sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}) {
   const base=new URL(baseUrl);
   if(base.protocol!=='https:'||base.username||base.password||base.search||base.hash)throw providerError('invalid_provider_url');
   const root=base.href.replace(/\/$/,'');
   if(!Number.isSafeInteger(maxResponseBytes)||maxResponseBytes<1)throw providerError('invalid_provider_config','maxResponseBytes');
+  if(!Number.isSafeInteger(addressReadRetries)||addressReadRetries<0||addressReadRetries>2)throw providerError('invalid_provider_config','addressReadRetries');
   async function once(path,init) {
     let reader,response,bytes,length=0;
     const controller=new AbortController(),cancel=()=>{if(reader)void reader.cancel().catch(()=>{});};
@@ -92,7 +93,12 @@ export function createTransport({baseUrl=PROVIDER_DEFAULTS.baseUrl,fetch:fetcher
       try {return await once(path,init);}
       catch(error) {
         // Broadcast is never retried here: the issuer owns identical-byte recovery.
-        if(!idempotent||attempt>=retries||!RETRYABLE_TRANSPORT.has(error.message))throw error;
+        // Only retry transient ElectrumX envelopes on address reads when the
+        // publisher explicitly enables them. Other routes retain their policy.
+        const addressRead=error?.detail?.category==='electrumx_error'&&
+          (path.startsWith('/history/')||path.startsWith('/unspent/'));
+        const limit=addressRead?Math.max(retries,addressReadRetries):retries;
+        if(!idempotent||attempt>=limit||!RETRYABLE_TRANSPORT.has(error.message))throw error;
         await sleep(retryDelayMs*(attempt+1));
       }
     }

@@ -220,7 +220,7 @@ export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetc
     calls++;return fetcher.call(globalThis,...args);
   };
   const makeProvider=(anchor,bootstrap)=>createSpaceXpanseProvider({appKey:config.appKey,markerKey:config.markerKey,anchor,
-    bootstrap:bootstrap?{txid:bootstrap}:null,baseUrl:config.baseUrl,fetch:boundedFetch,retries:0,acquisitionAttempts:1,...providerOptions});
+    bootstrap:bootstrap?{txid:bootstrap}:null,baseUrl:config.baseUrl,fetch:boundedFetch,retries:0,addressReadRetries:2,acquisitionAttempts:1,...providerOptions});
   try {
     if(runtime.config&&(runtime.config.appKey!==config.appKey||runtime.config.markerKey!==config.markerKey||runtime.config.baseUrl!==config.baseUrl||
       config.bootstrap&&config.bootstrap!==runtime.bootstrap||config.anchor&&JSON.stringify(config.anchor)!==JSON.stringify(runtime.config.anchor)))throw Error('identity_configuration_mismatch');
