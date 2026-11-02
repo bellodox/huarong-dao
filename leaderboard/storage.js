@@ -72,6 +72,8 @@ export class SupabaseStorage {
     }
     return result;
   }
+  /** Independent session rows avoid the publisher coordinator lock. */
+  async session(operation,payload={}) {return this.request('hd_session_rpc',operation,payload);}
   async read() {return this.rpc('read');}
 }
 /** Migration 004 explicitly attests the finite-authority contract; 003 readiness is insufficient. */

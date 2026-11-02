@@ -2553,6 +2553,7 @@
               triggerDynamicRecalculation();
           }
           assistedRun=true;
+          window.hdRanked?.invalidate();
           if(typeof runEvidence!=='undefined' && runEvidence)runEvidence.assisted=true;
           const practice = isPracticeLayout(GAME_LAYOUTS[currentLayoutIdx]?.id);
           document.getElementById('ranked-status').textContent=practice ? 'Тренировка · без класиране' : '✕ С помощ · без запис';
@@ -2947,6 +2948,7 @@
               const encoded=JSON.stringify({v:2,owner:nickname,best:leaderboard,recent:recentScores,evidence});
               localStorage.setItem(SCORE_STORE_V2_KEY,encoded);
               if(localStorage.getItem(SCORE_STORE_V2_KEY)!==encoded)throw Error('Score write verification failed');
+              if(actual&&runEvidence)runEvidence.localId=id;
           }catch(e){
               leaderboard=beforeBest;recentScores=beforeRecent;
               victoryRankStatus.textContent='Запазването на резултата е блокирано от браузъра.';
@@ -3662,6 +3664,7 @@
             let isDragging = false;
             let tracking = false;
             let activePointer = null;
+            let hadDragMove = false;
 
             function onPointerDown(e) {
                 if (tracking || (e.pointerType === 'mouse' && e.button !== 0) || roundFinalized) return;
@@ -3670,6 +3673,7 @@
                 tracking = true;
                 activePointer = e.pointerId;
                 isDragging = false;
+                hadDragMove = false;
                 startX = e.clientX;
                 startY = e.clientY;
                 window.addEventListener('pointermove', onPointerMove, { passive: false });
@@ -3702,7 +3706,8 @@
                 }
 
                 if (moveX !== 0 || moveY !== 0) {
-                    if (executeMove(id, moveX, moveY)) {
+                    if (executeMove(id, moveX, moveY,{event:e,kind:hadDragMove?2:1,x0:startX,y0:startY,x1:clientX,y1:clientY,rect:boardEl.getBoundingClientRect()})) {
+                        hadDragMove=true;
                         startX = clientX;
                         startY = clientY;
                         audioSys.playSlide();
@@ -3728,7 +3733,7 @@
                     const grid = buildGrid(currentState);
                     const validDirs = DIRECTIONS.filter(d => canMovePiece(id, currentState, d.dx, d.dy, grid));
                     if (validDirs.length === 1) {
-                        executeMove(id, validDirs[0].dx, validDirs[0].dy);
+                        executeMove(id, validDirs[0].dx, validDirs[0].dy,{event:e,kind:0,x0:startX,y0:startY,x1:e.clientX,y1:e.clientY,rect:boardEl.getBoundingClientRect()});
                         audioSys.playSlide();
                     }
                 }
@@ -3754,6 +3759,8 @@
                     cells[(piece.y+dy)*4+piece.x+dx]=String.fromCharCode(65+index);
             });
             runEvidence={p:'hd1',l:layout.id,b:cells.join(''),m:'',assisted:false};
+            if(HUARONG_PUBLIC_ENABLED&&!isPracticeLayout(layout.id))window.hdRanked?.start(layout.id,cells.join(''));
+            else window.hdRanked?.reset();
         }
         /** Return only actual complete, unassisted paths; legacy scores cannot acquire evidence. */
         function completedRunEvidence(layout,moves) {
@@ -3761,7 +3768,7 @@
                !roundFinalized || runEvidence.m.length!==moves || isPracticeLayout(layout))return null;
             return {...runEvidence};
         }
-        function executeMove(id, dx, dy) {
+        function executeMove(id, dx, dy, gesture=null) {
             if (roundFinalized || Math.abs(dx)+Math.abs(dy)!==1 || !Number.isInteger(dx) || !Number.isInteger(dy)) return false;
             const grid = buildGrid(currentState);
             if (!canMovePiece(id, currentState, dx, dy, grid)) return false;
@@ -3770,7 +3777,10 @@
             currentState[id].x += dx;
             currentState[id].y += dy;
             const direction=dy===-1?0:dx===1?1:dy===1?2:3;
-            if(runEvidence)runEvidence.m+=EVIDENCE_ALPHABET[EVIDENCE_PIECES.indexOf(id)*4+direction];
+            const acceptedSymbol=EVIDENCE_ALPHABET[EVIDENCE_PIECES.indexOf(id)*4+direction];
+            if(runEvidence)runEvidence.m+=acceptedSymbol;
+            if(runEvidence && !runEvidence.assisted && !assistedRun && !isPracticeLayout(runEvidence.l))
+                window.hdRanked?.record(acceptedSymbol,gesture);
             userMovesCount++;
             userMovesCountEl.textContent = userMovesCount;
 
@@ -3985,6 +3995,25 @@
             if (currentState.CC.x === 1 && currentState.CC.y === 3 && !roundFinalized) {
                 roundFinalized=true;
                 stopTimer();
+                const finishedEvidence=runEvidence;
+                if(HUARONG_PUBLIC_ENABLED&&finishedEvidence&&!finishedEvidence.assisted&&!assistedRun&&!isPracticeLayout(finishedEvidence.l)) {
+                    const completedPath=finishedEvidence.m;
+                    Promise.resolve(window.hdRanked?.finish(completedPath)).then(proof=>{
+                        if(!proof)return;
+                        finishedEvidence.witness=proof;
+                        const localId=finishedEvidence.localId;
+                        if(localId){
+                            try{
+                                const saved=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY)||'{}');
+                                if(saved?.evidence?.[localId]?.m===completedPath && saved.evidence[localId].l===finishedEvidence.l){
+                                    saved.evidence[localId].witness=proof;
+                                    localStorage.setItem(SCORE_STORE_V2_KEY,JSON.stringify(saved));
+                                }
+                            }catch{}
+                        }
+                        window.hd1UI?.sync();
+                    }).catch(()=>{});
+                }
                 storeVictory(GAME_LAYOUTS[currentLayoutIdx].id,userMovesCount,elapsedSeconds);
                 stopAutoPlay();
                 audioSys.playWin();
@@ -4143,6 +4172,7 @@
     function syncOutstandingBests(){window.hd1UI?.sync();}
     async function rodRefreshLeaderboard(){await window.hd1UI?.refresh();}
     </script>
+    <script src="/ranked-session.js"></script>
     <script src="/leaderboard-ui.js" defer></script>
     <!-- Retired browser-funded publisher, preserved as inert historical signer reference. -->
     <script type="text/plain" id="retired-browser-publisher">

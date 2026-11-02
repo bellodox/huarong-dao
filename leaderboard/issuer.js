@@ -15,8 +15,8 @@ export function broadcastDiagnostic(error) {
 
 /** Admit only a Worker-verified claim using the atomic SQL decision/reservation. */
 export async function admit(storage,verified) {
-  const {id,text,player,claim,moves,points}=verified;
-  return storage.rpc('admit',{id,bytes:text,player,nickname:claim.n,layout:claim.l,epoch:claim.w,moves,points});
+  const {id,text,player,claim,moves,points,session}=verified;
+  return storage.rpc('admit',{id,bytes:text,player,nickname:claim.n,layout:claim.l,epoch:claim.w,moves,points,move_path:claim.m,profile:claim.p,...(session?{session}:{})});
 }
 /** One bounded recovery/broadcast attempt, always using durably stored exact bytes. */
 export async function broadcastStored(storage,chain,claim) {

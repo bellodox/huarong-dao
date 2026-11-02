@@ -26,7 +26,7 @@
   }
   /** Status is distinct from confirmed ranking; arbitrary backend strings are never rendered as HTML. */
   function showStatus(row) {
-    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално',ranked_move_limit:'Над лимита hd2 · целият път е запазен локално',practice_layout:'Тренировка · без публично изпращане'};
+    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално',ranked_move_limit:'Над лимита hd2 · целият път е запазен локално',practice_layout:'Тренировка · без публично изпращане',session_required:'Нужна е проверена игрова сесия',invalid_session:'Сесията е невалидна или изтекла · изиграй нова партия'};
     const retryReasons={retry_exhausted:'изчерпани опити за публикуване',broadcast_budget_exhausted:'изчерпан бюджет за излъчване',transaction_budget_exhausted:'изчерпан бюджет за транзакции',spend_budget_exhausted:'изчерпан бюджет за разходи',claim_outside_scope:'извън разрешения обхват'};
     if(row.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(row.status)) {
       status.textContent='Повторното публикуване не е достъпно'+(Object.hasOwn(retryReasons,row.retry_code)?' · '+retryReasons[row.retry_code]:'');
@@ -88,7 +88,16 @@
             if(!['not_improved','queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown'].includes(state.status))return;
           }
           if(!consented())return;
-          const response=await fetch('/api/score',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':signed.id},body:signed.bytes,signal:AbortSignal.timeout(15000)});
+          const headers={'Content-Type':'application/json','Idempotency-Key':signed.id};
+          if(signed.witness?.id&&signed.witness?.proof&&signed.witness?.rodAnchor?.hash){
+            const w=signed.witness;
+            Object.assign(headers,{'X-HD-Session-Id':w.id,'X-HD-Session-Proof':w.proof,
+              'X-HD-Session-Seed':w.sessionSeed,'X-HD-Layout-Seed':w.layoutSeed,
+              'X-HD-Rules-Digest':w.rulesDigest,'X-HD-Session-Nonce':w.nonce,
+              'X-HD-Session-Head':w.head,'X-HD-Session-Input-Digest':w.inputDigest,
+              'X-HD-ROD-Block-Hash':w.rodAnchor.hash,'X-HD-ROD-Block-Height':String(w.rodAnchor.height)});
+          }
+          const response=await fetch('/api/score',{method:'POST',headers,body:signed.bytes,signal:AbortSignal.timeout(15000)});
           if(!consented())return;
           const state=await response.json();if(!consented())return;showStatus(state);
           if(state.code==='epoch_changed')setPublicScoreConsent(false);
@@ -97,15 +106,20 @@
       // Persisted consent-authorized bytes remain recoverable even when a newer run is chosen.
       for(const signed of Object.values(durable).filter(row=>row.player===player)) {
         if(!consented())return;
+        if(!signed.witness?.id||!signed.witness?.proof||!signed.witness?.rodAnchor?.hash)continue; // Historical bytes remain locally durable.
         await retry(signed);
       }
       for(const layout of [...new Set(evidenceRows().map(row=>row.l))]) {
         if(!consented())return;
-        const evidence=candidate(layout);if(!evidence)continue;
-        if(Object.values(durable).some(row=>row.localId===evidence.localId&&row.epoch===snapshot.epoch&&row.player===player))continue;
+        const evidence=candidate(layout);if(!evidence?.witness?.id||!evidence?.witness?.proof||!evidence?.witness?.rodAnchor?.hash)continue;
+        const previous=Object.values(durable).find(row=>row.localId===evidence.localId&&row.epoch===snapshot.epoch&&row.player===player);
+        if(previous){
+          if(!previous.witness?.proof){previous.witness=evidence.witness;durable[previous.id]=previous;saveOutbox(durable);await retry(previous);}
+          continue;
+        }
         try {
           const claim=cryptoModule.createSignedClaim(evidence,player,snapshot.epoch,{consented});
-          const signed={...claim,localId:evidence.localId,layout,moves:evidence.moves,epoch:snapshot.epoch,player};
+          const signed={...claim,localId:evidence.localId,layout,moves:evidence.moves,epoch:snapshot.epoch,player,witness:evidence.witness};
           durable[claim.id]=signed;saveOutbox(durable);
           await retry(signed);
         }catch(error){if(consented())showStatus({code:error.message});}

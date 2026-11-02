@@ -1,5 +1,6 @@
 import { SupabaseStorage,publisherReadiness,PUBLIC_RESPONSE_BYTES,storageDiagnostic } from './storage.js';
 import { ClaimError,checkOrigin,readClaim,verifyClaim } from './verify.js';
+import { SessionFailure,processSessionRequest,isSessionId,isSessionToken,tokenHash } from './session.js';
 import { admit,advance } from './issuer.js';
 import { publicLeaderboard } from './index.js';
 import { bytesToHex,utf8,parseCanonical,canonical,receiptId,recover } from './receipt.js';
@@ -11,6 +12,7 @@ import { publisherConfig,runPublisher } from './publisher.js';
 export * from './profile.js';
 export * from './receipt.js';
 export * from './verify.js';
+export * from './session.js';
 export * from './storage.js';
 export * from './issuer.js';
 export * from './index.js';
@@ -34,6 +36,11 @@ function backendUnavailable(stage,error) {
 export async function handleApi(request,{storage=null,issuer=null,available=false,rateSecret=null,readiness=null}={}) {
   const url=new URL(request.url);let stage='api';
   try {
+    if(url.pathname.startsWith('/api/session/')) {
+      if(request.method!=='POST')return json({code:'not_found'},404);
+      checkOrigin(request);
+      return await processSessionRequest(request,{storage,available,rateSecret,rodAnchor:readiness?.rod_anchor});
+    }
     if(url.pathname==='/api/leaderboard' && request.method==='GET') {
       if(!storage)return json({available:false,code:'issuance_disabled',rows:[],pending:[],stale:true,rewards_enabled:false,assurance:'replayed',
         ...(readiness?{publisher:readiness}:{})});
@@ -61,9 +68,26 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
       const rate=ipRate.code==='ok'?await storage.rpc('rate',{bucket:'global'}):ipRate;
       if(rate.code!=='ok')return json({code:'rate_limited',retryable:true},429);
       const verified=verifyClaim(await readClaim(request),request.headers.get('idempotency-key'));
+      const sessionId=request.headers.get('x-hd-session-id');
+      const sessionProof=request.headers.get('x-hd-session-proof');
+      const seed=request.headers.get('x-hd-session-seed');
+      const layoutSeed=request.headers.get('x-hd-layout-seed');
+      const rulesDigest=request.headers.get('x-hd-rules-digest');
+      const nonce=request.headers.get('x-hd-session-nonce');
+      const head=request.headers.get('x-hd-session-head');
+      const inputDigest=request.headers.get('x-hd-session-input-digest');
+      const rodHash=request.headers.get('x-hd-rod-block-hash');
+      const rodHeight=Number(request.headers.get('x-hd-rod-block-height'));
+      const isHex=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+      verified.session=isSessionId(sessionId)&&isSessionToken(sessionProof)&&
+        [seed,layoutSeed,rulesDigest,nonce,head,inputDigest,rodHash].every(isHex)&&
+        Number.isSafeInteger(rodHeight)&&rodHeight>=0&&request.headers.has('x-hd-rod-block-height')
+        ? {id:sessionId,proof_hash:await tokenHash(sessionProof),session_seed:seed,
+           layout_seed:layoutSeed,rules_digest:rulesDigest,nonce,head,input_digest:inputDigest,
+           rod_block_hash:rodHash,rod_block_height:rodHeight} : null;
       let result=await admit(storage,verified);
       if(result.code) {
-        const status={queue_full:429,name_conflict:409,epoch_changed:409,idempotency_conflict:409}[result.code]||503;
+        const status={queue_full:429,name_conflict:409,epoch_changed:409,idempotency_conflict:409,session_required:422,invalid_session:422}[result.code]||503;
         return json({code:result.code,retryable:status>=429},status);
       }
       if(issuer && ['queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown'].includes(result.state)) {
@@ -78,6 +102,7 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
     }
     return json({code:'not_found'},404);
   }catch(error) {
+    if(error instanceof SessionFailure)return json({code:error.code,retryable:false},error.status);
     if(error instanceof ClaimError)return json({code:error.code,retryable:false},error.status);
     if(['invalid_query','stale_cursor'].includes(error?.message))return json({code:error.message},400);
     return backendUnavailable(stage,error);
@@ -94,7 +119,7 @@ export async function handleRelayRequest(request,bindings={},context=null) {
       storage=new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY);
     let readiness={available:false,code:config.code??'initial_sync'};
     stage='readiness';
-    if(storage&&!config.code)readiness=await publisherReadiness(storage,{appKey:config.appKey,markerKey:config.markerKey,baseUrl:config.baseUrl});
+    if(storage&&!config.code)readiness=await publisherReadiness(storage,{appKey:config.appKey,markerKey:config.markerKey,baseUrl:config.baseUrl,...(new URL(request.url).pathname==='/api/session/start'&&request.method==='POST'?{include_anchor:true}:{})});
     stage='api';
     const response=await handleApi(request,{storage,available:!config.code&&readiness?.available===true,
       rateSecret:bindings.HD1_RATE_HMAC_KEY,readiness});
@@ -105,8 +130,14 @@ export async function handleRelayRequest(request,bindings={},context=null) {
 }
 /** Cron is the autonomous progress path. No HTTP route exposes this operation. */
 export async function handleScheduled(bindings={}) {
+  // Session garbage collection is independent of ROD publication readiness.
+  let storage=null;
+  if(bindings.SUPABASE_URL&&bindings.SUPABASE_SERVICE_KEY) {
+    try {storage=new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY);
+      await storage.session('gc');}catch {} // Migration may not exist yet.
+  }
   const config=publisherConfig(bindings);if(config.code)return {code:config.code};
-  try {return await runPublisher(new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY),config);}
+  try {return await runPublisher(storage??new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY),config);}
   catch {return {code:'backend_unavailable'};}
 }
 
