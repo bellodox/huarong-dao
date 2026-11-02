@@ -1,6 +1,8 @@
 /**
  * Read-only Cloudflare Workers transport probe for the ROD API.
  * Runs independently of the game Worker: no WIF, Supabase, signing or broadcast.
+ * Tests all publisher GET routes using the known public deployment identity.
+ * Static public identities MUST be updated if the app/marker keys change.
  * Test on Cloudflare's edge with: wrangler dev --remote --config tests/wrangler.rod-probe.jsonc
  */
 const HOST = 'api.spacexpanse.org';
@@ -8,6 +10,14 @@ const PORT = 1234;
 const INFO_URL = `https://${HOST}:${PORT}/info`;
 const TIMEOUT_MS = 10000;
 const MAX_RESPONSE_BYTES = 16384;
+const MAX_ENDPOINT_RESPONSE_BYTES = 4000000;
+// Public mainnet identity already confirmed by the operator; never read secret bindings.
+const PUBLIC_APP_ADDRESS = 'RCdhuRDQkwM5aYo4zTCWWk6KQEdFGQByu6';
+const PUBLIC_MARKER_ADDRESS = 'RFoscLnDa1fuff9exRhy4SkeKzTet1Yxpc';
+const CONFIRMED_TRANSACTION = '439112cbfdcec5301cd3302eab22749186382a388b412405966181953e95348c';
+const HEX64 = /^[a-f0-9]{64}$/;
+const ENDPOINT_ROOT = `https://${HOST}:${PORT}`;
+
 
 const ALLOWED_ERROR_CODES = new Set([
   'ENOTFOUND', 'EAI_AGAIN', 'ETIMEDOUT', 'ECONNREFUSED', 'ECONNRESET',
@@ -128,14 +138,133 @@ export function interpret({ fetch, tcp, tls }) {
   return 'Probes disagree or are inconclusive. Interpret their error details individually.';
 }
 
-export async function runProbe({ fetcher = globalThis.fetch, connectFn, now = () => performance.now() } = {}) {
+/**
+ * Read the full API envelope with a bounded byte cap. Never return raw responses:
+ * /transaction can include signed raw bytes, and /mempool can be very large.
+ */
+async function boundedApiEnvelope(response) {
+  const reader = response.body?.getReader();
+  if (!reader) return { shape:'no_body' };
+  const chunks=[];
+  let total=0;
+  try {
+    for (;;) {
+      const {done,value}=await reader.read();
+      if (done) break;
+      total+=value.byteLength;
+      if (total>MAX_ENDPOINT_RESPONSE_BYTES) return {shape:'too_large'};
+      chunks.push(value);
+    }
+  } finally {
+    try {await reader.cancel();} catch {}
+    reader.releaseLock();
+  }
+  const bytes=new Uint8Array(total);
+  let offset=0;
+  for (const chunk of chunks) {bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  try {
+    const body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
+    if (!body||typeof body!=='object'||Array.isArray(body)||!Object.hasOwn(body,'error'))return {shape:'invalid_envelope'};
+    return {shape:'json',body};
+  } catch {return {shape:'non_json'};}
+}
+
+function apiErrorKind(error) {
+  const message=String(error?.message??'');
+  if (/electrumx/i.test(message))return 'electrumx_error';
+  if (/base58|address|checksum/i.test(message))return 'address_rejected';
+  if (/history too large/i.test(message))return 'history_too_large';
+  return 'api_error';
+}
+
+function resultSummary(key, result) {
+  if(key==='genesis')return {valid_hash:typeof result==='string'&&HEX64.test(result)};
+  if(key==='range')return {blocks_returned:Array.isArray(result)?result.length:null};
+  if(key==='history')return {txcount:Number.isSafeInteger(result?.txcount)?result.txcount:null,
+    page_count:Array.isArray(result?.tx)?result.tx.length:null};
+  if(key==='unspent')return {utxo_count:Array.isArray(result)?result.length:null};
+  if(key==='transaction')return {has_raw:typeof result?.hex==='string'&&/^[a-f0-9]+$/.test(result.hex)};
+  if(key==='mempool')return {min_relay_fee_present:Number.isFinite(result?.minrelaytxfee)&&result.minrelaytxfee>=0&&
+    Number.isFinite(result?.mempoolminfee)&&result.mempoolminfee>=0};
+  return {};
+}
+
+function validResult(key,result,summary) {
+  switch(key) {
+    case 'genesis': return summary.valid_hash;
+    case 'range': return Array.isArray(result)&&result.length===1;
+    case 'history': return Number.isSafeInteger(summary.txcount)&&summary.txcount>=0&&
+      Array.isArray(result.tx)&&result.tx.length<=10&&result.tx.every(id=>typeof id==='string'&&HEX64.test(id));
+    case 'unspent': return Array.isArray(result)&&result.every(row=>typeof row?.txid==='string'&&HEX64.test(row.txid)&&
+      Number.isSafeInteger(row.index)&&Number.isSafeInteger(row.value)&&Number.isSafeInteger(row.height));
+    case 'transaction': return summary.has_raw===true;
+    case 'mempool': return result!==null&&typeof result==='object'&&!Array.isArray(result)&&summary.min_relay_fee_present;
+    default: return false;
+  }
+}
+
+/** One fixed-host, GET-only endpoint check. Safe, summarized, and redirect-rejecting. */
+export async function probeApiEndpoint(key,path,fetcher=globalThis.fetch,now=()=>performance.now()) {
+  const start=now();
+  const publicPath=path;  // Constructed from fixed public identity; never user-controlled.
+  try {
+    const response=await fetcher.call(globalThis,ENDPOINT_ROOT+publicPath,{
+      method:'GET',redirect:'manual',signal:AbortSignal.timeout(TIMEOUT_MS)
+    });
+    if(response.status>=300&&response.status<400) {
+      try {await response.body?.cancel();} catch {}
+      return {ok:false,path:publicPath,elapsed_ms:elapsed(start,now),http_status:response.status,
+        response_shape:'redirect_rejected'};
+    }
+    const {shape,body}=await boundedApiEnvelope(response);
+    const entry={ok:false,path:publicPath,elapsed_ms:elapsed(start,now),http_status:response.status,response_shape:shape};
+    if(shape!=='json')return entry;
+    if(body.error!==null&&body.error!==undefined)return {...entry,api_error_code:Number.isInteger(body.error?.code)?body.error.code:null,
+      api_error_kind:apiErrorKind(body.error)};
+    if(!response.ok||!Object.hasOwn(body,'result'))return entry;
+    const summary=resultSummary(key,body.result);
+    return {...entry,...summary,ok:validResult(key,body.result,summary)};
+  }catch(error){return {ok:false,path:publicPath,elapsed_ms:elapsed(start,now),error:summarizeError(error)};}
+}
+
+/** Exact routes used by the live publisher. /broadcast is intentionally never requested. */
+export async function probePublisherEndpoints(fetcher=globalThis.fetch,now=()=>performance.now(),tipHeight=null) {
+  const targets={
+    genesis:'/hash/0',
+    range:Number.isSafeInteger(tipHeight)&&tipHeight>=0?`/range/${tipHeight}?offset=1`:null,
+    history:`/history/${PUBLIC_MARKER_ADDRESS}?offset=0`,
+    unspent:`/unspent/${PUBLIC_APP_ADDRESS}`,
+    transaction:`/transaction/${CONFIRMED_TRANSACTION}`,
+    mempool:'/mempool'
+  };
+  const checks={};
+  for(const [key,path] of Object.entries(targets)) {
+    checks[key]=path===null?{ok:false,skipped:true,reason:'tip_unavailable'}:
+      await probeApiEndpoint(key,path,fetcher,now);
+  }
+  checks.broadcast={tested:false,skipped:true,reason:'mutating_endpoint_post_never_probed',method:'POST',path:'/broadcast'};
+  return checks;
+}
+
+export async function runProbe({ fetcher = globalThis.fetch, connectFn, now = () => performance.now(), includeApiEndpoints = false } = {}) {
   if (typeof connectFn !== 'function') throw new TypeError('Cloudflare TCP connect() is required');
   // Deliberately sequential: only three bounded outbound operations, no retries.
   const fetch = await probeFetch(fetcher, now);
   const tcp = await probeSocket(connectFn, 'off', now);
   const tls = await probeSocket(connectFn, 'on', now);
-  return { target: INFO_URL, read_only: true, fetch, tcp, tls, interpretation: interpret({ fetch, tcp, tls }),
+  const output={ target: INFO_URL, read_only: true, fetch, tcp, tls, interpretation: interpret({ fetch, tcp, tls }),
     note: 'Socket failure alone does not prove DNS/TLS cause: Cloudflare restricts TCP sockets to certain destinations.' };
+  if (includeApiEndpoints) {
+    const endpoints={info:{...fetch,path:'/info'},...await probePublisherEndpoints(fetcher,now,fetch.ok?fetch.blocks:null)};
+    const readEndpoints=['info','genesis','range','history','unspent','transaction','mempool'];
+    const passed=readEndpoints.filter(key=>endpoints[key].ok).length;
+    output.endpoints=endpoints;
+    output.publisher_reads={ok:passed===readEndpoints.length,passed,total:readEndpoints.length};
+    output.public_identity={app_address:PUBLIC_APP_ADDRESS,marker_address:PUBLIC_MARKER_ADDRESS,
+      source:'pinned_public_deployment_addresses_not_runtime_key_verification'};
+    if(passed!==readEndpoints.length)output.interpretation='One or more publisher read endpoints failed; inspect each endpoint result. This does not imply a Cloudflare connectivity failure.';
+  }
+  return output;
 }
 
 export default {
@@ -145,7 +274,7 @@ export default {
       return new Response('Not found', { status: 404, headers: { 'cache-control': 'no-store' } });
     try {
       const { connect } = await import('cloudflare:sockets');
-      const result = await runProbe({ connectFn: connect });
+      const result = await runProbe({ connectFn: connect, includeApiEndpoints: true });
       return Response.json(result, { headers: { 'cache-control': 'no-store', 'x-content-type-options':'nosniff' } });
     } catch (error) {
       return Response.json({ diagnostic_failed: true, error: summarizeError(error) },

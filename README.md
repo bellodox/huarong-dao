@@ -1,51 +1,66 @@
-# Huarong Dao: resilient publisher address reads
+# Huarong Dao /probe: all publisher endpoints
 
-Target: `bellodox/huarong-dao`, branch `leaderboard`, inspected HEAD `a462741725cadd56527e9329c10549eb1477d1cf` (2026-11-02).
-Verified pre-patch Git blob SHAs: `leaderboard/provider.js` `d5663fb454b6f30a1bbe81234adc0def5285bc66` and `leaderboard/publisher.js` `96f990fd042766ba7c1966e2b9f99291c1a87fbb`.
+Based on `bellodox/huarong-dao`, branch `leaderboard`, HEAD `a462741725cadd56527e9329c10549eb1477d1cf` (2026-11-02).
 
-## Root defect addressed
+The `/probe` endpoint now checks all **seven read-only routes actually used** by the publisher, plus the original TCP/TLS checks. The generated publisher `relay.js` is unchanged by the probe itself. The existing `worker.js` already forwards `/probe` to `tests/rod-transport-probe.worker.js`; no worker.js modification is necessary.
 
-The production scheduler passed `retries:0` to the transport, even though address reads from `/history/<ROD-address>` and `/unspent/<ROD-address>` are idempotent and the transport already classifies upstream error envelopes containing `ElectrumX` as `provider_unavailable` with category `electrumx_error`. One such envelope aborts `runPublisher`, invokes SQL `job_error`, and pauses publication. If it arrives during the post-preparation check, the score remains `unsigned_preparing` until the next job reclaims the expired lease. Repeated isolated errors explain increasing claim generations without a signed score transaction.
+## Endpoint coverage
 
-## Fix
+| Key | Target | Purpose |
+| --- | --- | --- |
+| info | `GET /info` | Mainnet and tip (original probe) |
+| genesis | `GET /hash/0` | Verify genesis availability |
+| range | `GET /range/<current_info_height>?offset=1` | Exercise block/header route |
+| history | `GET /history/RFoscLnDa1fuff9exRhy4SkeKzTet1Yxpc?offset=0` | Marker address history, **not public key** |
+| unspent | `GET /unspent/RCdhuRDQkwM5aYo4zTCWWk6KQEdFGQByu6` | App wallet UTXOs |
+| transaction | `GET /transaction/439112cbfdcec5301cd3302eab22749186382a388b412405966181953e95348c` | Known confirmed transaction details |
+| mempool | `GET /mempool` | Actual relay-fee source; `/fee` is not used for publication |
+| broadcast | `POST /broadcast` | **Never requested**; reported as `skipped` because mutating |
 
-- `leaderboard/provider.js`: add optional, validated `addressReadRetries` (0..2). Only retry **GET** requests for `/history/` or `/unspent/` **when** an API envelope was classified as `electrumx_error`, and only when the caller explicitly opts in. Existing transport retry semantics for all other cases are unchanged.
-- `leaderboard/publisher.js`: opt in to two additional address GET attempts (three total), using existing 250 ms/500 ms delays, the existing bounded publisher fetch function and its 36-call/55-second caps.
-- `tests/publisher-electrumx-resilience.test.js`: regression coverage for a single read failure during marker-history acquisition, a single unspent failure *after* an unsigned preparation was persisted, a persistent failure with safe recovery on a subsequent tick, and no retries for broadcasts/unrelated errors.
+The addresses and txid are public, confirmed Huarong Dao test identities from operator observations in the conversation. They are intentionally **pinned**, not derived from the WIF or SQL; **if the configured app/marker keys change, update these public probe constants** before interpreting results. Public probes do not prove that the identities match current secret bindings. The results explicitly state `pinned_public_deployment_addresses_not_runtime_key_verification`.
 
-**Unchanged:** No ROD API modifications, no new ROD address conversion, no Supabase migration, no signed transaction mutation, no changes to broadcasting/rebroadcast policy, no new spending scope, no widening of transaction budgets or job leases, no unsafe bypass of UTXO/history checks.
+## JSON response
 
-This patch addresses transient upstream error envelopes; it cannot make a permanently failing endpoint work. It must be tested on Cloudflare to establish whether it resolves the observed hosted incident.
+Original `fetch`, `tcp`, `tls`, `interpretation` and `note` fields remain. New fields:
 
-## Install in a local checkout
+- `endpoints`: each read route's `ok`, path, elapsed time, HTTP status, response shape, bounded schema summary and optional sanitized `api_error_kind`/`api_error_code`.
+- `endpoints.broadcast`: `tested:false`, `skipped:true`, explanatory reason; no write is sent.
+- `publisher_reads`: summary of seven independently checked read paths; false if even one fails.
+- `public_identity`: fixed public addresses used in the test.
 
-From the root of the exact branch, after checking for unrelated local edits:
+For errors, the probe separates `electrumx_error` from `address_rejected`, HTTP redirects, invalid envelopes, responses over **4 MB** and transport/TLS errors. It never returns raw transactions, transaction hex, WIF, provider response bodies, Supabase data, or arbitrary destinations. The API responses are bounded to the same 4 MB ceiling as the publisher. Tests use mocked responses; **live Cloudflare behavior remains to be verified after deployment.**
+
+The check is observational, not a complete cryptographic validation or a guarantee that a subsequent publisher request will succeed. `/probe` is a public route; the expanded endpoint set adds read requests, so leave it enabled only as long as diagnostics are needed or apply suitable rate limiting.
+
+## Install
+
+From the root of your local `leaderboard` checkout:
+
+**If the previous ElectrumX resilience patch is already applied:**
 
 ```sh
-git status --short
-git apply --check /path/to/huarong-electrumx-codefix.patch
-git apply /path/to/huarong-electrumx-codefix.patch
-cp /path/to/tests/publisher-electrumx-resilience.test.js tests/
-npm ci --include=dev --no-audit --no-fund
+git apply --check /path/to/huarong-probe-only.patch
+git apply /path/to/huarong-probe-only.patch
+node --test tests/rod-transport-probe.test.js
+```
+
+**If the previous patch was NOT applied:**
+
+```sh
+git apply --check /path/to/huarong-full-probe-and-resilience.patch
+git apply /path/to/huarong-full-probe-and-resilience.patch
+npm ci --include=dev
 npm run build
 npm test
 ```
 
-The `npm run build` step **must regenerate the checked-in `relay.js`** from source; the active Worker imports that generated distribution, not `leaderboard/provider.js` directly. Include rebuilt `relay.js` in the eventual reviewed changes. Do not deploy source changes alone while the bundle is stale. The production GitHub/Cloudflare workflow must be separately authorized.
+Both patches were tested against the original Git blob SHA baseline for these paths. Alternatively, the ZIP contains complete modified files for a manually checked replacement. Do not apply both patches. Do not deploy without reviewing the diff and running the project tests. `npm run build` is mandatory when the publisher source changes because it regenerates `relay.js`.
 
-For manual replacement, the ZIP also contains complete `leaderboard/provider.js` and `leaderboard/publisher.js` at the inspected HEAD with the patch applied. Do not overwrite a different checkout revision without checking differences.
+To view, open `https://huarong-dao.spacexpanseorg.workers.dev/probe` after deployment. The request remains `GET /probe` with no query parameters; POST and arbitrary URL queries are still rejected. No live deployment or ROD broadcast was performed.
 
-## Verification performed for this package
+## Verification performed
 
-- Inspected the actual `leaderboard` branch source and generated `relay.js` through the GitHub connector.
-- Confirmed existing source files in the package matched the repository's Git blob SHAs before editing.
-- `git apply --check` + `git apply` on the original files: PASS; byte-for-byte match with packaged updated source.
-- `node --check` on both changed JS source files and new test: PASS.
-- Five isolated Node tests using the actual patched provider transport code (with stubbed unrelated imports): PASS. These test one transient history failure, one transient unspent failure, a persistent error bounded at three calls, no retry for invalid addresses/other routes/broadcasts, and invalid retry configuration.
-- Full repository integration tests in the added `tests/publisher-electrumx-resilience.test.js`: **not executed here** because the complete checkout/npm dependencies are unavailable. Run them after installation.
-
-## Expected outcome
-
-After a successful build and deployment, a single transient ElectrumX envelope in `/history` or `/unspent` no longer aborts the publisher. If all three read attempts fail, the publisher still fails closed, preserves the unsigned claim, and retries on the next scheduled tick. When health is restored, an expired unsigned lease is reclaimed by the existing SQL job path; the claim can then be signed and broadcast once under the existing continuing-beta authority.
-
-Check for `publisher.code='ready'` and a new, non-null `txid` for `Player32410`; then separately verify canonical inclusion and required confirmations. Neither a successful score POST nor an unsigned preparation constitutes a blockchain transaction.
+- All **13** old+new `rod-transport-probe.test.js` tests pass locally (Node 22).
+- `node --check` passes for the modified probe and tests.
+- `git apply --check` and byte comparison pass for both patch variants against the inspected original source.
+- Full repository publisher integration test suite not executed in this runtime (no installed npm packages).
