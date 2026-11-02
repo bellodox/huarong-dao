@@ -20,7 +20,7 @@ test('all green: exact /info over port 1234; TCP and TLS probes use fixed host/p
     connectFn: (addr, opts) => { conns.push({addr, opts}); return fakeSocket().socket; }
   });
   assert.deepEqual(requested.map(r => r.url), ['https://api.spacexpanse.org:1234/info']);
-  assert.equal(requested[0].options.redirect, 'error');
+  assert.equal(requested[0].options.redirect, 'manual');
   assert.equal(requested[0].options.cache, undefined);
   assert.equal(output.fetch.blocks, 4272879);
   assert.equal(output.fetch.ok, true);
@@ -82,4 +82,19 @@ test('no arbitrary destination, no credentials in logs or queries, no non-probe 
 test('classification handles timeout and TCP failure without claiming DNS certainty', async () => {
   assert.equal(summarizeError(Object.assign(Error('request timed out'),{name:'TimeoutError'})).category,'timeout');
   assert.match(interpret({fetch:{ok:false},tcp:{ok:false},tls:{ok:false}}),/remain possible/);
+});
+
+
+test('3xx HTTP redirect is observed but never followed by Workers probe', async () => {
+  const calls = [];
+  const response = await probeFetch(async (url, options) => {
+    calls.push({url, redirect: options.redirect});
+    return new Response('', {status: 302, headers:{location:'https://untrusted.example/redirect'}});
+  });
+  assert.deepEqual(calls, [{url:'https://api.spacexpanse.org:1234/info',redirect:'manual'}]);
+  assert.equal(response.ok, false);
+  assert.equal(response.connected, true);
+  assert.equal(response.http_status, 302);
+  assert.equal(response.response_shape, 'redirect_rejected');
+  assert(!JSON.stringify(response).includes('untrusted.example'));
 });

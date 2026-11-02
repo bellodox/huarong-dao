@@ -77,8 +77,14 @@ export async function probeFetch(fetcher = globalThis.fetch, now = () => perform
   try {
     // Same URL, native fetch receiver and redirect policy as the production provider.
     const response = await fetcher.call(globalThis, INFO_URL, {
-      redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS)
+      redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS)
     });
+    // Workers only supports follow/manual. Manual must reject redirects itself.
+    if (response.status >= 300 && response.status < 400) {
+      try { await response.body?.cancel(); } catch {}
+      return { ok: false, connected: true, http_status: response.status,
+        elapsed_ms: elapsed(start, now), response_shape: 'redirect_rejected' };
+    }
     const body = await boundedResponse(response);
     return { ok: response.ok && body.response_shape === 'json', connected: true,
       http_status: response.status, elapsed_ms: elapsed(start, now), ...body };

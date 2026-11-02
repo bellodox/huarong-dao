@@ -44,8 +44,12 @@ export function createTransport({baseUrl=PROVIDER_DEFAULTS.baseUrl,fetch:fetcher
     const controller=new AbortController(),cancel=()=>{if(reader)void reader.cancel().catch(()=>{});};
     const timer=setTimeout(()=>{controller.abort();cancel();},timeoutMs);
     try {
-      response=await fetcher(root+path,{...init,redirect:'error',signal:controller.signal});
+      // Workers does not support redirect:'error'. Manual keeps redirects un-followed.
+      response=await fetcher(root+path,{...init,redirect:'manual',signal:controller.signal});
       reader=response.body?.getReader();
+      // Reject redirects explicitly without consuming untrusted redirected content.
+      if(response.status>=300&&response.status<400)throw providerError('provider_http_error',
+        {path,status:response.status,category:'http_error'});
       if(Number(response.headers.get('content-length'))>maxResponseBytes)throw providerError('provider_response_too_large',{path});
       bytes=new Uint8Array(Math.min(65536,maxResponseBytes));
       if(reader)for(;;) {
@@ -64,7 +68,7 @@ export function createTransport({baseUrl=PROVIDER_DEFAULTS.baseUrl,fetch:fetcher
     }catch(error) {
       const timedOut=controller.signal.aborted;
       cancel();controller.abort();
-      if(error?.code==='provider_response_too_large'||error?.code==='provider_timeout')throw error;
+      if(['provider_response_too_large','provider_timeout','provider_http_error'].includes(error?.code))throw error;
       // Publisher guards originate outside the HTTP adapter. Preserve their precise
       // categories and attach only our fixed relative API path, never a full URL.
       if(PUBLISHER_LIMIT_ERRORS.has(error?.code))throw providerError(error.code,{path});
