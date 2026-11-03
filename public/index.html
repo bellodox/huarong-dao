@@ -3269,23 +3269,27 @@
           leaderboardModal.classList.add('hidden');
           if(rankingPreviousFocus?.isConnected)rankingPreviousFocus.focus();
       }
-      // The local-only and online privacy statements are deliberately different.
-      // A single disclosure shows exactly one of them based on live publication availability.
+      // Whether a public leaderboard can be VIEWED is independent of whether
+      // new submissions can be PUBLISHED. Only file:// is strictly local-only.
       function updateRankingPrivacy(online=HUARONG_PUBLIC_ENABLED){
-          document.getElementById('ranking-privacy-local').classList.toggle('hidden',!!online);
-          document.getElementById('ranking-privacy-online').classList.toggle('hidden',!online);
-          document.getElementById('ranking-rules-local').classList.toggle('hidden',!!online);
-          document.getElementById('ranking-rules-online').classList.toggle('hidden',!online);
+          const localOnly=location.protocol==='file:';
+          document.getElementById('ranking-privacy-local').classList.toggle('hidden',!localOnly);
+          document.getElementById('ranking-privacy-online').classList.toggle('hidden',localOnly);
+          document.getElementById('ranking-rules-local').classList.toggle('hidden',!localOnly);
+          document.getElementById('ranking-rules-online').classList.toggle('hidden',localOnly);
           const chip=document.getElementById('ranking-mode-label');
           const caption=document.getElementById('ranking-mode-description');
           const en=document.documentElement.lang==='en';
           chip.classList.toggle('hd-online',!!online);
-          if(location.protocol==='file:'){
+          if(localOnly){
               chip.textContent=en?'● Local-only':'● Само локално';
               caption.textContent=en?'Scores stay on this device.':'Резултатите остават на това устройство.';
+          }else if(window.huarongLeaderboardReachable===false){
+              chip.textContent=en?'● Connection issue':'● Проблем с връзката';
+              caption.textContent=en?'Public scores are temporarily unavailable; local saves still work.':'Публичната класация временно не е достъпна; локалните резултати се запазват.';
           }else if(!online){
-              chip.textContent=en?'● Local only':'● Само локално';
-              caption.textContent=en?'Play and local saves still work.':'Играта и локалните резултати продължават да работят.';
+              chip.textContent=en?'● Online':'● Онлайн';
+              caption.textContent=en?'Public scores can be viewed; new submissions are temporarily unavailable.':'Публичните резултати могат да се разглеждат; новите изпращания временно не са достъпни.';
           }else if(allowPublicScores&&publicNameReady){
               chip.textContent=en?'● Online':'● Онлайн';
               caption.textContent=en?'Eligible new records are submitted with your consent.':'Допустимите нови рекорди се изпращат с твое съгласие.';
@@ -3305,10 +3309,9 @@
           controls.title=!publicNameReady?
               (en?'Complete and submit a result to activate public submissions':'Завърши и публикувай резултат, за да разрешиш изпращането'):
               (en?'Submit future eligible records to the public leaderboard':'Изпращай бъдещи допустими рекорди в класацията');
-          const offline=location.protocol==='file:'||!online;
           const publicTab=document.getElementById('ranking-tab-public');
-          publicTab.classList.toggle('hidden',offline);
-          if(offline){
+          publicTab.classList.toggle('hidden',localOnly);
+          if(localOnly){
               publicTab.setAttribute('aria-selected','false');
               document.getElementById('ranking-tab-local').setAttribute('aria-selected','true');
               document.getElementById('ranking-pane-public').classList.add('hidden');

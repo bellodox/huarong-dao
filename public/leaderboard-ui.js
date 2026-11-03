@@ -224,6 +224,8 @@
       const response=await fetch('/api/leaderboard?'+params,{cache:'no-store',signal:AbortSignal.timeout(10000)});
       if(!response.ok)throw Error('backend_unavailable');
       const result=await response.json();if(current!==generation)return;
+      // Readable confirmed scores do not imply new-publication readiness.
+      window.huarongLeaderboardReachable=true;
       snapshot=result;HUARONG_PUBLIC_ENABLED=result.available===true;
       window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
       rows.replaceChildren();pending.replaceChildren();
@@ -284,7 +286,7 @@
         pending.append(notice);
       }
       const code=result.publisher?.code??result.code;
-      status.textContent=!HUARONG_PUBLIC_ENABLED?(code==='issuance_disabled'?t('Публичното изпращане е изключено · локалната игра продължава','Public submission is off · your games stay local'):t('Публичното изпращане не е достъпно · резултатът е локален','Public submission unavailable · your score stays local')):
+      status.textContent=!HUARONG_PUBLIC_ENABLED?(code==='issuance_disabled'?t('Новите изпращания са изключени · наличните публични записи остават видими','New submissions are off · existing public scores remain visible'):t('Новите изпращания временно не са достъпни · показани са публичните записи','New submissions temporarily unavailable · displaying public scores')):
         result.stale?t('Данните не са актуални · показани са последно известните резултати','Data may be outdated · showing the last known scores'):
         t('Потвърдени записи · независимо преиграни ходове','Confirmed records · independently replayed moves');
       // Only fixed allowlisted codes are ever displayed. Never show backend-provided free text.
@@ -294,9 +296,16 @@
       backup.classList.toggle('hidden',!localStorage.getItem('huarong_rod_identity_v1'));
     }catch{
       if(current!==generation)return;
+      window.huarongLeaderboardReachable=false;
       HUARONG_PUBLIC_ENABLED=false;
       window.huarongUpdateRankingPrivacy?.(false);
-      status.textContent=t('Публичното изпращане не е достъпно · резултатът е локален','Public submission unavailable · your score stays local');
+      status.textContent=t('Връзката с класацията не е достъпна · опитай с обновяване','Could not load the leaderboard · try refreshing');
+      if(!rows.childElementCount){
+        const notice=document.createElement('p');
+        notice.className='rounded-xl border border-slate-700 bg-slate-900/70 p-3 text-slate-400 text-xs text-center';
+        notice.textContent=t('Публичните резултати временно не могат да се заредят.','Public scores are temporarily unavailable.');
+        rows.append(notice);
+      }
     }
   }
   /** Opt-in only. Persist signed bytes before POST and reuse them after ambiguous failures. */
