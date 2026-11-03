@@ -2711,8 +2711,10 @@
               // Recover from a prematurely written lock with no saved score.
               try{localStorage.removeItem(FIXED_NAME_KEY);}catch(e){}
           }
-          publicNameReady=nameLocked && HUARONG_PUBLIC_ENABLED && allowPublicScores &&
-              localStorage.getItem(PUBLIC_NAME_KEY)==='true';
+          // The confirmed public identity survives temporary publisher outages and reloads.
+          // HUARONG_PUBLIC_ENABLED starts false until the async readiness request finishes;
+          // it must never erase a player's independently saved publication consent.
+          publicNameReady=nameLocked && localStorage.getItem(PUBLIC_NAME_KEY)==='true';
       }catch(e){publicNameReady=false;}
       if(!publicNameReady)allowPublicScores=false;
       const nickInput=document.getElementById('nickname-input');
@@ -2819,8 +2821,9 @@
                   if(typeof syncOutstandingBests==='function')syncOutstandingBests();
               }
           }else{
-              publicNameReady=false;
-              try{localStorage.removeItem(PUBLIC_NAME_KEY);}catch(e){}
+              // Withdrawing consent stops future unsent scores. It does not unconfirm
+              // the player's previously published identity, so they can opt in again.
+              // PUBLIC_NAME_KEY records that prior confirmation, not current consent.
           }
       });
       // A second open tab must respect a consent withdrawal immediately.
@@ -2880,7 +2883,8 @@
           try{allowed=JSON.parse(event.newValue||'null')?.allowed===true;}catch(e){}
           allowPublicScores=HUARONG_PUBLIC_ENABLED && allowed;
           allowed=allowPublicScores;
-          if(!allowed)publicNameReady=false;
+          // A cross-tab consent withdrawal is not an identity revocation.
+          // Consent remains false until a user actively opts back in.
           publicScoreConsent.checked=allowed;
           rankingPublicConsent.checked=allowed;
           window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
@@ -3095,9 +3099,11 @@
               playerNameError.textContent='Потвърди съгласието, за да публикуваш резултата.';
               return;
           }
-          setPublicScoreConsent(true);
+          // Mark this identity confirmed before refreshing the ranking UI;
+          // otherwise the freshly consented submission incorrectly says 'off'.
           publicNameReady=true;
           try{localStorage.setItem(PUBLIC_NAME_KEY,'true');}catch(e){}
+          setPublicScoreConsent(true);
           playerGate.classList.add('hidden');
           refreshRanking();
           const submitting={layout:score.layout,moves:score.moves,player:nickname};
