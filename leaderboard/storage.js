@@ -52,8 +52,35 @@ export class SupabaseStorage {
       throw storageFailure('storage_unavailable',error?.name==='TimeoutError'||error?.name==='AbortError'?'timeout':'transport');
     }
     if(!['hd1_public','hd1_recovery_read','hd_session_status'].includes(functionName)) {
-      if(!response.ok)throw Error('storage_unavailable');
-      return response.json();
+      if(!response.ok) {
+        // Operational RPC errors previously lost all status/code evidence, causing
+        // hd1_publisher_early_failure phase=job category=unexpected. Preserve only
+        // allowlisted PostgreSQL/PostgREST codes and HTTP status, never SQL text,
+        // details, hints or credentials. Bound error reads independently of content-length.
+        let backendCode=null;
+        const reader=response.body?.getReader();
+        if(reader) {
+          const chunks=[];let length=0;
+          try {
+            while(true) {
+              const {done,value}=await reader.read();if(done)break;
+              length+=value.length;if(length>8192)break;
+              chunks.push(value);
+            }
+            if(length<=8192) {
+              const bytes=new Uint8Array(length);let offset=0;
+              for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+              const body=JSON.parse(new TextDecoder().decode(bytes));
+              if(typeof body?.code==='string')backendCode=body.code;
+            }
+          }catch {}finally {try{await reader.cancel();}catch {}}
+        }
+        throw storageFailure('storage_unavailable',response.status===401?'authentication':
+          response.status===403?'permission':response.status>=500?'upstream_unavailable':'upstream_rejected',
+          response.status,backendCode);
+      }
+      try{return await response.json();}
+      catch {throw storageFailure('storage_unavailable','invalid_response',response.status);}
     }
     // Bound even a misconfigured/unexpected backend before JSON parsing.
     const reader=response.body?.getReader(),chunks=[];let length=0;
