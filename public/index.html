@@ -1771,7 +1771,15 @@
         #hd1-public-board .hd1-row-unit { color:#94a3b8; font-size:.65rem; font-weight:500; margin-top:.17rem; text-align:right; }
         #hd1-public-board select { min-width:0; width:100%; }
         #hd1-public-board .hd1-rank-note { line-height:1.5; }
-        #ranking-settings > summary { list-style-position:inside; }
+        #ranking-pane-settings { min-width:0; }
+        #leaderboard-modal .hd-ranking-player { min-width:5.2rem; max-width:9.5rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+        #leaderboard-modal .hd-rank-tab { white-space:normal; line-height:1.18; min-height:2.35rem; }
+        #leaderboard-modal .hd-publication-strip { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.3rem .6rem; }
+        #leaderboard-modal #ranking-public-controls:not(.hidden) { margin:0; }
+        #hd1-public-board #hd1-submission.hidden { display:none !important; }
+        #hd1-public-board .hd1-submission { border:1px solid rgba(251,191,36,.36); background:rgba(146,64,14,.13); border-radius:.75rem; padding:.65rem .75rem; margin-bottom:.7rem; }
+        #hd1-public-board .hd1-submission-status { font-weight:700; color:#fde68a; }
+        @media(max-width:390px){ #leaderboard-modal .hd-ranking-player { min-width:5.7rem; max-width:6.7rem; } #leaderboard-modal .hd-rank-tab { font-size:.67rem; padding-inline:.25rem; } }
         #leaderboard-modal .hd-leaderboard-shell { overscroll-behavior:contain; }
         @media (max-width:360px) { #leaderboard-modal .hd-leaderboard-shell { padding:.75rem; } #hd1-public-board .hd1-row { padding:.6rem .55rem; gap:.5rem; } }
 
@@ -1791,6 +1799,8 @@
         }
         #leaderboard-modal .hd-leaderboard-heading { border-color:rgba(245,158,11,.26); }
         #leaderboard-modal .hd-leaderboard-heading h2 { letter-spacing:-.02em; }
+        #leaderboard-modal .hd-leaderboard-heading > div:first-child { min-width:0; flex:1 1 auto; }
+        #leaderboard-modal .hd-leaderboard-heading > div:last-child { flex:0 0 auto; max-width:56%; }
         #leaderboard-modal .hd-mode-chip { display:inline-flex; align-items:center; gap:.35rem;
             padding:.28rem .57rem; border:1px solid #475569; border-radius:999px;
             background:rgba(30,41,59,.8); color:#cbd5e1; font-size:.65rem; font-weight:700; }
@@ -1803,7 +1813,7 @@
         #leaderboard-modal .hd-rank-tab { border-radius:.6rem; }
         #hd1-public-board { position:relative; overflow:hidden; border-color:rgba(71,85,105,.6); }
         #hd1-public-board .hd1-board-title { letter-spacing:-.01em; font-size:1.02rem; }
-        #hd1-public-board .hd1-row { position:relative; min-height:4rem; gap:.7rem; padding:.75rem .8rem;
+        #hd1-public-board .hd1-row { position:relative; min-height:3.15rem; gap:.58rem; padding:.49rem .65rem;
             border:1px solid rgba(71,85,105,.48); border-radius:.85rem;
             background:linear-gradient(115deg,rgba(30,41,59,.85),rgba(15,23,42,.9));
             transition:border-color .15s, transform .15s; }
@@ -1811,15 +1821,15 @@
         #hd1-public-board .hd1-row.hd1-rank-1 { background:linear-gradient(105deg,rgba(146,98,25,.26),rgba(30,41,59,.92)); border-color:rgba(251,191,36,.57);box-shadow:inset 3px 0 0 #fbbf24; }
         #hd1-public-board .hd1-row.hd1-rank-2 { background:linear-gradient(105deg,rgba(148,163,184,.15),rgba(30,41,59,.9)); border-color:rgba(203,213,225,.33);box-shadow:inset 3px 0 0 #94a3b8; }
         #hd1-public-board .hd1-row.hd1-rank-3 { background:linear-gradient(105deg,rgba(180,83,9,.14),rgba(30,41,59,.9)); border-color:rgba(217,119,6,.3);box-shadow:inset 3px 0 0 #c08450; }
-        #hd1-public-board .hd1-position { flex:0 0 2.2rem; width:2.2rem; height:2.2rem;
+        #hd1-public-board .hd1-position { flex:0 0 1.85rem; width:1.85rem; height:1.85rem;
             border-radius:.65rem; font-variant-numeric:tabular-nums; font-size:.78rem; }
         #hd1-public-board .hd1-rank-1 .hd1-position { color:#1e293b; background:#fbbf24; }
         #hd1-public-board .hd1-rank-2 .hd1-position { color:#0f172a; background:#cbd5e1; }
         #hd1-public-board .hd1-rank-3 .hd1-position { color:#170d06; background:#d3a078; }
-        #hd1-public-board .hd1-row-name { font-size:.88rem; line-height:1.28; }
+        #hd1-public-board .hd1-row-name { font-size:.79rem; line-height:1.22; }
         #hd1-public-board .hd1-row-metrics { color:#cbd5e1; font-variant-numeric:tabular-nums; font-size:.69rem; line-height:1.55; }
         #hd1-public-board .hd1-row-layouts { color:#94a3b8; font-size:.66rem; }
-        #hd1-public-board .hd1-row-score { font-size:1.12rem; letter-spacing:-.02em; }
+        #hd1-public-board .hd1-row-score { font-size:.99rem; letter-spacing:-.02em; }
         #hd1-public-board .hd1-row-unit { letter-spacing:.01em; }
         #hd1-public-board .hd1-rank-1 .hd1-row-score { color:#fde68a; }
         #hd1-public-board #hd1-status { border-radius:.6rem; }
@@ -2145,12 +2155,22 @@
             <h2 id="leaderboard-title" class="font-extrabold text-lg text-amber-300">🏆 Класация</h2>
             <p id="ranking-mode-description" class="text-[11px] text-slate-400 mt-1">Резултатите са само на това устройство.</p>
           </div>
-          <button id="btn-close-leaderboard" type="button" class="bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold shrink-0" aria-label="Затвори">✕</button>
+          <div class="flex items-center gap-2 shrink-0 min-w-0">
+            <button id="ranking-header-player" type="button" class="hd-ranking-player text-xs text-slate-200 font-bold truncate rounded-lg border border-slate-700 px-2 py-1.5 hover:text-amber-300" aria-label="Отвори профила и настройките">Играч</button>
+            <button id="btn-close-leaderboard" type="button" class="bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold shrink-0" aria-label="Затвори">✕</button>
+          </div>
         </div>
-        <div class="mb-3"><span id="ranking-mode-label" class="hd-mode-chip" role="status">● Само локално</span></div>
+        <div class="hd-publication-strip mb-3">
+          <span id="ranking-mode-label" class="hd-mode-chip" role="status">● Само локално</span>
+          <label id="ranking-public-controls" class="hidden flex gap-2 items-center text-[11px] leading-relaxed text-slate-300 mt-2 cursor-pointer">
+            <input id="ranking-public-consent" type="checkbox" class="w-4 h-4 shrink-0 accent-amber-500" />
+            <span>Публикувай бъдещите ми резултати в публичната класация.</span>
+          </label>
+        </div>
         <div role="tablist" aria-label="Вид класация" class="hd-rank-tabs flex p-1 rounded-xl bg-slate-950/80 border border-slate-700/70 mb-3">
-          <button type="button" id="ranking-tab-public" role="tab" aria-selected="true" aria-controls="ranking-pane-public" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Обща класация</button>
-          <button type="button" id="ranking-tab-local" role="tab" aria-selected="false" aria-controls="ranking-pane-local" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Моите резултати</button>
+          <button type="button" id="ranking-tab-public" role="tab" aria-selected="true" aria-controls="ranking-pane-public" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Класация</button>
+          <button type="button" id="ranking-tab-local" role="tab" aria-selected="false" aria-controls="ranking-pane-local" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Локални резултати</button>
+          <button type="button" id="ranking-tab-settings" role="tab" aria-selected="false" aria-controls="ranking-pane-settings" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Профил и настройки</button>
         </div>
         <section id="ranking-pane-public" role="tabpanel" aria-labelledby="ranking-tab-public">
           <div id="hd1-public-anchor"></div>
@@ -2171,9 +2191,8 @@
         <button id="btn-refresh-scores" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl py-2 text-xs font-bold">Обнови класацията</button>
           </div>
         </section>
-        <details id="ranking-settings" class="hd-leaderboard-settings mt-3 rounded-xl border border-slate-700/70 bg-slate-950/30">
-          <summary class="cursor-pointer text-xs font-bold text-slate-200 px-3 py-3">Профил и настройки</summary>
-          <div class="px-3 pb-3 pt-1 border-t border-slate-800">
+        <section id="ranking-pane-settings" role="tabpanel" aria-labelledby="ranking-tab-settings" class="hidden hd-leaderboard-settings rounded-xl border border-slate-700/70 bg-slate-950/30">
+          <div id="ranking-settings" class="px-3 pb-3 pt-3">
             <div class="mb-3 flex justify-end"><button id="btn-cookie-settings" type="button" class="text-[11px] underline text-amber-300 hover:text-amber-200">Настройки на бисквитките</button></div>
         <div id="nickname-editor">
         <label class="text-xs text-slate-300 font-bold" for="nickname-input">Потребителско име</label>
@@ -2185,12 +2204,9 @@
         </div>
         <div id="nickname-feedback" class="text-[11px] text-slate-400 mb-1" role="status">Играеш като</div>
         <p id="nickname-fixed-note" class="hidden text-[11px] text-amber-200 mb-3">Името е заключено след първия запазен резултат.</p>
-        <label id="ranking-public-controls" class="hidden flex gap-2 items-start text-[11px] leading-relaxed text-slate-300 mb-3 cursor-pointer">
-          <input id="ranking-public-consent" type="checkbox" class="mt-0.5 w-4 h-4 shrink-0 accent-amber-500" />
-          <span>Публикувай бъдещите ми резултати в публичната класация.</span>
-        </label>
         <p id="ranking-rules-local" class="text-left text-[11px] text-slate-300 leading-relaxed mb-3">Тук са записите от игрите без помощ на това устройство. Виждаш броя ходове и времето за всяка игра. Нищо не се изпраща.</p>
         <p id="ranking-rules-online" class="hidden text-left text-[11px] text-slate-300 leading-relaxed mb-3">В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена, при твое съгласие.</p>
+        <div id="hd1-backup-anchor" class="mb-3"></div>
         <details id="ranking-public-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed mb-3">
           <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
           <div id="ranking-privacy-local">
@@ -2204,7 +2220,7 @@
           </div>
         </details>
           </div>
-        </details>
+        </section>
       </div>
     </div>
 
@@ -3004,8 +3020,10 @@
           try{localStorage.setItem(PUBLIC_NAME_KEY,'true');}catch(e){}
           playerGate.classList.add('hidden');
           refreshRanking();
+          const submitting={layout:score.layout,moves:score.moves,player:nickname};
           pendingPublicScore=null;
           submitScoreBtn.classList.add('hidden');
+          showSubmissionInLeaderboard(submitting);
           if(typeof queueRodVictory==='function')syncOutstandingBests();
       });
       // Keep keyboard focus inside the initial username dialog until it is submitted.
@@ -3080,6 +3098,7 @@
               // The Worker rechecks strict lifetime OR inclusion-week improvement.
               if(needsPublicUpdate(layout)){
                   if(playerGateMode!=='first' && allowPublicScores && publicNameReady){
+                      window.huarongExpectedSubmission={layout,moves,player:nickname,at:Date.now()};
                       queueRodVictory(layout,moves,seconds,true);
                   }else if(!allowPublicScores || !publicNameReady){
                       const best=leaderboard[layout];
@@ -3132,24 +3151,38 @@
           });
           if(!localHistory.length){const empty=document.createElement('p');empty.className='text-xs text-slate-400 bg-slate-800/50 p-3 rounded-xl';empty.textContent='Все още няма резултати без помощ за тази подредба.';destination.appendChild(empty);}
           document.getElementById('nickname-feedback').textContent='Играеш като '+nickname;
+          updateRankingHeaderName();
       }
-      const rankingTabs={public:document.getElementById('ranking-tab-public'),local:document.getElementById('ranking-tab-local')};
-      const rankingPanes={public:document.getElementById('ranking-pane-public'),local:document.getElementById('ranking-pane-local')};
+      const rankingTabs={public:document.getElementById('ranking-tab-public'),local:document.getElementById('ranking-tab-local'),
+          settings:document.getElementById('ranking-tab-settings')};
+      const rankingPanes={public:document.getElementById('ranking-pane-public'),local:document.getElementById('ranking-pane-local'),
+          settings:document.getElementById('ranking-pane-settings')};
       function selectRankingTab(which){
-          for(const kind of ['public','local']){
-              rankingTabs[kind].setAttribute('aria-selected',String(which===kind));
-              rankingTabs[kind].tabIndex=which===kind?0:-1;
-              rankingPanes[kind].classList.toggle('hidden',which!==kind);
+          const selected=which==='public'&&rankingTabs.public.classList.contains('hidden')?'local':which;
+          for(const kind of ['public','local','settings']){
+              rankingTabs[kind].setAttribute('aria-selected',String(selected===kind));
+              rankingTabs[kind].tabIndex=selected===kind?0:-1;
+              rankingPanes[kind].classList.toggle('hidden',selected!==kind);
           }
-          if(which==='local')refreshRanking();
-          else window.hd1UI?.refresh();
+          if(selected==='local')refreshRanking();
+          else if(selected==='public'){
+              window.hd1UI?.refresh();
+              window.hd1UI?.refreshSubmission();
+          }
       }
-      for(const kind of ['public','local']){
+      for(const kind of ['public','local','settings']){
           rankingTabs[kind].addEventListener('click',()=>selectRankingTab(kind));
           rankingTabs[kind].addEventListener('keydown',event=>{
               if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
-              event.preventDefault();const next=kind==='public'?'local':'public';selectRankingTab(next);rankingTabs[next].focus();
+              event.preventDefault();
+              const available=['public','local','settings'].filter(key=>!rankingTabs[key].classList.contains('hidden'));
+              const direction=event.key==='ArrowRight'?1:-1;
+              const next=available[(available.indexOf(kind)+direction+available.length)%available.length];
+              selectRankingTab(next);rankingTabs[next].focus();
           });
+      }
+      function updateRankingHeaderName(){
+          document.getElementById('ranking-header-player').textContent=nickname;
       }
       let rankingPreviousFocus=null;
       function closeRanking(){
@@ -3165,19 +3198,24 @@
           document.getElementById('ranking-rules-online').classList.toggle('hidden',!online);
           const chip=document.getElementById('ranking-mode-label');
           const caption=document.getElementById('ranking-mode-description');
+          const en=document.documentElement.lang==='en';
           chip.classList.toggle('hd-online',!!online);
-          if(!online){
-              chip.textContent='● Само локално';
-              caption.textContent='Резултатите са само на това устройство.';
-          }else if(allowPublicScores){
-              chip.textContent='● Публикуването е разрешено';
-              caption.textContent='Личните рекорди се изпращат, ако отговарят на правилата.';
+          if(location.protocol==='file:'){
+              chip.textContent=en?'● Local-only':'● Само локално';
+              caption.textContent=en?'Scores stay on this device.':'Резултатите остават на това устройство.';
+          }else if(!online){
+              chip.textContent=en?'● Online publishing unavailable':'● Онлайн публикуването не е достъпно';
+              caption.textContent=en?'Play and local saves still work.':'Играта и локалните резултати продължават да работят.';
+          }else if(allowPublicScores&&publicNameReady){
+              chip.textContent=en?'● Online · submissions on':'● Онлайн · изпращането е включено';
+              caption.textContent=en?'Eligible new records are submitted with your consent.':'Допустимите нови рекорди се изпращат с твое съгласие.';
           }else{
-              chip.textContent='● Публикуването е изключено';
-              caption.textContent='Можеш да гледаш публичните резултати; твоите остават локални.';
+              chip.textContent=en?'● Online · submissions off':'● Онлайн · изпращането е изключено';
+              caption.textContent=en?'View public scores; submit a completed result to opt in.':'Виждаш публичните резултати; избери „Публикувай“ след игра, за да се включиш.';
           }
-          // Local file preview has no server; never display an empty public ranking as active.
-          const offline=location.protocol==='file:';
+          // The publishing consent remains in the status strip, not inside Profile & settings.
+          document.getElementById('ranking-public-controls').classList.toggle('hidden',!online||!publicNameReady);
+          const offline=location.protocol==='file:'||!online;
           const publicTab=document.getElementById('ranking-tab-public');
           publicTab.classList.toggle('hidden',offline);
           if(offline){
@@ -3186,9 +3224,10 @@
               document.getElementById('ranking-pane-public').classList.add('hidden');
               document.getElementById('ranking-pane-local').classList.remove('hidden');
           }
+          updateRankingHeaderName();
       }
       window.huarongUpdateRankingPrivacy=updateRankingPrivacy;
-      function openRanking(){
+      function openRanking(which){
           rankingPreviousFocus=document.activeElement;
           if(typeof GAME_LAYOUTS!=='undefined'){
               rankLayout.replaceChildren();
@@ -3199,15 +3238,23 @@
           nickInput.value=nickname;
           updateNameLockUI();
           rankingPublicConsent.checked=allowPublicScores;
-          document.getElementById('ranking-public-controls').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED || !publicNameReady);
           updateRankingPrivacy();
           document.getElementById('install-online-note').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
           refreshRanking();
-          selectRankingTab(location.protocol==='file:'?'local':'public');
+          selectRankingTab(which|| (location.protocol==='file:'?'local':'public'));
           leaderboardModal.classList.remove('hidden');
-          document.getElementById('btn-close-leaderboard').focus();
+          (which==='settings'?document.getElementById('nickname-input'):document.getElementById('btn-close-leaderboard')).focus();
       }
-      document.getElementById('btn-leaderboard').onclick=openRanking;
+      function showSubmissionInLeaderboard(score){
+          if(!score||!HUARONG_PUBLIC_ENABLED)return;
+          document.getElementById('victory-modal').classList.add('hidden');
+          playerGate.classList.add('hidden');
+          window.hd1UI?.beginSubmission(score);
+          openRanking('public');
+      }
+      window.huarongOpenSubmissionStatus=showSubmissionInLeaderboard;
+      document.getElementById('ranking-header-player').onclick=()=>selectRankingTab('settings');
+      document.getElementById('btn-leaderboard').onclick=()=>openRanking();
       document.getElementById('btn-close-leaderboard').onclick=closeRanking;
       leaderboardModal.addEventListener('click',event=>{if(event.target===leaderboardModal)closeRanking();});
       leaderboardModal.addEventListener('keydown',event=>{
@@ -4265,7 +4312,7 @@
         manageModalKeyboard(movesDrawer,closeMovesDrawer);
         manageModalKeyboard(levelsModal,closeLevelsModal);
 
-        document.getElementById('active-player').addEventListener('click',()=>document.getElementById('btn-leaderboard').click());
+        document.getElementById('active-player').addEventListener('click',()=>openRanking('settings'));
         btnLevelsMenu.onclick = () => {
             renderLevelsMenu();
             levelsModal.classList.remove('hidden');
@@ -4757,6 +4804,9 @@
         "Всички времена":"Lifetime",
         "Текуща седмица":"Current week",
         "Името, постоянният публичен ключ и целият път стават публични. Оттеглянето на съгласие не изтрива публикувани данни. Няма награди или преводи.":"Your name, stable public key and entire path become public. Withdrawing consent cannot erase published data. No rewards or transfers.",
+        "Класация":"Leaderboard", "Резултати":"Scores",
+        "Последен резултат":"Latest result", "Подготовка…":"Preparing…",
+        "Резултатът още не е приет от сървъра.":"The server has not accepted this result yet.",
         "Публична класация":"Public leaderboard",
         "Потвърдени резултати · ходовете са проверени":"Confirmed results · verified moves",
         "Публични резултати":"Public scores",
@@ -4919,7 +4969,9 @@
         'Публикувай резултата':'Publish score', 'Не сега · запази локално':'Not now · keep locally',
         'Добави в общата класация':'Submit to public leaderboard',
         'Потвърдени резултати · без помощ':'Confirmed scores · unassisted',
-        'Моите резултати':'My results', 'Профил и настройки':'Profile & settings',
+        'Моите резултати':'My results', 'Локални резултати':'Local results',
+        'Отвори профила и настройките':'Open profile & settings',
+        'Профил и настройки':'Profile & settings',
         'Вид класация':'Leaderboard view',
         'Последните 5 локални резултата':'Last 5 local results',
         '🏆 Класация':'🏆 Leaderboard', 'Най-добрите резултати · само без помощ':'Best scores · unassisted only',
