@@ -45,15 +45,15 @@ function uiFixture() {
 test('UI distinguishes explicit disable from readiness failure and fails closed after a network outage',async()=>{
   const ui=uiFixture();
   await ui.refresh({available:false,code:'issuance_disabled',publisher:{code:'issuer_not_configured'}});
-  assert.match(ui.text(),/не е достъпно/);assert.match(ui.text(),/issuer_not_configured/);
+  assert.match(ui.text(),/Новите изпращания временно не са достъпни/);assert.match(ui.text(),/issuer_not_configured/);
   for(const code of ['initial_sync','publisher_stale','schema_upgrade_required','funds_unavailable','recovery_required']) {
     await ui.refresh({available:false,publisher:{code}});
-    assert.match(ui.text(),/не е достъпно/);assert.doesNotMatch(ui.text(),/е изключено/);
+    assert.match(ui.text(),/Новите изпращания временно не са достъпни/);assert.doesNotMatch(ui.text(),/Новите изпращания са изключени/);
     assert.equal(ui.context.HUARONG_PUBLIC_ENABLED,false);
   }
-  await ui.refresh({available:false,code:'issuance_disabled'});assert.match(ui.text(),/е изключено/);
+  await ui.refresh({available:false,code:'issuance_disabled'});assert.match(ui.text(),/Новите изпращания са изключени/);
   await ui.refresh({available:false,publisher:{code:'<script>private backend detail</script>'}});
   assert.doesNotMatch(ui.text(),/private backend detail/);
   await ui.refresh({available:true,stale:false});assert.equal(ui.context.HUARONG_PUBLIC_ENABLED,true);
-  await ui.refresh(null,true);assert.equal(ui.context.HUARONG_PUBLIC_ENABLED,false);assert.match(ui.text(),/не е достъпно/);
+  await ui.refresh(null,true);assert.equal(ui.context.HUARONG_PUBLIC_ENABLED,false);assert.match(ui.text(),/Връзката с класацията не е достъпна/);
 });
