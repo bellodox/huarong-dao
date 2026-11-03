@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const OUTBOX_KEY='huarong_hd1_outbox_v1';
+  const DISMISSED_RECEIPT_KEY='huarong_hd1_dismissed_receipt_v1';
   let snapshot=null,busy=false,generation=0;
   const panel=document.createElement('section');
   panel.id='hd1-public-board';
@@ -42,7 +43,7 @@
     <div id="hd1-pending" class="mt-2 text-[11px] text-amber-200"></div>
     <details class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400 hd1-rank-note">
       <summary class="cursor-pointer text-slate-300">Правила и проверка</summary>
-      <p class="mt-2">Точките зависят от броя ходове и сложността на подредбата. При равен брой ходове в една подредба по-бързото прието време определя реда. За общото класиране важат общите точки. Времето се пази в класацията, но не и в ROD разписката; по-старите записи може да са без време. Ходовете се преиграват и потвърждават в блокчейна.</p>
+      <p class="mt-2">Точките зависят от броя ходове и сложността на подредбата. При равен брой ходове в една подредба по-бързото прието време определя реда. За общото класиране важат общите точки. Времето се пази в класацията, но не и в публичната разписка; по-старите записи може да са без време. Ходовете се преиграват и потвърждават в блокчейна.</p>
     </details>
     `;
   const backup=document.createElement('button');
@@ -90,7 +91,12 @@
   const submissionNote=submissionBox.querySelector('#hd1-submission-note');
   let currentSubmissionId=null,currentSubmission=null;
   let latestConfirmations=0,settledShown=false,suppressedReceipt=null;
+  let dismissedReceipt=null,lastModalClosedAt=0;
+  try {const saved=localStorage.getItem(DISMISSED_RECEIPT_KEY);if(/^[a-f0-9]{64}$/.test(saved||''))dismissedReceipt=saved;}catch{}
   function onModalOpened(){
+    if(latestConfirmations>=6 && currentSubmissionId===dismissedReceipt){
+      submissionBox.classList.add('hidden');return;
+    }
     // Six confirmations end the transient notice only on the NEXT modal opening.
     if(latestConfirmations>=6 && settledShown && currentSubmissionId){
       suppressedReceipt=currentSubmissionId;
@@ -99,6 +105,19 @@
       // First viewing of a completed result still shows its publication outcome.
       submissionBox.classList.remove('hidden');settledShown=true;
     }
+  }
+  function onModalClosed(){
+    lastModalClosedAt=Date.now();
+    if(!currentSubmissionId)return;
+    dismissedReceipt=currentSubmissionId;
+    suppressedReceipt=currentSubmissionId;
+    submissionBox.classList.add('hidden');
+    try{localStorage.setItem(DISMISSED_RECEIPT_KEY,currentSubmissionId);}catch{}
+  }
+  const leaderboardModal=document.getElementById('leaderboard-modal');
+  if(leaderboardModal){
+    new MutationObserver(()=>{if(leaderboardModal.classList.contains('hidden'))onModalClosed();})
+      .observe(leaderboardModal,{attributes:true,attributeFilter:['class']});
   }
   function beginSubmission(run,id=null){
     if(!run)return;
@@ -127,13 +146,13 @@
   function statusMessage(row){
     const code=row?.status||row?.code;
     const mapping={
-      queued:[t('Прието · на опашка','Accepted · queued'),t('Резултатът е приет. Очаква излъчване в ROD.','The result was accepted. Awaiting ROD broadcast.')],
+      queued:[t('Прието · на опашка','Accepted · queued'),t('Резултатът е приет. Очаква публикуване.','The result was accepted. Awaiting publication.')],
       unsigned_preparing:[t('Прието · подготвя се','Accepted · preparing'),t('Транзакцията се подготвя.','Transaction preparation is in progress.')],
       signed_persisted:[t('Подписано · непотвърдено','Signed · unconfirmed'),t('Транзакцията е запазена за публикуване.','The transaction is stored for publication.')],
-      broadcast_pending:[t('Изпратено · непотвърдено','Broadcast · unconfirmed'),t('Изпратено в ROD; очаква потвърждения.','Sent to ROD; awaiting confirmations.')],
+      broadcast_pending:[t('Изпратено · непотвърдено','Broadcast · unconfirmed'),t('Изпратено; очаква потвърждения.','Sent; awaiting confirmations.')],
       broadcast_unknown:[t('Неизвестно излъчване','Broadcast uncertain'),t('Резултатът на излъчването още не е установен.','The broadcast outcome has not yet been established.')],
       included:[t('Включено в блок','Included in block'),t('Очаква необходимите потвърждения.','Awaiting required confirmations.')],
-      confirmed:[t('Потвърдено в ROD','Confirmed on ROD'),t('Резултатът е потвърден в блокчейна.','The result is confirmed on-chain.')],
+      confirmed:[t('Потвърдено','Confirmed'),t('Резултатът е потвърден в блокчейна.','The result is confirmed on-chain.')],
       not_improved:[t('Няма нов рекорд','No new record'),t('Няма строго подобрение; не се изпраща нова транзакция.','No strict improvement; no new transaction is published.')],
       signing_unknown:[t('Подписването е спряно','Signing paused'),t('Провери състоянието по-късно.','Check the status later.')],
       reorged:[t('Проверява се отново','Rechecking'),t('Промяна във веригата; потвърждението се преоценява.','Chain changed; confirmation is being re-evaluated.')],
@@ -159,8 +178,8 @@
     const shortLabels={
       queued:t('Прието','Queued'),unsigned_preparing:t('Подготовка','Preparing'),
       signed_persisted:t('Подписано','Signed'),broadcast_pending:t('Изпратено','Broadcast'),
-      broadcast_unknown:t('Проверява се','Checking'),included:t('ROD','ROD'),
-      confirmed:t('ROD','ROD'),not_improved:t('Без нов рекорд','No new record'),
+      broadcast_unknown:t('Проверява се','Checking'),included:t('В блок','Included'),
+      confirmed:t('Потвърдено','Confirmed'),not_improved:t('Без нов рекорд','No new record'),
       signing_unknown:t('Спряно','Paused'),reorged:t('Проверява се','Rechecking'),
       session_required:t('Невалидна сесия','No session'),invalid_session:t('Невалидна сесия','Invalid session')
     };
@@ -170,7 +189,7 @@
     submissionNote.textContent=note+(count?' · '+count+' '+t('потвърждения','confirmations'):'');
     submissionBox.title=label+' · '+submissionScore.textContent+' · '+submissionNote.textContent;
     submissionBox.setAttribute('aria-label',submissionBox.title);
-    if(currentSubmissionId===suppressedReceipt&&latestConfirmations>=6){
+    if(latestConfirmations>=6 && (currentSubmissionId===suppressedReceipt || currentSubmissionId===dismissedReceipt)){
       submissionBox.classList.add('hidden');return;
     }
     submissionBox.classList.remove('hidden');
@@ -272,8 +291,8 @@
             Number(row.completed||0).toLocaleString()+' '+t('подредби','layouts'):'');
         if(view.value==='layout')metrics.title+=' · '+(publicDs===null
           ?t('За този запис няма публично време.','No public time is available for this record.')
-          :t('Времето е прието от сървъра; ROD потвърждава ходовете, не времето.',
-             'Server-accepted time; ROD confirms moves, not elapsed time.'));
+          :t('Времето е прието от сървъра; Блокчейнът потвърждава ходовете, не времето.',
+             'Server-accepted time; The blockchain confirms moves, not elapsed time.'));
         const body=document.createElement('div');body.className='hd1-row-body';
         body.append(name,metrics);
         const amount=document.createElement('div');amount.className='shrink-0';
@@ -368,7 +387,9 @@
           const expected=window.huarongExpectedSubmission;
           if(expected&&expected.player===player&&expected.layout===layout&&expected.moves===evidence.moves){
             window.huarongExpectedSubmission=null;
-            window.huarongOpenSubmissionStatus?.({layout,moves:evidence.moves,player});
+            // Auto-open new runs, never reopen a submission after its dialog was dismissed.
+            if(!lastModalClosedAt || Number(expected.at)>lastModalClosedAt)
+              window.huarongOpenSubmissionStatus?.({layout,moves:evidence.moves,player});
           }
           await retry(signed);
         }catch(error){if(consented())showStatus({code:error.message});}
