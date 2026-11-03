@@ -95,7 +95,16 @@
     submissionBox.classList.remove('hidden');
     submissionHeading.textContent=t('Последен резултат','Latest result');
     const option=Array.from(rankLayout.options||[]).find(x=>x.value===currentSubmission.layout);
-    const layoutName=option?.textContent||currentSubmission.layout;
+    const layoutNames={
+      wings:['Класическа','Classic'],heng_dao_li_ma:['Четирима войници в редица','Four Pawns in a Row'],
+      rear_guard:['Задна охрана','Rear Guard'],small_obstacle:['Уверено командване','Command with Ease'],
+      ambush:['Засада','Ambush'],fayaa_sideBySide:['Рамо до рамо','Advance Side by Side'],
+      fayaa_threeRoads:['Три пътя','Troops Along Three Routes'],fayaa_peach:['Сред прасковените цветове','Peach Blossom Garden'],
+      fayaa_rain2:['Осемте формации на Джуге',"Zhuge's Eight Formations"],
+      fayaa_cannotStop:['Невъзможно е да спреш','Hard to Stop'],fayaa_highRisk:['Без друг избор','No Other Choice']
+    };
+    const layoutName=layoutNames[currentSubmission.layout]?.[document.documentElement.lang==='en'?1:0]
+      ||option?.textContent||currentSubmission.layout;
     submissionScore.textContent=layoutName+(Number.isSafeInteger(currentSubmission.moves)?' · '+currentSubmission.moves+' '+t('хода','moves'):'');
     submissionState.textContent=t('Подготовка…','Preparing…');
     submissionNote.textContent=t('Резултатът още не е приет от сървъра.','The server has not accepted this result yet.');
@@ -184,14 +193,23 @@
       try{evidence=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY)||'{}').evidence||{};}catch{}
       const signedOutbox=outbox();
       list.forEach((row,i)=>{
-        const line=document.createElement('div');line.className='hd1-row'+(i<3?' hd1-podium hd1-rank-'+(i+1):'');
-        const place=document.createElement('span');place.className='hd1-position';place.textContent=String(i+1);
+        const line=document.createElement('div');line.className='hd1-row'+(i<3?' hd1-rank-'+(i+1):'');
+        const place=document.createElement('span');place.className='hd1-position';place.textContent=String(i+1)+'.';
         const body=document.createElement('div');body.className='min-w-0 flex-1';
         const name=document.createElement('div');name.className='hd1-row-name';name.textContent=String(row.nickname||t('Играч','Player'));
-        if(String(row.nickname||'')===String(nickname||'')){
+        // A matching local receipt is stronger evidence than a display name, which is not unique.
+        const ownedReceipt=Object.values(row.bests||{}).some(best=>
+          typeof best?.receipt_id==='string'&&signedOutbox[best.receipt_id]?.player===nickname);
+        const sameNickname=String(row.nickname||'')===String(nickname||'');
+        if(ownedReceipt || sameNickname){
           line.classList.add('hd1-is-me');
-          line.title=t('Това е твоето име (възможно е да има едноименни играчи).',
-            'This matches your name (other players may use the same name).');
+          const mine=document.createElement('span');
+          mine.className='hd1-me-marker';mine.textContent=t('Ти','You');
+          name.append(mine);
+          line.title=ownedReceipt?t('Този резултат съвпада със запис на това устройство.',
+            'This score matches a record on this device.'):
+            t('Това име съвпада с твоето; имената не са уникални.',
+              'This name matches yours; names are not unique.');
         }
         const details=document.createElement('div');details.className='hd1-row-sub';
         const bests=Object.entries(row.bests||{}).filter(([,best])=>Number.isSafeInteger(best?.moves)&&best.moves>0);
@@ -215,9 +233,8 @@
         }
         body.append(name,details);
         const amount=document.createElement('div');amount.className='shrink-0';
-        const value=document.createElement('div');value.className='hd1-row-score';value.textContent=Number(row.points||0).toLocaleString();
-        const unit=document.createElement('div');unit.className='hd1-row-unit';unit.textContent=t('точки','points');
-        amount.append(value,unit);line.append(place,body,amount);rows.append(line);
+        const value=document.createElement('div');value.className='hd1-row-score';value.textContent=Number(row.points||0).toLocaleString()+' '+t('т.','pts');
+        amount.append(value);line.append(place,body,amount);rows.append(line);
       });
       if(!list.length){const empty=document.createElement('p');empty.className='rounded-xl bg-slate-900/70 border border-slate-700/70 p-4 text-center text-slate-400 text-xs';empty.textContent=t('Все още няма потвърдени резултати.','No confirmed scores yet.');rows.append(empty);}
       if(Array.isArray(result.pending)&&result.pending.length){

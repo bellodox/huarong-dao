@@ -1813,34 +1813,46 @@
         #leaderboard-modal .hd-rank-tab { border-radius:.6rem; }
         #hd1-public-board { position:relative; overflow:hidden; border-color:rgba(71,85,105,.6); }
         #hd1-public-board .hd1-board-title { letter-spacing:-.01em; font-size:1.02rem; }
-        #hd1-public-board .hd1-row { position:relative; min-height:3.15rem; gap:.58rem; padding:.49rem .65rem;
-            border:1px solid rgba(71,85,105,.48); border-radius:.85rem;
-            background:linear-gradient(115deg,rgba(30,41,59,.85),rgba(15,23,42,.9));
-            transition:border-color .15s, transform .15s; }
-        #hd1-public-board .hd1-row:hover { border-color:rgba(251,191,36,.46); }
-        #hd1-public-board .hd1-row.hd1-rank-1 { background:linear-gradient(105deg,rgba(146,98,25,.26),rgba(30,41,59,.92)); border-color:rgba(251,191,36,.57);box-shadow:inset 3px 0 0 #fbbf24; }
-        #hd1-public-board .hd1-row.hd1-rank-2 { background:linear-gradient(105deg,rgba(148,163,184,.15),rgba(30,41,59,.9)); border-color:rgba(203,213,225,.33);box-shadow:inset 3px 0 0 #94a3b8; }
-        #hd1-public-board .hd1-row.hd1-rank-3 { background:linear-gradient(105deg,rgba(180,83,9,.14),rgba(30,41,59,.9)); border-color:rgba(217,119,6,.3);box-shadow:inset 3px 0 0 #c08450; }
-        #hd1-public-board .hd1-position { flex:0 0 1.85rem; width:1.85rem; height:1.85rem;
-            border-radius:.65rem; font-variant-numeric:tabular-nums; font-size:.78rem; }
-        #hd1-public-board .hd1-rank-1 .hd1-position { color:#1e293b; background:#fbbf24; }
-        #hd1-public-board .hd1-rank-2 .hd1-position { color:#0f172a; background:#cbd5e1; }
-        #hd1-public-board .hd1-rank-3 .hd1-position { color:#170d06; background:#d3a078; }
-        #hd1-public-board .hd1-row-name { font-size:.79rem; line-height:1.22; }
-        #hd1-public-board .hd1-row-metrics { color:#cbd5e1; font-variant-numeric:tabular-nums; font-size:.69rem; line-height:1.55; }
-        #hd1-public-board .hd1-row-layouts { color:#94a3b8; font-size:.66rem; }
-        #hd1-public-board .hd1-row-score { font-size:.99rem; letter-spacing:-.02em; }
-        #hd1-public-board .hd1-row-unit { letter-spacing:.01em; }
-        #hd1-public-board .hd1-rank-1 .hd1-row-score { color:#fde68a; }
+        /* Public rankings match the compact local result list. Rank color alone marks the podium. */
+        #hd1-public-board .hd1-row {
+            display:flex; align-items:center; gap:.42rem; min-height:2.6rem;
+            padding:.42rem .64rem; border:1px solid #334155; border-radius:.75rem;
+            background:rgba(30,41,59,.5); box-shadow:none; transition:border-color .15s;
+        }
+        #hd1-public-board .hd1-row + .hd1-row { margin-top:.23rem; }
+        #hd1-public-board .hd1-row:hover { border-color:rgba(251,191,36,.48); }
+        #hd1-public-board .hd1-row.hd1-rank-1,
+        #hd1-public-board .hd1-row.hd1-rank-2,
+        #hd1-public-board .hd1-row.hd1-rank-3 { background:rgba(30,41,59,.5); box-shadow:none; border-color:#334155; }
+        #hd1-public-board .hd1-position,
+        #hd1-public-board .hd1-rank-1 .hd1-position,
+        #hd1-public-board .hd1-rank-2 .hd1-position,
+        #hd1-public-board .hd1-rank-3 .hd1-position {
+            display:block; flex:0 0 1.3rem; width:1.3rem; height:auto; border-radius:0;
+            background:transparent; color:#cbd5e1; font-size:.72rem; font-weight:800;
+            font-variant-numeric:tabular-nums; text-align:left;
+        }
+        #hd1-public-board .hd1-rank-1 .hd1-position { color:#fbbf24; }
+        #hd1-public-board .hd1-rank-2 .hd1-position { color:#cbd5e1; }
+        #hd1-public-board .hd1-rank-3 .hd1-position { color:#d6a17c; }
+        #hd1-public-board .hd1-row-name { color:#f1f5f9; font-size:.75rem; line-height:1.2; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        #hd1-public-board .hd1-row-sub { margin-top:.08rem; }
+        #hd1-public-board .hd1-row-metrics { color:#cbd5e1; font-size:.66rem; line-height:1.25; font-variant-numeric:tabular-nums; }
+        #hd1-public-board .hd1-row-layouts { font-size:.62rem; line-height:1.2; color:#94a3b8; }
+        #hd1-public-board .hd1-row-score { color:#fbbf24; font-size:.79rem; line-height:1.15; font-weight:800; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+        #hd1-public-board .hd1-row-unit { display:none; }
+        #hd1-public-board .hd1-row.hd1-is-me { border-color:#38bdf8; background:rgba(14,116,144,.10); }
+        #hd1-public-board .hd1-me-marker { color:#7dd3fc; border:1px solid rgba(56,189,248,.38); border-radius:.35rem; padding:0 .23rem;
+            font-size:.58rem; font-weight:700; margin-left:.4rem; vertical-align:baseline; }
         #hd1-public-board #hd1-status { border-radius:.6rem; }
         #hd1-public-board select { cursor:pointer; max-width:100%; }
         @media(max-width:390px){
            #leaderboard-modal > .hd-leaderboard-shell { max-height:calc(100dvh - 1rem) !important; scrollbar-gutter:auto; padding:.8rem; }
-           #hd1-public-board .hd1-row { gap:.5rem; padding:.68rem .58rem; }
-           #hd1-public-board .hd1-position { flex-basis:1.9rem; width:1.9rem; height:1.9rem; }
-           #hd1-public-board .hd1-row-score { font-size:.99rem; }
-           #hd1-public-board .hd1-row-name { font-size:.78rem; }
-           #hd1-public-board .hd1-row-metrics { font-size:.65rem; }
+           #hd1-public-board .hd1-row { padding:.4rem .5rem; gap:.35rem; }
+           #hd1-public-board .hd1-position { flex-basis:1.15rem; width:1.15rem; }
+           #hd1-public-board .hd1-row-name { font-size:.71rem; }
+           #hd1-public-board .hd1-row-metrics { font-size:.61rem; }
+           #hd1-public-board .hd1-row-score { font-size:.75rem; }
         }
 
         /* Consent panel: independent of Tailwind-generated arbitrary utilities. */
@@ -4984,6 +4996,8 @@
         'Личните резултати, името и ходовете се съхраняват в този браузър. Можеш да ги изтриеш от настройките на сайта.':'Your personal results, name and moves are stored in this browser. You can remove them through the site settings.',
         'Публикуването е по избор. Ако го разрешиш, името, публичният ключ, резултатът и пълният път на ходовете стават постоянна част от публичния ROD блокчейн. Вече публикувани данни не могат да се изтрият. Отказът от публикуване важи за бъдещи резултати.':'Publishing is optional. If enabled, your name, public key, score and full move path become part of the permanent public ROD blockchain. Published data cannot be erased. Opting out affects future submissions.',
         'Настройките за анализ и бисквитки са отделни.':'Analytics and cookie settings are separate.',
+        '. Настройките за анализ и бисквитки са отделни.':'. Analytics and cookie settings are separate.',
+        'Играеш като':'Playing as',
         'Потребителско име':'Username','Запази':'Save','Името може да се промени по всяко време.':'You can change your name anytime.',
         'Можеш да промениш името си по всяко време. Локалните ти резултати се запазват.':'You can change your name anytime. Your local scores are preserved.',
         'Можеш да промениш името си преди първия запазен резултат.':'You can change your name before your first saved score.',
