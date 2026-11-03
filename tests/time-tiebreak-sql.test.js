@@ -1,18 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { migrations } from './schema.js';
+import { applyCompleteMigrations } from './complete-migrations-fixture.js';
 
 const ids=char=>char.repeat(64);
 const player=char=>'02'+char.repeat(64);
 const layout='rear_guard';
 
-// Requires PGlite dev dependency. Runs against all migrations, including 012.
+// Requires PGlite dev dependency. Runs every migration 001-014 in order.
 test('PostgreSQL: receipt-derived moves lead; accepted duration sorts ties before pagination',async()=>{
   const db=new PGlite();
   try{
     await db.exec('create role anon;create role authenticated;create role service_role;');
-    await db.exec(migrations(null));
+    // Fresh schema fixture covers 001-012; subsequent operational scripts require live publisher state.
+    await applyCompleteMigrations(db);
     await db.query("update public.hd1_coordinator set paused=false,epoch=10,snapshot=jsonb_build_object('stale',false,'height',1000,'hash',repeat('a',64)) where singleton");
     for(const [label,nickname,duration,txHeight] of [
       ['a','Slow',500,50],['b','Fast',350,60],['c','Untimed',null,70],['d','More moves',100,80]

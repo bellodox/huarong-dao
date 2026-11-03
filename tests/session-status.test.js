@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { migrations } from './schema.js';
+import { applyCompleteMigrations } from './complete-migrations-fixture.js';
 import { handleApi } from '../leaderboard/relay-entry.js';
 
 const origin='https://game.test';
@@ -39,7 +39,8 @@ test('SQL session status includes score and publication state, excludes proofs, 
   const db=new PGlite();
   try{
     await db.exec('create role anon;create role authenticated;create role service_role;');
-    await db.exec(migrations(null));
+    // Fresh schema fixture covers 001-012; subsequent operational scripts require live publisher state.
+    await applyCompleteMigrations(db);
     const values={id:uuid,receipt:receiptId};
     await db.query(`insert into public.hd_ranked_sessions
       (id,layout,state,seq,moves,nonce,rules_digest,layout_seed,session_seed,

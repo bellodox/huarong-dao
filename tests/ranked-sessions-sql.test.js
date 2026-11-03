@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { migrations } from './schema.js';
+import { applyCompleteMigrations } from './complete-migrations-fixture.js';
 import { processSessionRequest,tokenHash } from '../leaderboard/session.js';
 import { CATALOG,ALPHABET,DIRECTIONS,SHAPES,positions,step } from '../leaderboard/profile.js';
 
@@ -30,7 +30,8 @@ test('actual PostgreSQL: seeded checkpoints seal once, admission consumes witnes
   const db=new PGlite();
   try{
     await db.exec('create role anon;create role authenticated;create role service_role;');
-    await db.exec(migrations(null)); // Unlike the 001-009 fixtures, exercise migration 010.
+    // Fresh schema fixture covers 001-012; subsequent operational scripts require live publisher state.
+    await applyCompleteMigrations(db);
     await db.query(`update public.hd1_coordinator set paused=false,epoch=10,
       snapshot=jsonb_build_object('hash',$1::text,'height',$2::bigint,'stale',false)
       where singleton`,[ANCHOR.hash,ANCHOR.height]);
