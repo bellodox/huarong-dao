@@ -1855,6 +1855,69 @@
            #hd1-public-board .hd1-row-score { font-size:.75rem; }
         }
 
+
+        /* Compact scoreboard controls + publication status: exactly one horizontal strip. */
+        #leaderboard-modal .hd-publication-strip { display:flex; align-items:center; flex-wrap:nowrap; gap:.35rem; min-width:0; }
+        #leaderboard-modal .hd-mode-chip { flex:0 0 auto; white-space:nowrap; padding:.22rem .48rem; }
+        #leaderboard-modal .hd-publish-right { display:flex; align-items:center; gap:.4rem; min-width:0;
+            margin-left:auto; padding:.27rem .5rem; border:1px solid #475569;
+            background:rgba(15,23,42,.55); border-radius:.7rem; overflow:hidden; }
+        #leaderboard-modal #ranking-public-actions.hidden { display:none!important; }
+        #leaderboard-modal #ranking-public-controls:not(.hidden) { display:inline-flex; gap:.3rem; align-items:center;
+            flex:0 0 auto; margin:0; white-space:nowrap; font-size:.65rem; line-height:1.2; }
+        #leaderboard-modal #ranking-public-controls.hidden { display:none!important; }
+        #leaderboard-modal #ranking-public-consent { width:.8rem; height:.8rem; margin:0; flex-shrink:0; cursor:pointer; }
+        #leaderboard-modal #ranking-submission-anchor:empty { display:none; }
+        #leaderboard-modal #ranking-submission-anchor { min-width:0; }
+        #leaderboard-modal #hd1-submission.hidden { display:none!important; }
+        #leaderboard-modal #hd1-submission { display:block; padding:0 0 0 .45rem; margin:0;
+            border:0; border-left:1px solid #475569; border-radius:0; background:transparent;
+            min-width:0; color:#fcd34d; white-space:nowrap; font-size:.65rem; line-height:1.2; }
+        #leaderboard-modal #hd1-submission-heading,
+        #leaderboard-modal #hd1-submission-score,
+        #leaderboard-modal #hd1-submission-note { display:none!important; }
+        #leaderboard-modal #hd1-submission-state { display:block; overflow:hidden; white-space:nowrap;
+            text-overflow:ellipsis; max-width:10rem; font-weight:750; }
+        #hd1-public-board .hd1-filters { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.45rem; margin-bottom:.5rem; }
+        #hd1-public-board .hd1-filter { min-width:0; font-size:.65rem; font-weight:650; }
+        #hd1-public-board .hd1-filter select { display:block; box-sizing:border-box; margin-top:.25rem;
+            width:100%; min-width:0; padding:.45rem .25rem; border-radius:.55rem; font-size:.69rem;
+            text-overflow:ellipsis; }
+        #hd1-public-board .hd1-filter select:disabled { opacity:.55; cursor:not-allowed; }
+        /* Ranked rows are one visual line: rank | player | verified moves/time | points. */
+        #hd1-public-board .hd1-row { display:flex; align-items:center; flex-wrap:nowrap; gap:.38rem;
+            min-height:2rem; padding:.32rem .45rem; border-radius:.6rem; }
+        #hd1-public-board .hd1-row-body { flex:1 1 auto; display:flex; align-items:center; gap:.35rem; min-width:0; }
+        #hd1-public-board .hd1-row-name { flex:1 1 auto; min-width:0; font-size:.73rem; font-weight:750;
+            overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        #hd1-public-board .hd1-row-metrics { flex:0 0 auto; margin:0; color:#aab8cf; font-size:.64rem; white-space:nowrap; }
+        #hd1-public-board .hd1-row-score { flex:0 0 auto; color:#fbbf24; font-size:.77rem; white-space:nowrap; }
+        #hd1-public-board .hd1-position { flex:0 0 1.35rem; width:1.35rem; font-size:.73rem;
+            text-align:center; border-radius:.32rem; padding:.17rem 0; font-weight:900; }
+        #hd1-public-board .hd1-row.hd1-rank-1 { border-color:rgba(251,191,36,.7); background:linear-gradient(90deg,rgba(180,83,9,.24),rgba(30,41,59,.52)); }
+        #hd1-public-board .hd1-row.hd1-rank-2 { border-color:rgba(203,213,225,.60); background:linear-gradient(90deg,rgba(148,163,184,.16),rgba(30,41,59,.52)); }
+        #hd1-public-board .hd1-row.hd1-rank-3 { border-color:rgba(214,161,124,.68); background:linear-gradient(90deg,rgba(154,88,53,.19),rgba(30,41,59,.52)); }
+        #hd1-public-board .hd1-rank-1 .hd1-position { color:#111827; background:#fbbf24; }
+        #hd1-public-board .hd1-rank-2 .hd1-position { color:#0f172a; background:#cbd5e1; }
+        #hd1-public-board .hd1-rank-3 .hd1-position { color:#0f172a; background:#d6a17c; }
+        #hd1-public-board .hd1-row.hd1-is-me { box-shadow:inset 0 0 0 1px #38bdf8; }
+        @media(max-width:390px){
+            #leaderboard-modal .hd-publish-right { gap:.25rem; padding:.2rem .3rem; }
+            #leaderboard-modal #ranking-public-controls:not(.hidden),#leaderboard-modal #hd1-submission { font-size:.59rem; }
+            #leaderboard-modal #hd1-submission { padding-left:.3rem; }
+            #leaderboard-modal #hd1-submission-state { max-width:5.8rem; }
+            #hd1-public-board .hd1-filters { gap:.25rem; }
+            #hd1-public-board .hd1-filter { font-size:.6rem; }
+            #hd1-public-board .hd1-filter select { font-size:.62rem; padding:.38rem .1rem; }
+            #hd1-public-board .hd1-row { gap:.23rem; padding:.3rem .32rem; }
+            #hd1-public-board .hd1-row-body { gap:.19rem; }
+            #hd1-public-board .hd1-row-name { font-size:.65rem; }
+            #hd1-public-board .hd1-row-metrics { font-size:.58rem; }
+            #hd1-public-board .hd1-row-score { font-size:.68rem; }
+            #hd1-public-board .hd1-position { flex-basis:1.15rem; width:1.15rem; font-size:.67rem; }
+            #hd1-public-board .hd1-me-marker { font-size:.53rem; padding:0 .12rem; margin-left:.2rem; }
+        }
+
         /* Consent panel: independent of Tailwind-generated arbitrary utilities. */
         #cookie-consent { position:fixed; left:50%; bottom:max(.75rem,env(safe-area-inset-bottom,0px) + .5rem); transform:translateX(-50%); width:calc(100% - 1rem); max-width:28rem; z-index:65; box-sizing:border-box; }
         #cookie-consent.hidden { display:none !important; }
@@ -2174,10 +2237,13 @@
         </div>
         <div class="hd-publication-strip mb-3">
           <span id="ranking-mode-label" class="hd-mode-chip" role="status">● Само локално</span>
-          <label id="ranking-public-controls" class="hidden flex gap-2 items-center text-[11px] leading-relaxed text-slate-300 mt-2 cursor-pointer">
-            <input id="ranking-public-consent" type="checkbox" class="w-4 h-4 shrink-0 accent-amber-500" />
-            <span>Публикувай бъдещите ми резултати в публичната класация.</span>
-          </label>
+          <div id="ranking-public-actions" class="hd-publish-right hidden">
+            <label id="ranking-public-controls" class="hidden hd-compact-consent cursor-pointer" title="Публикувай бъдещи допустими рекорди">
+              <input id="ranking-public-consent" type="checkbox" class="accent-amber-500" />
+              <span id="ranking-consent-text">Изпращане: изкл.</span>
+            </label>
+            <div id="ranking-submission-anchor"></div>
+          </div>
         </div>
         <div role="tablist" aria-label="Вид класация" class="hd-rank-tabs flex p-1 rounded-xl bg-slate-950/80 border border-slate-700/70 mb-3">
           <button type="button" id="ranking-tab-public" role="tab" aria-selected="true" aria-controls="ranking-pane-public" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Класация</button>
@@ -2205,7 +2271,6 @@
         </section>
         <section id="ranking-pane-settings" role="tabpanel" aria-labelledby="ranking-tab-settings" class="hidden hd-leaderboard-settings rounded-xl border border-slate-700/70 bg-slate-950/30">
           <div id="ranking-settings" class="px-3 pb-3 pt-3">
-            <div class="mb-3 flex justify-end"><button id="btn-cookie-settings" type="button" class="text-[11px] underline text-amber-300 hover:text-amber-200">Настройки на бисквитките</button></div>
         <div id="nickname-editor">
         <label class="text-xs text-slate-300 font-bold" for="nickname-input">Потребителско име</label>
         <div class="flex gap-2 mt-1 mb-3">
@@ -2231,6 +2296,9 @@
           <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Настройките за анализ и бисквитки са отделни.</p>
           </div>
         </details>
+        <div class="mt-4 pt-3 border-t border-slate-700/70 flex justify-end">
+          <button id="btn-cookie-settings" type="button" class="text-[11px] underline text-amber-300 hover:text-amber-200">Настройки на бисквитките</button>
+        </div>
           </div>
         </section>
       </div>
@@ -3216,17 +3284,27 @@
               chip.textContent=en?'● Local-only':'● Само локално';
               caption.textContent=en?'Scores stay on this device.':'Резултатите остават на това устройство.';
           }else if(!online){
-              chip.textContent=en?'● Online publishing unavailable':'● Онлайн публикуването не е достъпно';
+              chip.textContent=en?'● Local only':'● Само локално';
               caption.textContent=en?'Play and local saves still work.':'Играта и локалните резултати продължават да работят.';
           }else if(allowPublicScores&&publicNameReady){
-              chip.textContent=en?'● Online · submissions on':'● Онлайн · изпращането е включено';
+              chip.textContent=en?'● Online':'● Онлайн';
               caption.textContent=en?'Eligible new records are submitted with your consent.':'Допустимите нови рекорди се изпращат с твое съгласие.';
           }else{
-              chip.textContent=en?'● Online · submissions off':'● Онлайн · изпращането е изключено';
+              chip.textContent=en?'● Online':'● Онлайн';
               caption.textContent=en?'View public scores; submit a completed result to opt in.':'Виждаш публичните резултати; избери „Публикувай“ след игра, за да се включиш.';
           }
-          // The publishing consent remains in the status strip, not inside Profile & settings.
-          document.getElementById('ranking-public-controls').classList.toggle('hidden',!online||!publicNameReady);
+          // Status and publishing consent share one compact strip, never the profile tab.
+          const actions=document.getElementById('ranking-public-actions');
+          actions.classList.toggle('hidden',!online);
+          const controls=document.getElementById('ranking-public-controls');
+          controls.classList.toggle('hidden',!online);
+          rankingPublicConsent.disabled=!publicNameReady;
+          const consentText=document.getElementById('ranking-consent-text');
+          consentText.textContent=allowPublicScores&&publicNameReady?
+              (en?'Submissions on':'Изпращане: вкл.'):(en?'Submissions off':'Изпращане: изкл.');
+          controls.title=!publicNameReady?
+              (en?'Complete and submit a result to activate public submissions':'Завърши и публикувай резултат, за да разрешиш изпращането'):
+              (en?'Submit future eligible records to the public leaderboard':'Изпращай бъдещи допустими рекорди в класацията');
           const offline=location.protocol==='file:'||!online;
           const publicTab=document.getElementById('ranking-tab-public');
           publicTab.classList.toggle('hidden',offline);
@@ -3255,6 +3333,7 @@
           refreshRanking();
           selectRankingTab(which|| (location.protocol==='file:'?'local':'public'));
           leaderboardModal.classList.remove('hidden');
+          window.hd1UI?.onModalOpened?.();
           (which==='settings'?document.getElementById('nickname-input'):document.getElementById('btn-close-leaderboard')).focus();
       }
       function showSubmissionInLeaderboard(score){

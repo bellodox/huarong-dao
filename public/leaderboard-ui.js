@@ -22,21 +22,21 @@
       <p id="hd1-submission-score" class="text-[11px] text-slate-300"></p>
       <p id="hd1-submission-note" class="text-[11px] text-slate-400 mt-1"></p>
     </section>
-    <div class="grid grid-cols-2 gap-2 mb-3">
-      <label class="block text-[11px] text-slate-300 font-semibold" for="hd1-scope">Период
+    <div class="hd1-filters">
+      <label class="hd1-filter block text-[11px] text-slate-300 font-semibold" for="hd1-scope">Период
         <select id="hd1-scope" class="block mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2.5 text-slate-100 text-xs">
           <option value="lifetime">Всички времена</option><option value="week">Текуща седмица</option>
         </select>
       </label>
-      <label class="block text-[11px] text-slate-300 font-semibold" for="hd1-view">Класиране
+      <label class="hd1-filter block text-[11px] text-slate-300 font-semibold" for="hd1-view">Класиране
         <select id="hd1-view" class="block mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2.5 text-slate-100 text-xs">
           <option value="overall">Общо точки</option><option value="layout">По подредба</option>
         </select>
       </label>
+      <label id="hd1-layout-wrap" class="hd1-filter block text-[11px] text-slate-300 font-semibold" for="hd1-layout">Подредба
+        <select id="hd1-layout" class="block mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2.5 text-slate-100 text-xs" disabled></select>
+      </label>
     </div>
-    <label id="hd1-layout-wrap" class="hidden block mb-3 text-[11px] text-slate-300 font-semibold" for="hd1-layout">Подредба
-      <select id="hd1-layout" class="block mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2.5 text-slate-100 text-xs"></select>
-    </label>
     <p id="hd1-status" role="status" aria-live="polite" class="text-[11px] text-slate-400 mb-3 hd1-rank-note"></p>
     <div id="hd1-rows" class="space-y-1" aria-live="polite"></div>
     <div id="hd1-pending" class="mt-2 text-[11px] text-amber-200"></div>
@@ -68,7 +68,7 @@
     layoutSelect.value=options.some(option=>option.value===selected)?selected:(rankLayout.value||options[0].value);
   }
   function changeView(){
-    panel.querySelector('#hd1-layout-wrap').classList.toggle('hidden',view.value!=='layout');
+    layoutSelect.disabled=view.value!=='layout';
     refresh();
   }
   /** Retain exact evidence independently of the local lifetime best and recent-five list. */
@@ -83,13 +83,28 @@
     if(localStorage.getItem(OUTBOX_KEY)!==bytes)throw Error('outbox_save_failed');
   }
   const submissionBox=panel.querySelector('#hd1-submission');
-  const submissionHeading=panel.querySelector('#hd1-submission-heading');
-  const submissionState=panel.querySelector('#hd1-submission-state');
-  const submissionScore=panel.querySelector('#hd1-submission-score');
-  const submissionNote=panel.querySelector('#hd1-submission-note');
+  document.getElementById('ranking-submission-anchor')?.append(submissionBox);
+  const submissionHeading=submissionBox.querySelector('#hd1-submission-heading');
+  const submissionState=submissionBox.querySelector('#hd1-submission-state');
+  const submissionScore=submissionBox.querySelector('#hd1-submission-score');
+  const submissionNote=submissionBox.querySelector('#hd1-submission-note');
   let currentSubmissionId=null,currentSubmission=null;
+  let latestConfirmations=0,settledShown=false,suppressedReceipt=null;
+  function onModalOpened(){
+    // Six confirmations end the transient notice only on the NEXT modal opening.
+    if(latestConfirmations>=6 && settledShown && currentSubmissionId){
+      suppressedReceipt=currentSubmissionId;
+      submissionBox.classList.add('hidden');
+    }else if(latestConfirmations>=6&&currentSubmissionId&&!suppressedReceipt){
+      // First viewing of a completed result still shows its publication outcome.
+      submissionBox.classList.remove('hidden');settledShown=true;
+    }
+  }
   function beginSubmission(run,id=null){
     if(!run)return;
+    if(id!==currentSubmissionId){
+      latestConfirmations=0;settledShown=false;suppressedReceipt=null;
+    }
     currentSubmission={layout:run.layout||run.l||'',moves:run.moves,player:run.player||nickname};
     currentSubmissionId=id;
     submissionBox.classList.remove('hidden');
@@ -136,13 +151,31 @@
       if(signed)beginSubmission(signed,id);
     }
     if(!currentSubmission)return;
-    submissionBox.classList.remove('hidden');
-    const [label,note]=statusMessage(row);
-    submissionState.textContent=label;
+    const code=row?.status||row?.code;
     const confirmations=Number(row?.confirmations);
-    submissionNote.textContent=note+((row?.status==='included'||row?.status==='confirmed')&&Number.isSafeInteger(confirmations)&&confirmations>0?' · '+confirmations+' '+t('потвърждения','confirmations'):'');
-    if(row?.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(row?.status))
-      submissionNote.textContent+=' · '+t('Автоматичното повторно изпращане е недостъпно.','Automatic resubmission is unavailable.');
+    const [label,note]=statusMessage(row);
+    const count=Number.isSafeInteger(confirmations)&&confirmations>0?confirmations:0;
+    latestConfirmations=code==='confirmed'&&count>=6?count:0;
+    const shortLabels={
+      queued:t('Прието','Queued'),unsigned_preparing:t('Подготовка','Preparing'),
+      signed_persisted:t('Подписано','Signed'),broadcast_pending:t('Изпратено','Broadcast'),
+      broadcast_unknown:t('Проверява се','Checking'),included:t('ROD','ROD'),
+      confirmed:t('ROD','ROD'),not_improved:t('Без нов рекорд','No new record'),
+      signing_unknown:t('Спряно','Paused'),reorged:t('Проверява се','Rechecking'),
+      session_required:t('Невалидна сесия','No session'),invalid_session:t('Невалидна сесия','Invalid session')
+    };
+    const short=shortLabels[code]||t('Проверка','Checking');
+    submissionState.textContent=(code==='confirmed'?'✓ ':'')+short+
+      (count&&['included','confirmed'].includes(code)?' · '+count:'');
+    submissionNote.textContent=note+(count?' · '+count+' '+t('потвърждения','confirmations'):'');
+    submissionBox.title=label+' · '+submissionScore.textContent+' · '+submissionNote.textContent;
+    submissionBox.setAttribute('aria-label',submissionBox.title);
+    if(currentSubmissionId===suppressedReceipt&&latestConfirmations>=6){
+      submissionBox.classList.add('hidden');return;
+    }
+    submissionBox.classList.remove('hidden');
+    if(latestConfirmations>=6 && !document.getElementById('leaderboard-modal')?.classList.contains('hidden'))
+      settledShown=true;
   }
   /** Refresh is explicit/read-only; no retry or mutation occurs on viewing the leaderboard. */
   async function refreshSubmission(){
@@ -195,7 +228,6 @@
       list.forEach((row,i)=>{
         const line=document.createElement('div');line.className='hd1-row'+(i<3?' hd1-rank-'+(i+1):'');
         const place=document.createElement('span');place.className='hd1-position';place.textContent=String(i+1)+'.';
-        const body=document.createElement('div');body.className='min-w-0 flex-1';
         const name=document.createElement('div');name.className='hd1-row-name';name.textContent=String(row.nickname||t('Играч','Player'));
         // A matching local receipt is stronger evidence than a display name, which is not unique.
         const ownedReceipt=Object.values(row.bests||{}).some(best=>
@@ -211,7 +243,6 @@
             t('Това име съвпада с твоето; имената не са уникални.',
               'This name matches yours; names are not unique.');
         }
-        const details=document.createElement('div');details.className='hd1-row-sub';
         const bests=Object.entries(row.bests||{}).filter(([,best])=>Number.isSafeInteger(best?.moves)&&best.moves>0);
         const chosen=view.value==='layout'?bests.filter(([layout])=>layout===layoutSelect.value):bests;
         const moveCount=chosen.reduce((count,[,best])=>count+best.moves,0);
@@ -219,19 +250,16 @@
         const times=chosen.map(([layout,best])=>localTimeFor(layout,best,signedOutbox,evidence));
         const localSeconds=times.length && times.every(seconds=>seconds!==null)
           ? times.reduce((sum,seconds)=>sum+seconds,0):null;
-        const metrics=document.createElement('div');metrics.className='hd1-row-metrics';
-        metrics.textContent=t('Ходове: ','Moves: ')+(validMoveCount?moveCount.toLocaleString():'—')+
-          ' · '+t('Време: ','Time: ')+(localSeconds===null?'—':clock(localSeconds));
-        if(localSeconds!==null)metrics.title=t('Времето е от този браузър; не се публикува и не влияе на точките.',
-          'Time is from this browser; it is not published and does not affect points.');
-        else metrics.title=t('Времето не е част от публичните записи.', 'Time is not part of public records.');
-        details.append(metrics);
-        if(view.value==='overall'){
-          const count=document.createElement('div');count.className='hd1-row-layouts';
-          count.textContent=Number(row.completed||0).toLocaleString()+' '+t('подредби','layouts');
-          details.append(count);
-        }
-        body.append(name,details);
+        const metrics=document.createElement('span');metrics.className='hd1-row-metrics';
+        const moves=validMoveCount?moveCount.toLocaleString():'—';
+        metrics.textContent=moves+' '+t('хода','moves')+' · '+t('Време: ','Time: ')+(localSeconds===null?'—':clock(localSeconds));
+        metrics.title=t('Ходове: ','Moves: ')+moves+' · '+t('Време: ','Time: ')+
+          (localSeconds===null?'—':clock(localSeconds))+(view.value==='overall'?' · '+
+            Number(row.completed||0).toLocaleString()+' '+t('подредби','layouts'):'');
+        if(localSeconds===null)metrics.title+=' · '+t('Времето не е част от публичните записи.',
+          'Time is not part of public records.');
+        const body=document.createElement('div');body.className='hd1-row-body';
+        body.append(name,metrics);
         const amount=document.createElement('div');amount.className='shrink-0';
         const value=document.createElement('div');value.className='hd1-row-score';value.textContent=Number(row.points||0).toLocaleString()+' '+t('т.','pts');
         amount.append(value);line.append(place,body,amount);rows.append(line);
@@ -337,6 +365,6 @@
   panel.querySelector('#hd1-refresh').addEventListener('click',()=>{refresh();refreshSubmission();});
   document.getElementById('btn-leaderboard').addEventListener('click',()=>{syncLayoutChoices(true);refresh();refreshSubmission();});
   window.addEventListener('online',()=>{refresh();sync();});
-  window.hd1UI={candidate,refresh,sync,beginSubmission,refreshSubmission};
+  window.hd1UI={candidate,refresh,sync,beginSubmission,refreshSubmission,onModalOpened};
   refresh();
 })();
