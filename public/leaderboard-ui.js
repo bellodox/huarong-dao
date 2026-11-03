@@ -42,7 +42,7 @@
     <div id="hd1-pending" class="mt-2 text-[11px] text-amber-200"></div>
     <details class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400 hd1-rank-note">
       <summary class="cursor-pointer text-slate-300">Правила и проверка</summary>
-      <p class="mt-2">Класирането се определя от броя ходове и сложността на подредбата, не от времето. За общото класиране ходовете са сбор от личните рекорди по подредби. Времето не се публикува в ROD и е видимо само на устройството, на което е записано. Публикуваните ходове се преиграват и потвърждават в блокчейна.</p>
+      <p class="mt-2">Точките зависят от броя ходове и сложността на подредбата. При равен брой ходове в една подредба по-бързото прието време определя реда. За общото класиране важат общите точки. Времето се пази в класацията, но не и в ROD разписката; по-старите записи може да са без време. Ходовете се преиграват и потвърждават в блокчейна.</p>
     </details>
     `;
   const backup=document.createElement('button');
@@ -193,13 +193,19 @@
       if(res.ok&&currentSubmissionId===id)showStatus(await res.json(),id);
     }catch{/* Do not misreport confirmed status after network failure. */}
   }
-  /** Time is deliberately not part of hd2, public receipts or score calculation.
-      Display it only when the same receipt has a matching record on this device. */
+  /** Time remains outside hd2 receipts and points, but accepted session
+      duration now breaks ties for one layout in the public Supabase ranking. */
   function localTimeFor(layout, best, signedOutbox, evidence) {
     if(!best || typeof best.receipt_id!=='string')return null;
     const signed=signedOutbox[best.receipt_id], run=signed?.localId&&evidence[signed.localId];
     if(!run || run.l!==layout || run.moves!==best.moves || !Number.isSafeInteger(run.seconds) || run.seconds<0)return null;
     return run.seconds;
+  }
+  function timedClock(deciseconds) {
+    const hours=Math.floor(deciseconds/36000),minutes=Math.floor(deciseconds%36000/600);
+    const secs=Math.floor(deciseconds%600/10),tenths=deciseconds%10;
+    const section=String(secs).padStart(2,'0')+'.'+tenths;
+    return hours>0?`${hours}:${String(minutes).padStart(2,'0')}:${section}`:`${minutes}:${section}`;
   }
   function clock(seconds) {
     const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),s=seconds%60;
@@ -250,14 +256,22 @@
         const times=chosen.map(([layout,best])=>localTimeFor(layout,best,signedOutbox,evidence));
         const localSeconds=times.length && times.every(seconds=>seconds!==null)
           ? times.reduce((sum,seconds)=>sum+seconds,0):null;
+        const publicDs=view.value==='layout'&&chosen.length===1&&
+          Number.isSafeInteger(chosen[0][1].duration_ds)&&chosen[0][1].duration_ds>=0
+          ?chosen[0][1].duration_ds:null;
+        const displayTime=view.value==='layout'
+          ?(publicDs===null?'—':timedClock(publicDs))
+          :(localSeconds===null?'—':clock(localSeconds));
         const metrics=document.createElement('span');metrics.className='hd1-row-metrics';
         const moves=validMoveCount?moveCount.toLocaleString():'—';
-        metrics.textContent=moves+' '+t('хода','moves')+' · '+t('Време: ','Time: ')+(localSeconds===null?'—':clock(localSeconds));
+        metrics.textContent=moves+' '+t('хода','moves')+' · '+t('Време: ','Time: ')+displayTime;
         metrics.title=t('Ходове: ','Moves: ')+moves+' · '+t('Време: ','Time: ')+
-          (localSeconds===null?'—':clock(localSeconds))+(view.value==='overall'?' · '+
+          displayTime+(view.value==='overall'?' · '+
             Number(row.completed||0).toLocaleString()+' '+t('подредби','layouts'):'');
-        if(localSeconds===null)metrics.title+=' · '+t('Времето не е част от публичните записи.',
-          'Time is not part of public records.');
+        if(view.value==='layout')metrics.title+=' · '+(publicDs===null
+          ?t('За този запис няма публично време.','No public time is available for this record.')
+          :t('Времето е прието от сървъра; ROD потвърждава ходовете, не времето.',
+             'Server-accepted time; ROD confirms moves, not elapsed time.'));
         const body=document.createElement('div');body.className='hd1-row-body';
         body.append(name,metrics);
         const amount=document.createElement('div');amount.className='shrink-0';

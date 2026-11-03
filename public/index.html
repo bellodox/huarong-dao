@@ -2210,7 +2210,7 @@
             <input id="public-score-consent" type="checkbox" class="mt-0.5 w-4 h-4 accent-amber-500 shrink-0" />
             <span>Съгласявам се името, постоянният публичен ключ и целият път да бъдат публикувани необратимо в ROD.</span>
           </label>
-          <p id="player-gate-rules" class="text-left text-[11px] text-slate-300 leading-relaxed">В класацията участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена. Резултатите трябва да са в рамките на 10 пъти оптималния брой ходове.</p>
+          <p id="player-gate-rules" class="text-left text-[11px] text-slate-300 leading-relaxed">В класацията участват завършени игри без помощ. По-малко ходове носят повече точки; при равни ходове по-бързото прието време е предимство за отделна подредба. Публикуват се само нови лични рекорди по ходове за седмицата или за всички времена. Резултатите трябва да са в рамките на 10 пъти оптималния брой ходове.</p>
           <details id="player-public-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed">
             <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
             <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Локалната игра не изисква самоличност или публикуване. Разглеждането на публичната класация изпраща заявка до сървъра, но не създава самоличност и не публикува твой резултат. Само с отделно съгласие името, постоянният публичен ключ, резултатът и целият път се подписват за публичния ROD блокчейн. Публикуваните данни са необратими; изчистването на браузъра и оттеглянето на съгласие не ги изтриват. Оттеглянето спира бъдещи неподадени изпращания, не вече изпратени записи. Съгласието за анализ е независимо.</p>
@@ -2282,7 +2282,7 @@
         <div id="nickname-feedback" class="text-[11px] text-slate-400 mb-1" role="status">Играеш като</div>
         <p id="nickname-fixed-note" class="hidden text-[11px] text-amber-200 mb-3">Името е заключено след първия запазен резултат.</p>
         <p id="ranking-rules-local" class="text-left text-[11px] text-slate-300 leading-relaxed mb-3">Тук са записите от игрите без помощ на това устройство. Виждаш броя ходове и времето за всяка игра. Нищо не се изпраща.</p>
-        <p id="ranking-rules-online" class="hidden text-left text-[11px] text-slate-300 leading-relaxed mb-3">В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена, при твое съгласие.</p>
+        <p id="ranking-rules-online" class="hidden text-left text-[11px] text-slate-300 leading-relaxed mb-3">В публичната класация участват игри без помощ. По-малко ходове носят повече точки; при равни ходове времето подрежда играчите за отделна подредба. Публикуват се само нови лични рекорди по ходове за седмицата или за всички времена, при твое съгласие.</p>
         <div id="hd1-backup-anchor" class="mb-3"></div>
         <details id="ranking-public-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed mb-3">
           <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
@@ -2292,7 +2292,7 @@
           <div id="ranking-privacy-online" class="hidden">
             <p class="mt-2">Разглеждането на класацията изпраща заявка до сървъра, но не публикува твои резултати.</p>
             <p class="mt-2">Публикуването е по избор. Със съгласие името, постоянният публичен ключ, резултатът и целият път на ходовете стават публични в ROD блокчейна. Публикуваните данни не могат да бъдат изтрити. Оттеглянето на съгласие спира бъдещи изпращания, но не премахва вече публикуваните.</p>
-            <p class="mt-2">Локалните времена остават само в този браузър и не участват в класирането.</p>
+            <p class="mt-2">Приетото време на публикуван резултат се показва в класацията и разграничава равни ходове. Времето не е част от ROD разписката.</p>
           <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Настройките за анализ и бисквитки са отделни.</p>
           </div>
         </details>
@@ -2986,7 +2986,7 @@
           playerPublicPrivacy.classList.toggle('hidden',first);
           document.getElementById('player-gate-rules').textContent=first
               ? 'Резултатът и името се запазват в този браузър. Нищо не се изпраща.'
-              : 'В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Изпращат се само нови лични рекорди със съгласие.';
+              : 'В публичната класация участват игри без помощ. По-малко ходове носят повече точки; при равни ходове времето подрежда играчите за отделна подредба. Изпращат се само нови лични рекорди по ходове със съгласие.';
           playerGateSubmit.textContent=first?'Запази резултата и името':'Публикувай резултата';
           playerGateSkip.textContent=first?'Не сега · без запис':'Не сега · запази локално';
           playerNameInput.value=nickname;
@@ -4886,7 +4886,7 @@
         "Публична класация · преиграни резултати":"Public leaderboard · replayed results",
         "Над допустимия брой ходове · резултатът е запазен локално":"Too many moves for public ranking · saved locally",
         "Тренировка · без публично изпращане":"Practice · no public submission",
-        "В класацията участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена. Резултатите трябва да са в рамките на 10 пъти оптималния брой ходове.":"Only unassisted completed games count. Fewer moves earn more points; time does not affect rankings. Only new personal weekly or lifetime records are published. Eligible runs must stay within 10 times the optimal move count.",
+        "В класацията участват завършени игри без помощ. По-малко ходове носят повече точки; при равни ходове по-бързото прието време е предимство за отделна подредба. Публикуват се само нови лични рекорди по ходове за седмицата или за всички времена. Резултатите трябва да са в рамките на 10 пъти оптималния брой ходове.":'Only unassisted completed games count. Fewer moves earn more points; for equal moves, faster accepted time breaks ties in a layout. Only new move-based personal weekly or lifetime records are published. Eligible runs must stay within ten times the optimal move count.',
         "Съгласявам се името, постоянният публичен ключ и целият път да бъдат публикувани необратимо в ROD.":"I consent to irreversible publication of my name, stable public key and entire path on ROD.",
         "Период":"Period",
         "Изглед":"View",
@@ -4901,9 +4901,9 @@
         "Публична класация":"Public leaderboard",
         "Потвърдени резултати · ходовете са проверени":"Confirmed results · verified moves",
         "Публични резултати":"Public scores",
-        "Проверени ходове · времето е само локално":"Verified moves · time recorded locally",
+        "Проверени ходове · време при равни резултати":'Verified moves · time breaks ties',
         "Правила и проверка":"Rules & verification",
-        "Класирането се определя от броя ходове и сложността на подредбата, не от времето. За общото класиране ходовете са сбор от личните рекорди по подредби. Времето не се публикува в ROD и е видимо само на устройството, на което е записано. Публикуваните ходове се преиграват и потвърждават в блокчейна.":"Rankings are based on moves and layout complexity, not time. In the overall ranking, moves are the sum of a player's bests across layouts. Time is not published on ROD and is shown only on the device that recorded it. Published move sequences are independently replayed and confirmed on-chain.",
+        "Точките зависят от броя ходове и сложността на подредбата. При равни ходове в една подредба по-бързото прието време определя реда. Общото класиране остава по точки. Времето е записано в класацията, но не и в ROD разписката. По-старите резултати може да нямат време. Ходовете се проверяват независимо в блокчейна.":'Points depend on moves and layout complexity. Faster accepted time breaks equal-move ties for a single layout. Overall rankings remain point-based. Time is stored with leaderboard data, not in the ROD receipt. Historical records may lack timing. Moves remain independently verified on-chain.',
         "Потвърдени и независимо преиграни":"Confirmed and independently replayed",
         "Класиране":"Ranking",
         "Общо точки":"Total points",
@@ -5070,7 +5070,7 @@
         'Ако преди си публикувал резултати, те остават публични. Изтриването на локалните данни не засяга вече публикувани записи.':'If you published scores before, those records remain public. Local-only mode does not remove them.',
         'Разглеждането на класацията изпраща заявка до сървъра, но не публикува твои резултати.':'Viewing the leaderboard sends a request to the server, but does not publish your scores.',
         'Публикуването е по избор. Със съгласие името, постоянният публичен ключ, резултатът и целият път на ходовете стават публични в ROD блокчейна. Публикуваните данни не могат да бъдат изтрити. Оттеглянето на съгласие спира бъдещи изпращания, но не премахва вече публикуваните.':'Publishing is optional. With consent, your name, stable public key, score and full move path become public on the ROD blockchain. Published records cannot be deleted. Withdrawing consent stops future submissions but does not remove existing records.',
-        'Локалните времена остават само в този браузър и не участват в класирането.':'Recorded times remain in this browser and do not affect rankings.',
+        'Приетото време на публикуван резултат се показва в класацията и разграничава равни ходове. Времето не е част от ROD разписката.':'The accepted time of a published result appears in the leaderboard and breaks equal-move ties. Time is not part of the ROD receipt.',
         'Поверителност и данни':'Privacy & data',
         'Личните резултати, името и ходовете се съхраняват в този браузър. Можеш да ги изтриеш от настройките на сайта.':'Your personal results, name and moves are stored in this browser. You can remove them through the site settings.',
         'Публикуването е по избор. Ако го разрешиш, името, публичният ключ, резултатът и пълният път на ходовете стават постоянна част от публичния ROD блокчейн. Вече публикувани данни не могат да се изтрият. Отказът от публикуване важи за бъдещи резултати.':'Publishing is optional. If enabled, your name, public key, score and full move path become part of the permanent public ROD blockchain. Published data cannot be erased. Opting out affects future submissions.',
@@ -5089,8 +5089,8 @@
         'Можеш да гледаш публичните резултати; твоите остават локални.':'You can view public rankings; your own scores stay local.',
         'Тук са записите от игрите без помощ на това устройство. Виждаш броя ходове и времето за всяка игра. Нищо не се изпраща.':'These are your unassisted games saved on this device. You can review moves and elapsed time for each game. Nothing is submitted.',
         'Резултатът и името се запазват в този браузър. Нищо не се изпраща.':'Your score and name are saved in this browser. Nothing is submitted.',
-        'В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Изпращат се само нови лични рекорди със съгласие.':'The public leaderboard includes unassisted games. Fewer moves earn more points; time does not affect ranking. Only improved personal records are submitted with consent.',
-        'В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена, при твое съгласие.':'The public ranking includes completed unassisted games. Fewer moves earn more points; elapsed time does not affect ranking. Only improved personal weekly or lifetime records are submitted with your consent.',
+        'В публичната класация участват игри без помощ. По-малко ходове носят повече точки; при равни ходове времето подрежда играчите за отделна подредба. Изпращат се само нови лични рекорди по ходове със съгласие.':'The public leaderboard includes unassisted games. Fewer moves earn more points; accepted time breaks ties within a layout. Only move-based improvements are submitted with consent.',
+        'В публичната класация участват игри без помощ. По-малко ходове носят повече точки; при равни ходове времето подрежда играчите за отделна подредба. Публикуват се само нови лични рекорди по ходове за седмицата или за всички времена, при твое съгласие.':'The public leaderboard includes unassisted games. Fewer moves earn more points; accepted time breaks ties within a layout. Only new move-based weekly or lifetime personal records are published with consent.',
         'Ако преди си публикувал резултати, те остават публични. Изтриването на локалните данни не засяга вече публикувани записи.':'Any scores you published earlier remain public. Clearing local data does not remove already published records.',
         'Публикувай бъдещите ми резултати в публичната класация.':'Publish my future results to the public leaderboard.',
         'Публикувай бъдещите ми резултати в публичната ROD класация.':'Publish my future results to the public ROD leaderboard.',

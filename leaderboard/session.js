@@ -188,6 +188,9 @@ export async function processSessionRequest(request,{storage,available,rateSecre
   const nextHead=await hashParts('chain-advance',body.head,seed.sessionSeed,
     body.seq,final?'finish':'checkpoint',body.moves,currentTrace);
   const inputDigest=final?await hashParts('input-final',seed.sessionSeed,body.moves,currentTrace):null;
+  // First accepted move to final accepted move, in tenths of a second. The
+  // accepted telemetry is untrusted client time, not authenticated wall time.
+  const durationDs=final?Math.round((body.trace.at(-1)[1]-body.trace[0][1])/100):null;
   const next=randomToken(),proof=final?randomToken():null;
   const result=await storage.session('advance',{
     id:body.id,layout:body.layout,seq:body.seq,token_hash:await tokenHash(body.token),
@@ -195,6 +198,7 @@ export async function processSessionRequest(request,{storage,available,rateSecre
     rod_block_hash:seed.rodAnchor.hash,rod_block_height:seed.rodAnchor.height,
     moves:body.moves,prior_trace_digest:priorTrace,trace_digest:currentTrace,
     previous_head:body.head,next_head:nextHead,final,input_digest:inputDigest,
+    ...(final?{duration_ds:durationDs}:{}),
     next_hash:final?null:await tokenHash(next),proof_hash:final?await tokenHash(proof):null
   });
   if(result?.code!=='ok')throw new SessionFailure(result?.code||'session_conflict',409);

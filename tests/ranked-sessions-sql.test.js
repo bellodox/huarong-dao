@@ -52,6 +52,9 @@ test('actual PostgreSQL: seeded checkpoints seal once, admission consumes witnes
       packet(t,2,token,head,SOLUTION,TRACE)),env);
     assert.equal(finished.status,200);
     const witness=await finished.json();
+    const expectedDuration=Math.round((TRACE.at(-1)[1]-TRACE[0][1])/100);
+    const sealedTime=(await db.query('select duration_ds from public.hd_ranked_sessions where id=$1::uuid',[t.id])).rows[0];
+    assert.equal(sealedTime.duration_ds,expectedDuration,'the finish RPC persists telemetry-derived time');
     const session={id:witness.id,proof_hash:await tokenHash(witness.proof),
       session_seed:witness.sessionSeed,layout_seed:witness.layoutSeed,
       rules_digest:witness.rulesDigest,nonce:witness.nonce,head:witness.head,
@@ -70,5 +73,8 @@ test('actual PostgreSQL: seeded checkpoints seal once, admission consumes witnes
       'invalid_session','one witness cannot admit a different claim');
     const row=(await db.query('select state,receipt_id from public.hd_ranked_sessions where id=$1::uuid',[t.id])).rows[0];
     assert.equal(row.state,'admitted');assert.equal(row.receipt_id,payload.id);
+    const stored=(await db.query('select duration_ds,moves,points from public.hd1_claims where id=$1',[payload.id])).rows[0];
+    assert.equal(stored.duration_ds,expectedDuration,'admission durably copies accepted time');
+    assert.equal(stored.moves,SOLUTION.length);assert.equal(stored.points,payload.points);
   }finally{await db.close();}
 });
