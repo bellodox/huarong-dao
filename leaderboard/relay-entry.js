@@ -36,6 +36,20 @@ function backendUnavailable(stage,error) {
 export async function handleApi(request,{storage=null,issuer=null,available=false,rateSecret=null,readiness=null}={}) {
   const url=new URL(request.url);let stage='api';
   try {
+    // Bounded, read-only inspection. Never expose session tokens or evidence.
+    if(url.pathname==='/api/session/status') {
+      if(request.method!=='GET')return json({code:'method_not_allowed'},405);
+      if(!storage)return json({code:'issuance_disabled',retryable:false},503);
+      if([...url.searchParams.keys()].some(key=>key!=='id')||url.searchParams.getAll('id').length>1)
+        return json({code:'invalid_query'},400);
+      const id=url.searchParams.get('id');
+      if(id!==null&&!isSessionId(id))return json({code:'invalid_session_id'},400);
+      stage='session_read';
+      const result=await storage.sessionStatus(id===null?'recent':'get',id===null?{}:{id});
+      if(result?.code==='not_found')return json(result,404);
+      if(result?.code)return json({code:'session_status_unavailable'},503);
+      return json(result);
+    }
     if(url.pathname.startsWith('/api/session/')) {
       if(request.method!=='POST')return json({code:'not_found'},404);
       checkOrigin(request);

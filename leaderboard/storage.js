@@ -36,6 +36,8 @@ export class SupabaseStorage {
   async publicRead(operation,payload={}) {return this.request('hd1_public',operation,payload);}
   /** Service-only STABLE inspection of the recovery journal, never a row-locking RPC. */
   async recoveryRead(operation='inspect',payload={}) {return this.request('hd1_recovery_read',operation,payload);}
+  /** Service-only STABLE, bounded, allowlisted session inspection. */
+  async sessionStatus(operation='recent',payload={}) {return this.request('hd_session_status',operation,payload);}
   async request(functionName,operation,payload) {
     let response;
     try {
@@ -49,7 +51,7 @@ export class SupabaseStorage {
         throw storageFailure('schema_upgrade_required','schema');
       throw storageFailure('storage_unavailable',error?.name==='TimeoutError'||error?.name==='AbortError'?'timeout':'transport');
     }
-    if(!['hd1_public','hd1_recovery_read'].includes(functionName)) {
+    if(!['hd1_public','hd1_recovery_read','hd_session_status'].includes(functionName)) {
       if(!response.ok)throw Error('storage_unavailable');
       return response.json();
     }
