@@ -6,7 +6,7 @@ import { createSpaceXpanseProvider,PROVIDER_DEFAULTS,providerError } from './pro
 import { reconstruct,deriveReceipt } from './reconcile.js';
 import { epoch,medianTime } from './profile.js';
 import { advance } from './issuer.js';
-import { publisherReadiness,recoveryReadiness,recoveryStorage } from './storage.js';
+import { publisherReadiness,recoveryReadiness,recoveryStorage,storageDiagnostic } from './storage.js';
 import { authenticateRetirement,authenticateOriginal } from './recovery.js';
 import { tipExtends } from './tip-guard.js';
 
@@ -214,13 +214,35 @@ async function acquire(runtime,provider,storage,job) {
  * Job leases fence acquisition only; the SQL signing barrier remains non-expiring. */
 export async function runPublisher(storage,config,{fetch:fetcher=globalThis.fetch,providerOptions={},scope=null,recovery=null}={}) {
   if(config.code)return {code:config.code};
-  const capability=await (recovery?recoveryReadiness(storage):publisherReadiness(storage));
-  if(['schema_upgrade_required','recovery_schema_upgrade_required'].includes(capability.code))return {code:capability.code};
+  // These calls precede the main publisher try/catch. Report their fixed boundary
+  // explicitly; otherwise the scheduled handler can appear green for hours without
+  // acquiring any job or persisting a job_error. Never log SQL payloads or credentials.
+  let capability;
+  try {capability=await (recovery?recoveryReadiness(storage):publisherReadiness(storage));}
+  catch(error) {
+    console.error(JSON.stringify({event:'hd1_publisher_early_failure',phase:'readiness',...storageDiagnostic(error)}));
+    throw error;
+  }
+  if(['schema_upgrade_required','recovery_schema_upgrade_required'].includes(capability.code)) {
+    console.warn(JSON.stringify({event:'hd1_publisher_early_failure',phase:'capability',code:capability.code}));
+    return {code:capability.code};
+  }
   const backend=storage;
   storage={read:()=>backend.read(),rpc:(operation,payload={})=>backend.rpc(operation,{...payload,scope,recovery})};
-  const job=crypto.randomUUID();let runtime=await storage.rpc('job',{owner:job});
+  const job=crypto.randomUUID();let runtime;
+  try {runtime=await storage.rpc('job',{owner:job});}
+  catch(error) {
+    console.error(JSON.stringify({event:'hd1_publisher_early_failure',phase:'job',...storageDiagnostic(error)}));
+    throw error;
+  }
   if(runtime.code==='job_busy')return {code:'job_busy'};
-  if(!runtime.owner)return {code:FINITE_FAILURES.has(runtime.code)||runtime.code?.startsWith('recovery_')?runtime.code:'publisher_unavailable'};
+  if(!runtime.owner) {
+    const code=FINITE_FAILURES.has(runtime.code)||runtime.code?.startsWith('recovery_')?runtime.code:'publisher_unavailable';
+    // A failed scope/recovery fence is a normal SQL return, not a JavaScript error.
+    // The raw returned code is never included in this log.
+    console.warn(JSON.stringify({event:'hd1_publisher_early_failure',phase:'job_rejected',code}));
+    return {code};
+  }
   let calls=0,phase='initialize';const startedAt=Date.now(),deadline=startedAt+PUBLISHER_DEADLINE_MS;
   const boundedFetch=(...args)=>{
     if(Date.now()>deadline)throw providerError('publisher_deadline_exceeded');

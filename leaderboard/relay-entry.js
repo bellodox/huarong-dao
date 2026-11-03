@@ -142,17 +142,54 @@ export async function handleRelayRequest(request,bindings={},context=null) {
     return response;
   }catch(error) {return backendUnavailable(stage,error);}
 }
-/** Cron is the autonomous progress path. No HTTP route exposes this operation. */
+/** Cron is the autonomous progress path. No HTTP route exposes this operation.
+ * Observability is important here: a successful Cloudflare invocation does not
+ * mean that the publisher acquired a job, refreshed readiness or published.
+ * Log only fixed vocabulary; never log exception strings, credentials or URLs. */
+const SCHEDULED_CODES=new Set(['ready','initial_sync','job_busy','confirmed','included','broadcast_pending',
+  'broadcast_unknown','signed_persisted','retry_later','signer_busy','stale_state',
+  'provider_unavailable','publisher_unavailable','provider_timeout','history_changed',
+  'reorg_detected','reconciliation_required','funds_unavailable','finite_scope_required',
+  'claim_outside_scope','transaction_budget_exhausted','broadcast_budget_exhausted',
+  'spend_budget_exhausted','invalid_budget_plan','schema_upgrade_required',
+  'recovery_schema_upgrade_required','recovery_required','retired_original',
+  'epoch_changed','not_improved','invalid_provider_config','unconfirmed_pending',
+  'identity_configuration_mismatch','funding_compression_incompatible','provider_error',
+  'retry_exhausted','conflict_suspected','backend_unavailable','issuer_not_configured',
+  'issuance_disabled','storage_not_configured','rate_secret_not_configured',
+  'invalid_publisher_configuration','provider_response_too_large','relay_fee_insufficient',
+  'relay_fee_unavailable','relay_fee_policy_incompatible','queued','recovery_completed']);
+function scheduledCode(value) {return SCHEDULED_CODES.has(value)?value:'unexpected_result';}
 export async function handleScheduled(bindings={}) {
-  // Session garbage collection is independent of ROD publication readiness.
+  // The publisher is the critical scheduled job. Session GC is independent and
+  // must never delay acquisition/reconciliation or hide its actual outcome.
   let storage=null;
   if(bindings.SUPABASE_URL&&bindings.SUPABASE_SERVICE_KEY) {
-    try {storage=new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY);
-      await storage.session('gc');}catch {} // Migration may not exist yet.
+    try {storage=new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY);}
+    catch(error) {console.warn(JSON.stringify({event:'hd1_cron_storage_failure',...storageDiagnostic(error)}));}
   }
-  const config=publisherConfig(bindings);if(config.code)return {code:config.code};
-  try {return await runPublisher(storage??new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY),config);}
-  catch {return {code:'backend_unavailable'};}
+  const config=publisherConfig(bindings);
+  let result;
+  if(config.code) {
+    console.warn(JSON.stringify({event:'hd1_cron_result',code:scheduledCode(config.code)}));
+    result={code:config.code};
+  }else {
+    try {
+      result=await runPublisher(storage??new SupabaseStorage(bindings.SUPABASE_URL,bindings.SUPABASE_SERVICE_KEY),config);
+      const code=scheduledCode(result?.code);
+      const log=code==='ready'||code==='initial_sync'||code==='confirmed'||code==='included'?'log':'warn';
+      console[log](JSON.stringify({event:'hd1_cron_result',code}));
+    }catch(error) {
+      console.error(JSON.stringify({event:'hd1_cron_failure',phase:'publisher',...storageDiagnostic(error)}));
+      result={code:'backend_unavailable'};
+    }
+  }
+  // Best-effort retention; cannot block the publisher from running first.
+  if(storage) {
+    try {await storage.session('gc');}
+    catch(error) {console.warn(JSON.stringify({event:'hd1_cron_gc_failure',...storageDiagnostic(error)}));}
+  }
+  return result;
 }
 
 /** Verify exact canonical claim/receipt bytes offline; a receipt needs a separately trusted issuer. */
