@@ -57,6 +57,14 @@
   const status=panel.querySelector('#hd1-status'),rows=panel.querySelector('#hd1-rows'),pending=panel.querySelector('#hd1-pending');
   const scope=panel.querySelector('#hd1-scope'),view=panel.querySelector('#hd1-view'),layoutSelect=panel.querySelector('#hd1-layout');
   const t=(bg,en)=>document.documentElement?.lang==='en'?en:bg;
+  function syncTimeRules(){
+    const rule=panel.querySelector('details p');
+    if(rule)rule.textContent=t(
+      'Точките зависят от ходовете и сложността. Само при равни ходове в една подредба по-бързото прието време решава класирането. Общото класиране остава по точки. Времето не е част от публичната разписка; старите записи може да са без време.',
+      'Points depend on moves and layout complexity. Only when moves tie within the same layout does faster accepted time determine order. Overall ranking remains points-based. Time is not in the public receipt; older records may have no time.');
+  }
+  syncTimeRules();
+  document.getElementById('btn-language')?.addEventListener('click',syncTimeRules);
   function syncLayoutChoices(preferGame=false){
     const options=Array.from(rankLayout.options||[]);
     if(!options.length)return;
@@ -94,7 +102,7 @@
   let dismissedReceipt=null,lastModalClosedAt=0;
   try {const saved=localStorage.getItem(DISMISSED_RECEIPT_KEY);if(/^[a-f0-9]{64}$/.test(saved||''))dismissedReceipt=saved;}catch{}
   function onModalOpened(){
-    if(latestConfirmations>=6 && currentSubmissionId===dismissedReceipt){
+    if(currentSubmissionId && currentSubmissionId===dismissedReceipt){
       submissionBox.classList.add('hidden');return;
     }
     // Six confirmations end the transient notice only on the NEXT modal opening.
@@ -106,27 +114,40 @@
       submissionBox.classList.remove('hidden');settledShown=true;
     }
   }
+  function dismissReceipt(id){
+    if(!id)return;
+    dismissedReceipt=id;
+    suppressedReceipt=id;
+    submissionBox.classList.add('hidden');
+    try{localStorage.setItem(DISMISSED_RECEIPT_KEY,id);}catch{}
+  }
   function onModalClosed(){
     lastModalClosedAt=Date.now();
-    if(!currentSubmissionId)return;
-    dismissedReceipt=currentSubmissionId;
-    suppressedReceipt=currentSubmissionId;
-    submissionBox.classList.add('hidden');
-    try{localStorage.setItem(DISMISSED_RECEIPT_KEY,currentSubmissionId);}catch{}
+    dismissReceipt(currentSubmissionId);
   }
+  // Explicit user actions, not DOM mutation observation (also works in Node.js fixtures).
+  document.getElementById('btn-close-leaderboard')?.addEventListener('click',onModalClosed);
   const leaderboardModal=document.getElementById('leaderboard-modal');
-  if(leaderboardModal){
-    new MutationObserver(()=>{if(leaderboardModal.classList.contains('hidden'))onModalClosed();})
-      .observe(leaderboardModal,{attributes:true,attributeFilter:['class']});
-  }
+  leaderboardModal?.addEventListener('click',event=>{
+    if(event.target===leaderboardModal)onModalClosed();
+  });
+  leaderboardModal?.addEventListener('keydown',event=>{
+    if(event.key==='Escape')onModalClosed();
+  });
   function beginSubmission(run,id=null){
     if(!run)return;
-    if(id!==currentSubmissionId){
+    const layout=run.layout||run.l||'',player=run.player||nickname;
+    // The game opens the status view with a run object, after signing supplies an ID.
+    // Keep that ID rather than resetting the same receipt to an anonymous notice.
+    const sameRun=currentSubmission&&currentSubmission.layout===layout&&
+      currentSubmission.moves===run.moves&&currentSubmission.player===player;
+    const receiptId=id||(sameRun?currentSubmissionId:null);
+    if(receiptId!==currentSubmissionId){
       latestConfirmations=0;settledShown=false;suppressedReceipt=null;
     }
-    currentSubmission={layout:run.layout||run.l||'',moves:run.moves,player:run.player||nickname};
-    currentSubmissionId=id;
-    submissionBox.classList.remove('hidden');
+    currentSubmission={layout,moves:run.moves,player};
+    currentSubmissionId=receiptId;
+    submissionBox.classList.toggle('hidden',!!receiptId&&receiptId===dismissedReceipt);
     submissionHeading.textContent=t('Последен резултат','Latest result');
     const option=Array.from(rankLayout.options||[]).find(x=>x.value===currentSubmission.layout);
     const layoutNames={
@@ -189,7 +210,8 @@
     submissionNote.textContent=note+(count?' · '+count+' '+t('потвърждения','confirmations'):'');
     submissionBox.title=label+' · '+submissionScore.textContent+' · '+submissionNote.textContent;
     submissionBox.setAttribute('aria-label',submissionBox.title);
-    if(latestConfirmations>=6 && (currentSubmissionId===suppressedReceipt || currentSubmissionId===dismissedReceipt)){
+    if(currentSubmissionId && (currentSubmissionId===dismissedReceipt ||
+        (latestConfirmations>=6 && currentSubmissionId===suppressedReceipt))){
       submissionBox.classList.add('hidden');return;
     }
     submissionBox.classList.remove('hidden');
@@ -212,24 +234,13 @@
       if(res.ok&&currentSubmissionId===id)showStatus(await res.json(),id);
     }catch{/* Do not misreport confirmed status after network failure. */}
   }
-  /** Time remains outside hd2 receipts and points, but accepted session
-      duration now breaks ties for one layout in the public Supabase ranking. */
-  function localTimeFor(layout, best, signedOutbox, evidence) {
-    if(!best || typeof best.receipt_id!=='string')return null;
-    const signed=signedOutbox[best.receipt_id], run=signed?.localId&&evidence[signed.localId];
-    if(!run || run.l!==layout || run.moves!==best.moves || !Number.isSafeInteger(run.seconds) || run.seconds<0)return null;
-    return run.seconds;
-  }
+  // The public per-layout tie-breaker is the accepted duration joined to its
+  // confirmed receipt. Never reconstruct public time from this device's history.
   function timedClock(deciseconds) {
     const hours=Math.floor(deciseconds/36000),minutes=Math.floor(deciseconds%36000/600);
     const secs=Math.floor(deciseconds%600/10),tenths=deciseconds%10;
     const section=String(secs).padStart(2,'0')+'.'+tenths;
     return hours>0?`${hours}:${String(minutes).padStart(2,'0')}:${section}`:`${minutes}:${section}`;
-  }
-  function clock(seconds) {
-    const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),s=seconds%60;
-    return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-      : `${m}:${String(s).padStart(2,'0')}`;
   }
   /** Viewing is walletless. The confirmed public leaderboard is separate from local runs. */
   async function refresh(){
@@ -249,8 +260,6 @@
       window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
       rows.replaceChildren();pending.replaceChildren();
       const list=Array.isArray(result.rows)?result.rows:[];
-      let evidence={};
-      try{evidence=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY)||'{}').evidence||{};}catch{}
       const signedOutbox=outbox();
       list.forEach((row,i)=>{
         const line=document.createElement('div');line.className='hd1-row'+(i<3?' hd1-rank-'+(i+1):'');
@@ -274,25 +283,24 @@
         const chosen=view.value==='layout'?bests.filter(([layout])=>layout===layoutSelect.value):bests;
         const moveCount=chosen.reduce((count,[,best])=>count+best.moves,0);
         const validMoveCount=chosen.length>0;
-        const times=chosen.map(([layout,best])=>localTimeFor(layout,best,signedOutbox,evidence));
-        const localSeconds=times.length && times.every(seconds=>seconds!==null)
-          ? times.reduce((sum,seconds)=>sum+seconds,0):null;
-        const publicDs=view.value==='layout'&&chosen.length===1&&
+        const isLayout=view.value==='layout';
+        const publicDs=isLayout&&chosen.length===1&&
           Number.isSafeInteger(chosen[0][1].duration_ds)&&chosen[0][1].duration_ds>=0
           ?chosen[0][1].duration_ds:null;
-        const displayTime=view.value==='layout'
-          ?(publicDs===null?'—':timedClock(publicDs))
-          :(localSeconds===null?'—':clock(localSeconds));
         const metrics=document.createElement('span');metrics.className='hd1-row-metrics';
         const moves=validMoveCount?moveCount.toLocaleString():'—';
-        metrics.textContent=moves+' '+t('хода','moves')+' · '+t('Време: ','Time: ')+displayTime;
-        metrics.title=t('Ходове: ','Moves: ')+moves+' · '+t('Време: ','Time: ')+
-          displayTime+(view.value==='overall'?' · '+
-            Number(row.completed||0).toLocaleString()+' '+t('подредби','layouts'):'');
-        if(view.value==='layout')metrics.title+=' · '+(publicDs===null
-          ?t('За този запис няма публично време.','No public time is available for this record.')
-          :t('Времето е прието от сървъра; Блокчейнът потвърждава ходовете, не времето.',
-             'Server-accepted time; The blockchain confirms moves, not elapsed time.'));
+        metrics.textContent=moves+' '+t('хода','moves');
+        metrics.title=t('Ходове: ','Moves: ')+moves;
+        if(isLayout){
+          const displayTime=publicDs===null?'—':timedClock(publicDs);
+          metrics.textContent+=' · '+t('Време: ','Time: ')+displayTime;
+          metrics.title+=' · '+t('Време: ','Time: ')+displayTime+' · '+(publicDs===null
+            ?t('За този запис няма публично време.','No public time is available for this record.')
+            :t('Времето е прието от сървъра; Блокчейнът потвърждава ходовете, не времето.',
+               'Server-accepted time; The blockchain confirms moves, not elapsed time.'));
+        }else{
+          metrics.title+=' · '+Number(row.completed||0).toLocaleString()+' '+t('подредби','layouts');
+        }
         const body=document.createElement('div');body.className='hd1-row-body';
         body.append(name,metrics);
         const amount=document.createElement('div');amount.className='shrink-0';
@@ -383,12 +391,16 @@
           const claim=cryptoModule.createSignedClaim(evidence,player,snapshot.epoch,{consented});
           const signed={...claim,localId:evidence.localId,layout,moves:evidence.moves,epoch:snapshot.epoch,player,witness:evidence.witness};
           durable[claim.id]=signed;saveOutbox(durable);
-          beginSubmission(signed,claim.id);
           const expected=window.huarongExpectedSubmission;
-          if(expected&&expected.player===player&&expected.layout===layout&&expected.moves===evidence.moves){
+          const newRun=expected&&expected.player===player&&
+            expected.layout===layout&&expected.moves===evidence.moves;
+          const closedBeforeSigning=newRun&&lastModalClosedAt&&Number(expected.at)<=lastModalClosedAt;
+          if(closedBeforeSigning)dismissReceipt(claim.id);
+          beginSubmission(signed,claim.id);
+          if(newRun){
             window.huarongExpectedSubmission=null;
-            // Auto-open new runs, never reopen a submission after its dialog was dismissed.
-            if(!lastModalClosedAt || Number(expected.at)>lastModalClosedAt)
+            // Only the new run may open a modal; an older dismissed run cannot.
+            if(!closedBeforeSigning)
               window.huarongOpenSubmissionStatus?.({layout,moves:evidence.moves,player});
           }
           await retry(signed);
