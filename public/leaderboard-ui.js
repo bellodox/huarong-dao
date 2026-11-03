@@ -3,16 +3,61 @@
   'use strict';
   const OUTBOX_KEY='huarong_hd1_outbox_v1';
   let snapshot=null,busy=false,generation=0;
-  const panel=document.createElement('section');panel.className='border border-slate-700 rounded-xl p-3 mt-3 text-xs';
+  const panel=document.createElement('section');
   panel.id='hd1-public-board';
-  panel.innerHTML='<h3 class="font-bold text-amber-300">Публична класация · преиграни резултати</h3>'+ 
-    '<label for="hd1-scope">Период</label> <select id="hd1-scope" class="bg-slate-800"><option value="lifetime">Всички времена</option><option value="week">Текуща седмица</option></select>'+ 
-    '<label for="hd1-view">Изглед</label> <select id="hd1-view" class="bg-slate-800"><option value="overall">Общо</option><option value="layout">Избрана подредба</option></select>'+ 
-    '<p id="hd1-status" role="status" aria-live="polite"></p><div id="hd1-rows"></div><div id="hd1-pending"></div>'+ 
-    '<p>Името, постоянният публичен ключ и целият път стават публични. Оттеглянето на съгласие не изтрива публикувани данни. Няма награди или преводи.</p>'+ 
-    '<button id="hd1-backup" type="button" class="hidden mt-2">Архивирай самоличността</button>';
-  document.getElementById('ranking-source').after(panel);
-  const status=panel.querySelector('#hd1-status'),rows=panel.querySelector('#hd1-rows'),pending=panel.querySelector('#hd1-pending'),scope=panel.querySelector('#hd1-scope');
+  panel.className='rounded-xl border border-slate-700/70 bg-slate-950/35 p-3 text-xs';
+  panel.innerHTML=`
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div class="min-w-0">
+        <h3 class="hd1-board-title font-extrabold text-amber-300">Публична класация</h3>
+        <p class="text-[11px] text-slate-400 mt-1">Потвърдени резултати · ходовете са проверени</p>
+      </div>
+      <button id="hd1-refresh" type="button" aria-label="Обнови класацията" title="Обнови класацията" class="shrink-0 border border-slate-700 bg-slate-800 hover:bg-slate-700 rounded-lg px-3 py-2 text-amber-200 font-bold">↻</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mb-3">
+      <label class="block text-[11px] text-slate-300 font-semibold" for="hd1-scope">Период
+        <select id="hd1-scope" class="block mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2.5 text-slate-100 text-xs">
+          <option value="lifetime">Всички времена</option><option value="week">Текуща седмица</option>
+        </select>
+      </label>
+      <label class="block text-[11px] text-slate-300 font-semibold" for="hd1-view">Класиране
+        <select id="hd1-view" class="block mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2.5 text-slate-100 text-xs">
+          <option value="overall">Общо точки</option><option value="layout">По подредба</option>
+        </select>
+      </label>
+    </div>
+    <label id="hd1-layout-wrap" class="hidden block mb-3 text-[11px] text-slate-300 font-semibold" for="hd1-layout">Подредба
+      <select id="hd1-layout" class="block mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2.5 text-slate-100 text-xs"></select>
+    </label>
+    <p id="hd1-status" role="status" aria-live="polite" class="text-[11px] text-slate-400 mb-3 hd1-rank-note"></p>
+    <div id="hd1-rows" class="space-y-1" aria-live="polite"></div>
+    <div id="hd1-pending" class="mt-2 text-[11px] text-amber-200"></div>
+    <details class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400 hd1-rank-note">
+      <summary class="cursor-pointer text-slate-300">Правила и проверка</summary>
+      <p class="mt-2">Класирането се определя от броя ходове и сложността на подредбата, не от времето. За общото класиране ходовете са сбор от личните рекорди по подредби. Времето не се публикува в ROD и е видимо само на устройството, на което е записано. Публикуваните ходове се преиграват и потвърждават в блокчейна.</p>
+    </details>
+    <button id="hd1-backup" type="button" class="hidden mt-3 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-bold text-slate-200">Архивирай самоличността</button>`;
+  const anchor=document.getElementById('hd1-public-anchor');
+  if(anchor&&typeof anchor.replaceWith==='function')anchor.replaceWith(panel);
+  else document.getElementById('ranking-source').after(panel);
+  const status=panel.querySelector('#hd1-status'),rows=panel.querySelector('#hd1-rows'),pending=panel.querySelector('#hd1-pending');
+  const scope=panel.querySelector('#hd1-scope'),view=panel.querySelector('#hd1-view'),layoutSelect=panel.querySelector('#hd1-layout');
+  const t=(bg,en)=>document.documentElement?.lang==='en'?en:bg;
+  function syncLayoutChoices(preferGame=false){
+    const options=Array.from(rankLayout.options||[]);
+    if(!options.length)return;
+    const old=layoutSelect.value;
+    if(layoutSelect.options?.length!==options.length){
+      layoutSelect.replaceChildren();
+      for(const option of options){const copy=document.createElement('option');copy.value=option.value;copy.textContent=option.textContent;layoutSelect.append(copy);}
+    }
+    const selected=preferGame?rankLayout.value:old;
+    layoutSelect.value=options.some(option=>option.value===selected)?selected:(rankLayout.value||options[0].value);
+  }
+  function changeView(){
+    panel.querySelector('#hd1-layout-wrap').classList.toggle('hidden',view.value!=='layout');
+    refresh();
+  }
   /** Retain exact evidence independently of the local lifetime best and recent-five list. */
   function evidenceRows() {
     try {return Object.entries(JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY)||'{}').evidence||{}).map(([localId,row])=>({...row,localId})).filter(row=>
@@ -26,7 +71,7 @@
   }
   /** Status is distinct from confirmed ranking; arbitrary backend strings are never rendered as HTML. */
   function showStatus(row) {
-    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално',ranked_move_limit:'Над лимита hd2 · целият път е запазен локално',practice_layout:'Тренировка · без публично изпращане',session_required:'Нужна е проверена игрова сесия',invalid_session:'Сесията е невалидна или изтекла · изиграй нова партия'};
+    const text={queued:'На опашка · непотвърдено',signed_persisted:'Подписано · непотвърдено',broadcast_pending:'Изпратено · непотвърдено',broadcast_unknown:'Неизвестен резултат · непотвърдено',signing_unknown:'Подписването е спряно за проверка',confirmed:'Потвърдено · поне 6 блока',included:'Включено в блок · не е окончателно',reorged:'Реорганизация · проверката е спряна',not_improved:'Няма строго подобрение',epoch_changed:'Седмицата е сменена · нужно е ново съгласие',name_conflict:'Конфликт на публичното име · локалната игра продължава',evidence_too_large:'Целият път надхвърля 2048 байта · запазен е локално',ranked_move_limit:'Над допустимия брой ходове · резултатът е запазен локално',practice_layout:'Тренировка · без публично изпращане',session_required:'Нужна е проверена игрова сесия',invalid_session:'Сесията е невалидна или изтекла · изиграй нова партия'};
     const retryReasons={retry_exhausted:'изчерпани опити за публикуване',broadcast_budget_exhausted:'изчерпан бюджет за излъчване',transaction_budget_exhausted:'изчерпан бюджет за транзакции',spend_budget_exhausted:'изчерпан бюджет за разходи',claim_outside_scope:'извън разрешения обхват'};
     if(row.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(row.status)) {
       status.textContent='Повторното публикуване не е достъпно'+(Object.hasOwn(retryReasons,row.retry_code)?' · '+retryReasons[row.retry_code]:'');
@@ -34,35 +79,93 @@
     }
     status.textContent=text[row.status||row.code]||'Публичното изпращане не е достъпно · резултатът е локален';
   }
-  /** Viewing is walletless. Availability contains no secret or binding value. */
-  async function refresh() {
+  /** Time is deliberately not part of hd2, public receipts or score calculation.
+      Display it only when the same receipt has a matching record on this device. */
+  function localTimeFor(layout, best, signedOutbox, evidence) {
+    if(!best || typeof best.receipt_id!=='string')return null;
+    const signed=signedOutbox[best.receipt_id], run=signed?.localId&&evidence[signed.localId];
+    if(!run || run.l!==layout || run.moves!==best.moves || !Number.isSafeInteger(run.seconds) || run.seconds<0)return null;
+    return run.seconds;
+  }
+  function clock(seconds) {
+    const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),s=seconds%60;
+    return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+      : `${m}:${String(s).padStart(2,'0')}`;
+  }
+  /** Viewing is walletless. The confirmed public leaderboard is separate from local runs. */
+  async function refresh(){
     if(!/^https?:$/.test(location.protocol))return;
     const current=++generation;
-    try {
+    syncLayoutChoices();
+    try{
       const params=new URLSearchParams({scope:scope.value});
-      if(panel.querySelector('#hd1-view').value==='layout')params.set('layout',rankLayout.value||'wings');
+      if(view.value==='layout')params.set('layout',layoutSelect.value||rankLayout.value||'wings');
       if(scope.value==='week')params.set('week',String(snapshot?.epoch??0));
       const response=await fetch('/api/leaderboard?'+params,{cache:'no-store',signal:AbortSignal.timeout(10000)});
       if(!response.ok)throw Error('backend_unavailable');
       const result=await response.json();if(current!==generation)return;
       snapshot=result;HUARONG_PUBLIC_ENABLED=result.available===true;
+      window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
       rows.replaceChildren();pending.replaceChildren();
-      for(const row of result.rows||[]) {
-        const line=document.createElement('p');line.textContent=row.nickname+' · '+row.points+' т. · '+row.completed+' подредби';rows.append(line);
+      const list=Array.isArray(result.rows)?result.rows:[];
+      let evidence={};
+      try{evidence=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY)||'{}').evidence||{};}catch{}
+      const signedOutbox=outbox();
+      list.forEach((row,i)=>{
+        const line=document.createElement('div');line.className='hd1-row'+(i<3?' hd1-podium hd1-rank-'+(i+1):'');
+        const place=document.createElement('span');place.className='hd1-position';place.textContent=String(i+1);
+        const body=document.createElement('div');body.className='min-w-0 flex-1';
+        const name=document.createElement('div');name.className='hd1-row-name';name.textContent=String(row.nickname||t('Играч','Player'));
+        if(String(row.nickname||'')===String(nickname||'')){
+          line.classList.add('hd1-is-me');
+          line.title=t('Това е твоето име (възможно е да има едноименни играчи).',
+            'This matches your name (other players may use the same name).');
+        }
+        const details=document.createElement('div');details.className='hd1-row-sub';
+        const bests=Object.entries(row.bests||{}).filter(([,best])=>Number.isSafeInteger(best?.moves)&&best.moves>0);
+        const chosen=view.value==='layout'?bests.filter(([layout])=>layout===layoutSelect.value):bests;
+        const moveCount=chosen.reduce((count,[,best])=>count+best.moves,0);
+        const validMoveCount=chosen.length>0;
+        const times=chosen.map(([layout,best])=>localTimeFor(layout,best,signedOutbox,evidence));
+        const localSeconds=times.length && times.every(seconds=>seconds!==null)
+          ? times.reduce((sum,seconds)=>sum+seconds,0):null;
+        const metrics=document.createElement('div');metrics.className='hd1-row-metrics';
+        metrics.textContent=t('Ходове: ','Moves: ')+(validMoveCount?moveCount.toLocaleString():'—')+
+          ' · '+t('Време: ','Time: ')+(localSeconds===null?'—':clock(localSeconds));
+        if(localSeconds!==null)metrics.title=t('Времето е от този браузър; не се публикува и не влияе на точките.',
+          'Time is from this browser; it is not published and does not affect points.');
+        else metrics.title=t('Времето не е част от публичните записи.', 'Time is not part of public records.');
+        details.append(metrics);
+        if(view.value==='overall'){
+          const count=document.createElement('div');count.className='hd1-row-layouts';
+          count.textContent=Number(row.completed||0).toLocaleString()+' '+t('подредби','layouts');
+          details.append(count);
+        }
+        body.append(name,details);
+        const amount=document.createElement('div');amount.className='shrink-0';
+        const value=document.createElement('div');value.className='hd1-row-score';value.textContent=Number(row.points||0).toLocaleString();
+        const unit=document.createElement('div');unit.className='hd1-row-unit';unit.textContent=t('точки','points');
+        amount.append(value,unit);line.append(place,body,amount);rows.append(line);
+      });
+      if(!list.length){const empty=document.createElement('p');empty.className='rounded-xl bg-slate-900/70 border border-slate-700/70 p-4 text-center text-slate-400 text-xs';empty.textContent=t('Все още няма потвърдени резултати.','No confirmed scores yet.');rows.append(empty);}
+      if(Array.isArray(result.pending)&&result.pending.length){
+        const notice=document.createElement('p');notice.textContent=t('Очакват потвърждение: ','Awaiting confirmation: ')+result.pending.length;
+        pending.append(notice);
       }
-      for(const row of result.pending||[]) {const line=document.createElement('p');line.textContent='Непотвърдено · '+(row.confirmations||0)+'/6';pending.append(line);}
       const code=result.publisher?.code??result.code;
-      status.textContent=!HUARONG_PUBLIC_ENABLED?(code==='issuance_disabled'?'Публичното изпращане е изключено · локалната игра продължава':'Публичното изпращане не е достъпно · резултатът е локален'):result.stale?'Данните не са актуални · локалната игра продължава':'Преиграно · не доказва човешка игра';
-      // Separate text node preserves mutation-based translation; never echo arbitrary backend details.
-      if(!HUARONG_PUBLIC_ENABLED&&['issuer_not_configured','storage_not_configured','rate_secret_not_configured','funding_compression_incompatible','invalid_publisher_configuration','schema_upgrade_required','initial_sync','publisher_stale','provider_timeout','provider_unavailable','publisher_unavailable','funds_unavailable','bootstrap_pin_required','identity_configuration_mismatch','checkpoint_mismatch','history_changed','history_page_gap','wrong_network','conflict_suspected','signing_unknown','retry_exhausted','recovery_required'].includes(code)) {
+      status.textContent=!HUARONG_PUBLIC_ENABLED?(code==='issuance_disabled'?t('Публичното изпращане е изключено · локалната игра продължава','Public submission is off · your games stay local'):t('Публичното изпращане не е достъпно · резултатът е локален','Public submission unavailable · your score stays local')):
+        result.stale?t('Данните не са актуални · показани са последно известните резултати','Data may be outdated · showing the last known scores'):
+        t('Потвърдени записи · независимо преиграни ходове','Confirmed records · independently replayed moves');
+      // Only fixed allowlisted codes are ever displayed. Never show backend-provided free text.
+      if(!HUARONG_PUBLIC_ENABLED&&['issuer_not_configured','storage_not_configured','rate_secret_not_configured','funding_compression_incompatible','invalid_publisher_configuration','schema_upgrade_required','initial_sync','publisher_stale','provider_timeout','provider_unavailable','publisher_unavailable','funds_unavailable','bootstrap_pin_required','identity_configuration_mismatch','checkpoint_mismatch','history_changed','history_page_gap','wrong_network','conflict_suspected','signing_unknown','retry_exhausted','recovery_required'].includes(code)){
         const reason=document.createElement('span');reason.textContent=' ('+code+')';status.append(reason);
       }
-      document.getElementById('ranking-public-privacy').classList.remove('hidden');
       panel.querySelector('#hd1-backup').classList.toggle('hidden',!localStorage.getItem('huarong_rod_identity_v1'));
-    }catch {
+    }catch{
       if(current!==generation)return;
       HUARONG_PUBLIC_ENABLED=false;
-      status.textContent='Публичното изпращане не е достъпно · резултатът е локален';
+      window.huarongUpdateRankingPrivacy?.(false);
+      status.textContent=t('Публичното изпращане не е достъпно · резултатът е локален','Public submission unavailable · your score stays local');
     }
   }
   /** Opt-in only. Persist signed bytes before POST and reuse them after ambiguous failures. */
@@ -133,8 +236,11 @@
       const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='huarong-player-backup.json';link.click();URL.revokeObjectURL(link.href);
     }catch{status.textContent='Архивирането не успя · самоличността не е променена';}
   };
-  scope.onchange=refresh;panel.querySelector('#hd1-view').onchange=refresh;rankLayout.addEventListener('change',refresh);
-  document.getElementById('btn-leaderboard').addEventListener('click',refresh);
+  scope.onchange=refresh;view.onchange=changeView;
+  layoutSelect.onchange=()=>{if(rankLayout.value!==layoutSelect.value){rankLayout.value=layoutSelect.value;rankLayout.dispatchEvent?.(new Event('change'));}refresh();};
+  rankLayout.addEventListener('change',()=>{layoutSelect.value=rankLayout.value;refresh();});
+  panel.querySelector('#hd1-refresh').addEventListener('click',refresh);
+  document.getElementById('btn-leaderboard').addEventListener('click',()=>{syncLayoutChoices(true);refresh();});
   window.addEventListener('online',()=>{refresh();sync();});
   window.hd1UI={candidate,refresh,sync};
   refresh();

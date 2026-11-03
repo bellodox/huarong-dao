@@ -1753,6 +1753,86 @@
         }
 
     
+        /* Compact leaderboard: one primary scoreboard, explicit local tab, optional settings. */
+        #leaderboard-modal .hd-rank-tab { color:#94a3b8; transition:background-color .15s,color .15s; }
+        #leaderboard-modal .hd-rank-tab[aria-selected="true"] { background:rgba(217,119,6,.2); color:#fde68a; box-shadow:inset 0 -2px #f59e0b; }
+        #leaderboard-modal .hd-rank-tab:focus-visible,
+        #leaderboard-modal button:focus-visible,
+        #leaderboard-modal select:focus-visible,
+        #leaderboard-modal summary:focus-visible { outline:2px solid #fbbf24; outline-offset:2px; }
+        #hd1-public-board .hd1-row { display:flex; align-items:center; gap:.7rem; padding:.72rem .75rem; border-radius:.7rem; background:rgba(15,23,42,.56); border:1px solid rgba(71,85,105,.55); }
+        #hd1-public-board .hd1-row + .hd1-row { margin-top:.35rem; }
+        #hd1-public-board .hd1-row.hd1-podium { background:linear-gradient(105deg,rgba(180,83,9,.17),rgba(15,23,42,.68)); border-color:rgba(245,158,11,.32); }
+        #hd1-public-board .hd1-position { display:grid; place-items:center; flex:0 0 2rem; height:2rem; border-radius:.55rem; color:#e2e8f0; background:rgba(51,65,85,.85); font-size:.8rem; font-weight:900; font-variant-numeric:tabular-nums; }
+        #hd1-public-board .hd1-podium .hd1-position { color:#fde68a; background:rgba(180,83,9,.25); }
+        #hd1-public-board .hd1-row-name { min-width:0; flex:1; color:#f1f5f9; font-size:.82rem; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        #hd1-public-board .hd1-row-sub { color:#94a3b8; font-size:.66rem; font-weight:500; margin-top:.12rem; }
+        #hd1-public-board .hd1-row-score { color:#fbbf24; font-size:1rem; line-height:1.12; font-weight:850; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+        #hd1-public-board .hd1-row-unit { color:#94a3b8; font-size:.65rem; font-weight:500; margin-top:.17rem; text-align:right; }
+        #hd1-public-board select { min-width:0; width:100%; }
+        #hd1-public-board .hd1-rank-note { line-height:1.5; }
+        #ranking-settings > summary { list-style-position:inside; }
+        #leaderboard-modal .hd-leaderboard-shell { overscroll-behavior:contain; }
+        @media (max-width:360px) { #leaderboard-modal .hd-leaderboard-shell { padding:.75rem; } #hd1-public-board .hd1-row { padding:.6rem .55rem; gap:.5rem; } }
+
+        /* The prebundled .flex rule follows .hidden; hidden modal overlays must
+           always be removed from hit-testing, including during local preview. */
+        #game-story-modal.hidden, #install-help-modal.hidden,
+        #leaderboard-modal.hidden, #levels-modal.hidden, #moves-drawer.hidden,
+        #victory-modal.hidden, #player-gate.hidden { display:none !important; }
+        /* Leaderboard is a centered game dialog, never a full-width page. These
+           rules are explicit because this embedded Tailwind build has no max-w-lg. */
+        #leaderboard-modal { box-sizing:border-box; padding:clamp(.5rem, 2vw, 1.25rem) !important; }
+        #leaderboard-modal > .hd-leaderboard-shell {
+            box-sizing:border-box; width:min(100%, 34rem) !important; max-width:34rem !important;
+            min-width:0; max-height:min(88dvh, 46rem) !important;
+            overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
+            scrollbar-gutter:stable; box-shadow:0 24px 80px rgba(0,0,0,.78),0 0 0 1px rgba(245,158,11,.08);
+        }
+        #leaderboard-modal .hd-leaderboard-heading { border-color:rgba(245,158,11,.26); }
+        #leaderboard-modal .hd-leaderboard-heading h2 { letter-spacing:-.02em; }
+        #leaderboard-modal .hd-mode-chip { display:inline-flex; align-items:center; gap:.35rem;
+            padding:.28rem .57rem; border:1px solid #475569; border-radius:999px;
+            background:rgba(30,41,59,.8); color:#cbd5e1; font-size:.65rem; font-weight:700; }
+        #leaderboard-modal .hd-mode-chip.hd-online { background:rgba(5,80,60,.18);border-color:rgba(52,211,153,.32);color:#a7f3d0; }
+        #leaderboard-modal button:not(:disabled), #leaderboard-modal [role="tab"]:not([disabled]),
+        #player-gate button:not(:disabled), #btn-submit-score:not(:disabled),
+        #btn-confirm-gate:not(:disabled), #btn-confirm-first-score:not(:disabled) { cursor:pointer !important; }
+        #leaderboard-modal button:disabled, #player-gate button:disabled { cursor:not-allowed; }
+        #leaderboard-modal .hd-rank-tabs { padding:.25rem; }
+        #leaderboard-modal .hd-rank-tab { border-radius:.6rem; }
+        #hd1-public-board { position:relative; overflow:hidden; border-color:rgba(71,85,105,.6); }
+        #hd1-public-board .hd1-board-title { letter-spacing:-.01em; font-size:1.02rem; }
+        #hd1-public-board .hd1-row { position:relative; min-height:4rem; gap:.7rem; padding:.75rem .8rem;
+            border:1px solid rgba(71,85,105,.48); border-radius:.85rem;
+            background:linear-gradient(115deg,rgba(30,41,59,.85),rgba(15,23,42,.9));
+            transition:border-color .15s, transform .15s; }
+        #hd1-public-board .hd1-row:hover { border-color:rgba(251,191,36,.46); }
+        #hd1-public-board .hd1-row.hd1-rank-1 { background:linear-gradient(105deg,rgba(146,98,25,.26),rgba(30,41,59,.92)); border-color:rgba(251,191,36,.57);box-shadow:inset 3px 0 0 #fbbf24; }
+        #hd1-public-board .hd1-row.hd1-rank-2 { background:linear-gradient(105deg,rgba(148,163,184,.15),rgba(30,41,59,.9)); border-color:rgba(203,213,225,.33);box-shadow:inset 3px 0 0 #94a3b8; }
+        #hd1-public-board .hd1-row.hd1-rank-3 { background:linear-gradient(105deg,rgba(180,83,9,.14),rgba(30,41,59,.9)); border-color:rgba(217,119,6,.3);box-shadow:inset 3px 0 0 #c08450; }
+        #hd1-public-board .hd1-position { flex:0 0 2.2rem; width:2.2rem; height:2.2rem;
+            border-radius:.65rem; font-variant-numeric:tabular-nums; font-size:.78rem; }
+        #hd1-public-board .hd1-rank-1 .hd1-position { color:#1e293b; background:#fbbf24; }
+        #hd1-public-board .hd1-rank-2 .hd1-position { color:#0f172a; background:#cbd5e1; }
+        #hd1-public-board .hd1-rank-3 .hd1-position { color:#170d06; background:#d3a078; }
+        #hd1-public-board .hd1-row-name { font-size:.88rem; line-height:1.28; }
+        #hd1-public-board .hd1-row-metrics { color:#cbd5e1; font-variant-numeric:tabular-nums; font-size:.69rem; line-height:1.55; }
+        #hd1-public-board .hd1-row-layouts { color:#94a3b8; font-size:.66rem; }
+        #hd1-public-board .hd1-row-score { font-size:1.12rem; letter-spacing:-.02em; }
+        #hd1-public-board .hd1-row-unit { letter-spacing:.01em; }
+        #hd1-public-board .hd1-rank-1 .hd1-row-score { color:#fde68a; }
+        #hd1-public-board #hd1-status { border-radius:.6rem; }
+        #hd1-public-board select { cursor:pointer; max-width:100%; }
+        @media(max-width:390px){
+           #leaderboard-modal > .hd-leaderboard-shell { max-height:calc(100dvh - 1rem) !important; scrollbar-gutter:auto; padding:.8rem; }
+           #hd1-public-board .hd1-row { gap:.5rem; padding:.68rem .58rem; }
+           #hd1-public-board .hd1-position { flex-basis:1.9rem; width:1.9rem; height:1.9rem; }
+           #hd1-public-board .hd1-row-score { font-size:.99rem; }
+           #hd1-public-board .hd1-row-name { font-size:.78rem; }
+           #hd1-public-board .hd1-row-metrics { font-size:.65rem; }
+        }
+
         /* Consent panel: independent of Tailwind-generated arbitrary utilities. */
         #cookie-consent { position:fixed; left:50%; bottom:max(.75rem,env(safe-area-inset-bottom,0px) + .5rem); transform:translateX(-50%); width:calc(100% - 1rem); max-width:28rem; z-index:65; box-sizing:border-box; }
         #cookie-consent.hidden { display:none !important; }
@@ -2045,7 +2125,7 @@
             <input id="public-score-consent" type="checkbox" class="mt-0.5 w-4 h-4 accent-amber-500 shrink-0" />
             <span>Съгласявам се името, постоянният публичен ключ и целият път да бъдат публикувани необратимо в ROD.</span>
           </label>
-          <p class="text-left text-[11px] text-slate-300 leading-relaxed">Експериментален hd2: до 10 × оптималните ходове включително за 11 класирани подредби. Тренировки, помощ и по-дълги пътища не се публикуват; локалната игра и целият действителен път остават без лимит. Нужно е строго подобрение за всички времена ИЛИ текущата седмица; времето е само локално.</p>
+          <p id="player-gate-rules" class="text-left text-[11px] text-slate-300 leading-relaxed">В класацията участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена. Резултатите трябва да са в рамките на 10 пъти оптималния брой ходове.</p>
           <details id="player-public-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed">
             <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
             <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Локалната игра не изисква самоличност или публикуване. Разглеждането на публичната класация изпраща заявка до сървъра, но не създава самоличност и не публикува твой резултат. Само с отделно съгласие името, постоянният публичен ключ, резултатът и целият път се подписват за публичния ROD блокчейн. Публикуваните данни са необратими; изчистването на браузъра и оттеглянето на съгласие не ги изтриват. Оттеглянето спира бъдещи неподадени изпращания, не вече изпратени записи. Съгласието за анализ е независимо.</p>
@@ -2057,14 +2137,44 @@
       </div>
     </div>
 
-    <!-- Game leaderboard and player settings. -->
-    <div id="leaderboard-modal" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3">
-      <div class="bg-slate-900 border border-amber-500/60 rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto custom-scroll p-4 shadow-2xl">
-        <div class="flex items-center justify-between mb-3 gap-3">
-          <div><h2 id="leaderboard-title" class="font-extrabold text-lg text-amber-300">🏆 Класация</h2><p class="text-xs text-slate-400">Най-добрите резултати · само без помощ</p></div>
-          <button id="btn-close-leaderboard" class="bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold" aria-label="Затвори">✕</button>
+    <!-- Leaderboard: public verified results and device-local records are separate views. -->
+    <div id="leaderboard-modal" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4">
+      <div class="hd-leaderboard-shell bg-slate-900 border border-amber-500/50 rounded-2xl max-w-lg w-full max-h-[92dvh] overflow-y-auto custom-scroll p-4 shadow-2xl">
+        <div class="hd-leaderboard-heading sticky top-0 z-10 flex items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-700/70 bg-slate-900">
+          <div class="min-w-0">
+            <h2 id="leaderboard-title" class="font-extrabold text-lg text-amber-300">🏆 Класация</h2>
+            <p id="ranking-mode-description" class="text-[11px] text-slate-400 mt-1">Резултатите са само на това устройство.</p>
+          </div>
+          <button id="btn-close-leaderboard" type="button" class="bg-slate-800 border border-slate-700 text-slate-100 px-3 py-1.5 rounded-xl font-bold shrink-0" aria-label="Затвори">✕</button>
         </div>
-        <div class="mb-3 flex justify-end"><button id="btn-cookie-settings" type="button" class="text-[11px] underline text-amber-300 hover:text-amber-200">Настройки на бисквитките</button></div>
+        <div class="mb-3"><span id="ranking-mode-label" class="hd-mode-chip" role="status">● Само локално</span></div>
+        <div role="tablist" aria-label="Вид класация" class="hd-rank-tabs flex p-1 rounded-xl bg-slate-950/80 border border-slate-700/70 mb-3">
+          <button type="button" id="ranking-tab-public" role="tab" aria-selected="true" aria-controls="ranking-pane-public" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Обща класация</button>
+          <button type="button" id="ranking-tab-local" role="tab" aria-selected="false" aria-controls="ranking-pane-local" class="hd-rank-tab flex-1 rounded-lg text-xs font-extrabold py-2.5 px-2">Моите резултати</button>
+        </div>
+        <section id="ranking-pane-public" role="tabpanel" aria-labelledby="ranking-tab-public">
+          <div id="hd1-public-anchor"></div>
+        </section>
+        <section id="ranking-pane-local" role="tabpanel" aria-labelledby="ranking-tab-local" class="hidden">
+          <div class="rounded-xl bg-slate-950/40 border border-slate-700/70 p-3">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <label class="font-bold text-xs text-slate-200" for="ranking-layout">Подредба</label>
+          <select id="ranking-layout" class="bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-lg p-2 max-w-[70%]"></select>
+        </div>
+        <p id="ranking-source" class="text-[11px] text-slate-400 mb-2" role="status"></p>
+        <p id="ranking-personal-best" class="text-[11px] font-bold text-amber-200 mb-2"></p>
+        <div id="ranking-list" class="space-y-1 mb-4" aria-live="polite"></div>
+        <div id="ranking-recent-wrap" class="hidden mb-4">
+          <h3 class="text-xs text-slate-200 font-bold mb-2">Последните 5 локални резултата</h3>
+          <div id="ranking-recent-list" class="space-y-1"></div>
+        </div>
+        <button id="btn-refresh-scores" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl py-2 text-xs font-bold">Обнови класацията</button>
+          </div>
+        </section>
+        <details id="ranking-settings" class="hd-leaderboard-settings mt-3 rounded-xl border border-slate-700/70 bg-slate-950/30">
+          <summary class="cursor-pointer text-xs font-bold text-slate-200 px-3 py-3">Профил и настройки</summary>
+          <div class="px-3 pb-3 pt-1 border-t border-slate-800">
+            <div class="mb-3 flex justify-end"><button id="btn-cookie-settings" type="button" class="text-[11px] underline text-amber-300 hover:text-amber-200">Настройки на бисквитките</button></div>
         <div id="nickname-editor">
         <label class="text-xs text-slate-300 font-bold" for="nickname-input">Потребителско име</label>
         <div class="flex gap-2 mt-1 mb-3">
@@ -2079,27 +2189,22 @@
           <input id="ranking-public-consent" type="checkbox" class="mt-0.5 w-4 h-4 shrink-0 accent-amber-500" />
           <span>Публикувай бъдещите ми резултати в публичната класация.</span>
         </label>
-        <p class="text-left text-[11px] text-slate-300 leading-relaxed mb-3">Експериментален hd2: до 10 × оптималните ходове включително за 11 класирани подредби. Тренировки, помощ и по-дълги пътища не се публикуват; локалната игра и целият действителен път остават без лимит. Нужно е строго подобрение за всички времена ИЛИ текущата седмица; времето е само локално.</p>
+        <p id="ranking-rules-local" class="text-left text-[11px] text-slate-300 leading-relaxed mb-3">Тук са записите от игрите без помощ на това устройство. Виждаш броя ходове и времето за всяка игра. Нищо не се изпраща.</p>
+        <p id="ranking-rules-online" class="hidden text-left text-[11px] text-slate-300 leading-relaxed mb-3">В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена, при твое съгласие.</p>
         <details id="ranking-public-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed mb-3">
           <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
-          <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Локалната игра не изисква самоличност или публикуване. Разглеждането на публичната класация изпраща заявка до сървъра, но не създава самоличност и не публикува твой резултат. Само с отделно съгласие името, постоянният публичен ключ, резултатът и целият път се подписват за публичния ROD блокчейн. Публикуваните данни са необратими; изчистването на браузъра и оттеглянето на съгласие не ги изтриват. Оттеглянето спира бъдещи неподадени изпращания, не вече изпратени записи. Съгласието за анализ е независимо.</p>
+          <div id="ranking-privacy-local">
+            <p class="mt-2">В момента резултатите се запазват само в този браузър. Името, ходовете и времената могат да бъдат изтрити чрез изчистване на данните за сайта.</p>
+          </div>
+          <div id="ranking-privacy-online" class="hidden">
+            <p class="mt-2">Разглеждането на класацията изпраща заявка до сървъра, но не публикува твои резултати.</p>
+            <p class="mt-2">Публикуването е по избор. Със съгласие името, постоянният публичен ключ, резултатът и целият път на ходовете стават публични в ROD блокчейна. Публикуваните данни не могат да бъдат изтрити. Оттеглянето на съгласие спира бъдещи изпращания, но не премахва вече публикуваните.</p>
+            <p class="mt-2">Локалните времена остават само в този браузър и не участват в класирането.</p>
+          <p class="mt-2">Администратор: SpaceXpanse · <a class="underline text-amber-300" href="mailto:hq@spacexpanse.org">hq@spacexpanse.org</a>. Настройките за анализ и бисквитки са отделни.</p>
+          </div>
         </details>
-        <details id="ranking-local-privacy" class="text-left text-[11px] text-slate-400 leading-relaxed mb-3">
-          <summary class="cursor-pointer underline text-amber-300">Поверителност</summary>
-          <p class="mt-2">Локалните резултати, име и пътища се пазят в този браузър и се премахват чрез изчистване на данните за сайта. Това не изтрива по-рано публикувани записи. Изключено изпращане не означава липса на исторически публикации.</p>
+          </div>
         </details>
-        <div class="flex items-center justify-between gap-2 mb-2">
-          <label class="font-bold text-xs text-slate-200" for="ranking-layout">Подредба</label>
-          <select id="ranking-layout" class="bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-lg p-2 max-w-[70%]"></select>
-        </div>
-        <p id="ranking-source" class="text-[11px] text-slate-400 mb-2" role="status"></p>
-        <p id="ranking-personal-best" class="text-[11px] font-bold text-amber-200 mb-2"></p>
-        <div id="ranking-list" class="space-y-1 mb-4" aria-live="polite"></div>
-        <div id="ranking-recent-wrap" class="hidden mb-4">
-          <h3 class="text-xs text-slate-200 font-bold mb-2">Последните 5 локални резултата</h3>
-          <div id="ranking-recent-list" class="space-y-1"></div>
-        </div>
-        <button id="btn-refresh-scores" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 rounded-xl py-2 text-xs font-bold">Обнови класацията</button>
       </div>
     </div>
 
@@ -2596,6 +2701,7 @@
           allowPublicScores = HUARONG_PUBLIC_ENABLED && allowed === true;
           publicScoreConsent.checked = allowPublicScores;
           rankingPublicConsent.checked = allowPublicScores;
+          window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
           try {localStorage.setItem(PRIVACY_KEY,JSON.stringify({v:1,allowed:allowPublicScores,at:Date.now()}));}catch(e){}
           if(!assistedRun && typeof GAME_LAYOUTS!=='undefined'){
               const layout = GAME_LAYOUTS[currentLayoutIdx]?.id;
@@ -2681,6 +2787,7 @@
           if(!allowed)publicNameReady=false;
           publicScoreConsent.checked=allowed;
           rankingPublicConsent.checked=allowed;
+          window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
           if(!assistedRun && typeof GAME_LAYOUTS!=='undefined'){
               const layout=GAME_LAYOUTS[currentLayoutIdx]?.id;
               if(!isPracticeLayout(layout)){
@@ -2766,8 +2873,7 @@
       // Startup never blocks the puzzle with a username dialog.
       activePlayer.textContent='♙ '+nickname;
       document.getElementById('ranking-public-controls').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED || !publicNameReady);
-      document.getElementById('ranking-public-privacy').classList.remove('hidden');
-      document.getElementById('ranking-local-privacy').classList.toggle('hidden',HUARONG_PUBLIC_ENABLED);
+      updateRankingPrivacy();
       document.getElementById('install-online-note').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
       playerGate.classList.add('hidden');
       publicScoreConsent.checked=false;
@@ -2782,6 +2888,9 @@
           playerNameInput.classList.toggle('opacity-70',!first);
           playerPublicConsentRow.classList.toggle('hidden',first);
           playerPublicPrivacy.classList.toggle('hidden',first);
+          document.getElementById('player-gate-rules').textContent=first
+              ? 'Резултатът и името се запазват в този браузър. Нищо не се изпраща.'
+              : 'В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Изпращат се само нови лични рекорди със съгласие.';
           playerGateSubmit.textContent=first?'Запази резултата и името':'Публикувай резултата';
           playerGateSkip.textContent=first?'Не сега · без запис':'Не сега · запази локално';
           playerNameInput.value=nickname;
@@ -2986,7 +3095,7 @@
       function refreshRanking(){
           const layout=rankLayout.value || (typeof GAME_LAYOUTS!=='undefined' ? GAME_LAYOUTS.find(x=>!isPracticeLayout(x.id))?.id : '');
           rankList.replaceChildren();
-          const showPublic=HUARONG_PUBLIC_ENABLED && !isPracticeLayout(layout) && !!onlineLeaderboard;
+          const showPublic=false; // The server-backed public ranking has its own tab.
           const localHistory=recentScores[layout]||[];
           const best=bestForLayout(layout);
           const historyWrap=document.getElementById('ranking-recent-wrap');
@@ -2999,7 +3108,7 @@
           document.getElementById('ranking-source').textContent=showPublic
               ? (window.huarongHistoryScanTruncated ? 'Обща класация · само скорошни резултати' : 'Обща класация')
               : 'Последните 5 резултата · само на това устройство';
-          document.getElementById('btn-refresh-scores').classList.toggle('hidden',isPracticeLayout(layout) || !HUARONG_PUBLIC_ENABLED);
+          document.getElementById('btn-refresh-scores').classList.add('hidden');
           function addRow(parent,name,moves,seconds,badge){
               const line=document.createElement('div');
               line.className='flex items-center justify-between gap-2 border border-slate-700 rounded-xl px-3 py-2 bg-slate-800/50 text-xs';
@@ -3024,11 +3133,61 @@
           if(!localHistory.length){const empty=document.createElement('p');empty.className='text-xs text-slate-400 bg-slate-800/50 p-3 rounded-xl';empty.textContent='Все още няма резултати без помощ за тази подредба.';destination.appendChild(empty);}
           document.getElementById('nickname-feedback').textContent='Играеш като '+nickname;
       }
+      const rankingTabs={public:document.getElementById('ranking-tab-public'),local:document.getElementById('ranking-tab-local')};
+      const rankingPanes={public:document.getElementById('ranking-pane-public'),local:document.getElementById('ranking-pane-local')};
+      function selectRankingTab(which){
+          for(const kind of ['public','local']){
+              rankingTabs[kind].setAttribute('aria-selected',String(which===kind));
+              rankingTabs[kind].tabIndex=which===kind?0:-1;
+              rankingPanes[kind].classList.toggle('hidden',which!==kind);
+          }
+          if(which==='local')refreshRanking();
+          else window.hd1UI?.refresh();
+      }
+      for(const kind of ['public','local']){
+          rankingTabs[kind].addEventListener('click',()=>selectRankingTab(kind));
+          rankingTabs[kind].addEventListener('keydown',event=>{
+              if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+              event.preventDefault();const next=kind==='public'?'local':'public';selectRankingTab(next);rankingTabs[next].focus();
+          });
+      }
       let rankingPreviousFocus=null;
       function closeRanking(){
           leaderboardModal.classList.add('hidden');
           if(rankingPreviousFocus?.isConnected)rankingPreviousFocus.focus();
       }
+      // The local-only and online privacy statements are deliberately different.
+      // A single disclosure shows exactly one of them based on live publication availability.
+      function updateRankingPrivacy(online=HUARONG_PUBLIC_ENABLED){
+          document.getElementById('ranking-privacy-local').classList.toggle('hidden',!!online);
+          document.getElementById('ranking-privacy-online').classList.toggle('hidden',!online);
+          document.getElementById('ranking-rules-local').classList.toggle('hidden',!!online);
+          document.getElementById('ranking-rules-online').classList.toggle('hidden',!online);
+          const chip=document.getElementById('ranking-mode-label');
+          const caption=document.getElementById('ranking-mode-description');
+          chip.classList.toggle('hd-online',!!online);
+          if(!online){
+              chip.textContent='● Само локално';
+              caption.textContent='Резултатите са само на това устройство.';
+          }else if(allowPublicScores){
+              chip.textContent='● Публикуването е разрешено';
+              caption.textContent='Личните рекорди се изпращат, ако отговарят на правилата.';
+          }else{
+              chip.textContent='● Публикуването е изключено';
+              caption.textContent='Можеш да гледаш публичните резултати; твоите остават локални.';
+          }
+          // Local file preview has no server; never display an empty public ranking as active.
+          const offline=location.protocol==='file:';
+          const publicTab=document.getElementById('ranking-tab-public');
+          publicTab.classList.toggle('hidden',offline);
+          if(offline){
+              publicTab.setAttribute('aria-selected','false');
+              document.getElementById('ranking-tab-local').setAttribute('aria-selected','true');
+              document.getElementById('ranking-pane-public').classList.add('hidden');
+              document.getElementById('ranking-pane-local').classList.remove('hidden');
+          }
+      }
+      window.huarongUpdateRankingPrivacy=updateRankingPrivacy;
       function openRanking(){
           rankingPreviousFocus=document.activeElement;
           if(typeof GAME_LAYOUTS!=='undefined'){
@@ -3041,10 +3200,10 @@
           updateNameLockUI();
           rankingPublicConsent.checked=allowPublicScores;
           document.getElementById('ranking-public-controls').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED || !publicNameReady);
-          document.getElementById('ranking-public-privacy').classList.remove('hidden');
-          document.getElementById('ranking-local-privacy').classList.toggle('hidden',HUARONG_PUBLIC_ENABLED);
+          updateRankingPrivacy();
           document.getElementById('install-online-note').classList.toggle('hidden',!HUARONG_PUBLIC_ENABLED);
           refreshRanking();
+          selectRankingTab(location.protocol==='file:'?'local':'public');
           leaderboardModal.classList.remove('hidden');
           document.getElementById('btn-close-leaderboard').focus();
       }
@@ -4587,9 +4746,9 @@
       const LANG_KEY = 'huarong_ui_lang_v1';
       const strings = new Map(Object.entries({
         "Публична класация · преиграни резултати":"Public leaderboard · replayed results",
-        "Над лимита hd2 · целият път е запазен локално":"Above hd2 limit · complete path retained locally",
+        "Над допустимия брой ходове · резултатът е запазен локално":"Too many moves for public ranking · saved locally",
         "Тренировка · без публично изпращане":"Practice · no public submission",
-        "Експериментален hd2: до 10 × оптималните ходове включително за 11 класирани подредби. Тренировки, помощ и по-дълги пътища не се публикуват; локалната игра и целият действителен път остават без лимит. Нужно е строго подобрение за всички времена ИЛИ текущата седмица; времето е само локално.":"Experimental hd2: up to 10 × optimum moves inclusive for 11 ranked layouts. Practice, assistance and longer paths are not published; local play and the entire actual path remain unlimited. A strict lifetime OR current-week improvement is required; time is local only.",
+        "В класацията участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена. Резултатите трябва да са в рамките на 10 пъти оптималния брой ходове.":"Only unassisted completed games count. Fewer moves earn more points; time does not affect rankings. Only new personal weekly or lifetime records are published. Eligible runs must stay within 10 times the optimal move count.",
         "Съгласявам се името, постоянният публичен ключ и целият път да бъдат публикувани необратимо в ROD.":"I consent to irreversible publication of my name, stable public key and entire path on ROD.",
         "Период":"Period",
         "Изглед":"View",
@@ -4598,6 +4757,22 @@
         "Всички времена":"Lifetime",
         "Текуща седмица":"Current week",
         "Името, постоянният публичен ключ и целият път стават публични. Оттеглянето на съгласие не изтрива публикувани данни. Няма награди или преводи.":"Your name, stable public key and entire path become public. Withdrawing consent cannot erase published data. No rewards or transfers.",
+        "Публична класация":"Public leaderboard",
+        "Потвърдени резултати · ходовете са проверени":"Confirmed results · verified moves",
+        "Публични резултати":"Public scores",
+        "Проверени ходове · времето е само локално":"Verified moves · time recorded locally",
+        "Правила и проверка":"Rules & verification",
+        "Класирането се определя от броя ходове и сложността на подредбата, не от времето. За общото класиране ходовете са сбор от личните рекорди по подредби. Времето не се публикува в ROD и е видимо само на устройството, на което е записано. Публикуваните ходове се преиграват и потвърждават в блокчейна.":"Rankings are based on moves and layout complexity, not time. In the overall ranking, moves are the sum of a player's bests across layouts. Time is not published on ROD and is shown only on the device that recorded it. Published move sequences are independently replayed and confirmed on-chain.",
+        "Потвърдени и независимо преиграни":"Confirmed and independently replayed",
+        "Класиране":"Ranking",
+        "Общо точки":"Total points",
+        "По подредба":"By layout",
+        "Потвърдени записи · независимо преиграни ходове":"Confirmed records · independently replayed moves",
+        "Как се проверява?":"How are scores verified?",
+        "Резултатите се проверяват чрез преиграване на ходовете и потвърждения в ROD. Това не доказва кой е направил движенията. Няма награди или преводи в тази версия.":"Scores are verified by replaying moves and checking ROD confirmations. This does not prove who performed the moves. No rewards or transfers in this version.",
+        "Все още няма потвърдени резултати.":"No confirmed scores yet.",
+        "Данните не са актуални · показани са последно известните резултати":"Data may be outdated · showing last known scores",
+        "Очакват потвърждение:":"Awaiting confirmation:",
         "Архивирай самоличността":"Back up identity",
         "Архивирането не успя · самоличността не е променена":"Backup failed · identity unchanged",
         "На опашка · непотвърдено":"Queued · unconfirmed",
@@ -4743,12 +4918,35 @@
         '. Локалната игра не изисква самоличност или публикуване. Разглеждането на публичната класация изпраща заявка до сървъра, но не създава самоличност и не публикува твой резултат. Само с отделно съгласие името, постоянният публичен ключ, резултатът и целият път се подписват за публичния ROD блокчейн. Публикуваните данни са необратими; изчистването на браузъра и оттеглянето на съгласие не ги изтриват. Оттеглянето спира бъдещи неподадени изпращания, не вече изпратени записи. Съгласието за анализ е независимо.':'. Local play requires no identity or publication. Viewing the public leaderboard sends a server request but creates no identity and publishes no score of yours. Only with separate consent are your name, stable public key, score and entire path signed for the public ROD blockchain. Published data is irreversible; clearing browser data and withdrawing consent cannot erase it. Withdrawal stops future unsent submissions, not records already sent. Analytics consent is independent.',
         'Публикувай резултата':'Publish score', 'Не сега · запази локално':'Not now · keep locally',
         'Добави в общата класация':'Submit to public leaderboard',
+        'Потвърдени резултати · без помощ':'Confirmed scores · unassisted',
+        'Моите резултати':'My results', 'Профил и настройки':'Profile & settings',
+        'Вид класация':'Leaderboard view',
         'Последните 5 локални резултата':'Last 5 local results',
         '🏆 Класация':'🏆 Leaderboard', 'Най-добрите резултати · само без помощ':'Best scores · unassisted only',
+        'В момента резултатите се запазват само в този браузър. Името, ходовете и времената могат да бъдат изтрити чрез изчистване на данните за сайта.':'Scores currently stay in this browser only. Your name, moves and times can be removed by clearing this site’s data.',
+        'Ако преди си публикувал резултати, те остават публични. Изтриването на локалните данни не засяга вече публикувани записи.':'If you published scores before, those records remain public. Local-only mode does not remove them.',
+        'Разглеждането на класацията изпраща заявка до сървъра, но не публикува твои резултати.':'Viewing the leaderboard sends a request to the server, but does not publish your scores.',
+        'Публикуването е по избор. Със съгласие името, постоянният публичен ключ, резултатът и целият път на ходовете стават публични в ROD блокчейна. Публикуваните данни не могат да бъдат изтрити. Оттеглянето на съгласие спира бъдещи изпращания, но не премахва вече публикуваните.':'Publishing is optional. With consent, your name, stable public key, score and full move path become public on the ROD blockchain. Published records cannot be deleted. Withdrawing consent stops future submissions but does not remove existing records.',
+        'Локалните времена остават само в този браузър и не участват в класирането.':'Recorded times remain in this browser and do not affect rankings.',
+        'Поверителност и данни':'Privacy & data',
+        'Личните резултати, името и ходовете се съхраняват в този браузър. Можеш да ги изтриеш от настройките на сайта.':'Your personal results, name and moves are stored in this browser. You can remove them through the site settings.',
+        'Публикуването е по избор. Ако го разрешиш, името, публичният ключ, резултатът и пълният път на ходовете стават постоянна част от публичния ROD блокчейн. Вече публикувани данни не могат да се изтрият. Отказът от публикуване важи за бъдещи резултати.':'Publishing is optional. If enabled, your name, public key, score and full move path become part of the permanent public ROD blockchain. Published data cannot be erased. Opting out affects future submissions.',
+        'Настройките за анализ и бисквитки са отделни.':'Analytics and cookie settings are separate.',
         'Потребителско име':'Username','Запази':'Save','Името може да се промени по всяко време.':'You can change your name anytime.',
         'Можеш да промениш името си по всяко време. Локалните ти резултати се запазват.':'You can change your name anytime. Your local scores are preserved.',
         'Можеш да промениш името си преди първия запазен резултат.':'You can change your name before your first saved score.',
         'Локалните резултати, име и пътища се пазят в този браузър и се премахват чрез изчистване на данните за сайта. Това не изтрива по-рано публикувани записи. Изключено изпращане не означава липса на исторически публикации.':'Local scores, name and paths are stored in this browser and removed by clearing site data. This does not erase previously published records. Disabled submission does not mean there are no historical publications.',
+        '● Само локално':'● Local only',
+        '● Публикуването е разрешено':'● Publishing enabled',
+        '● Публикуването е изключено':'● Publishing off',
+        'Резултатите са само на това устройство.':'Results stay on this device.',
+        'Личните рекорди се изпращат, ако отговарят на правилата.':'Eligible personal records are submitted with your consent.',
+        'Можеш да гледаш публичните резултати; твоите остават локални.':'You can view public rankings; your own scores stay local.',
+        'Тук са записите от игрите без помощ на това устройство. Виждаш броя ходове и времето за всяка игра. Нищо не се изпраща.':'These are your unassisted games saved on this device. You can review moves and elapsed time for each game. Nothing is submitted.',
+        'Резултатът и името се запазват в този браузър. Нищо не се изпраща.':'Your score and name are saved in this browser. Nothing is submitted.',
+        'В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Изпращат се само нови лични рекорди със съгласие.':'The public leaderboard includes unassisted games. Fewer moves earn more points; time does not affect ranking. Only improved personal records are submitted with consent.',
+        'В публичната класация участват завършени игри без помощ. По-малко ходове носят повече точки; времето не влияе на класирането. Публикуват се само нови лични рекорди за седмицата или за всички времена, при твое съгласие.':'The public ranking includes completed unassisted games. Fewer moves earn more points; elapsed time does not affect ranking. Only improved personal weekly or lifetime records are submitted with your consent.',
+        'Ако преди си публикувал резултати, те остават публични. Изтриването на локалните данни не засяга вече публикувани записи.':'Any scores you published earlier remain public. Clearing local data does not remove already published records.',
         'Публикувай бъдещите ми резултати в публичната класация.':'Publish my future results to the public leaderboard.',
         'Публикувай бъдещите ми резултати в публичната ROD класация.':'Publish my future results to the public ROD leaderboard.',
         'Можеш да изключиш по всяко време; старите записи остават в блокчейна.':'You can turn this off at any time; old records remain on the blockchain.',

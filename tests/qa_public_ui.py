@@ -27,11 +27,12 @@ with sync_playwright() as p:
     page.screenshot(path=str(ROOT/f'tests/local-disabled-{locale}.png'),full_page=True)
     assert page.evaluate('HUARONG_PUBLIC_ENABLED') is False
     assert not posted
-    page.locator('#ranking-local-privacy > summary').click()
+    page.locator('#ranking-settings > summary').click()
     page.locator('#ranking-public-privacy > summary').click()
-    page.wait_for_function("document.getElementById('ranking-local-privacy').textContent.includes('historical publications')" if locale=='en-US' else "document.getElementById('ranking-local-privacy').textContent.includes('исторически публикации')")
     assert page.locator('#ranking-public-privacy').is_visible()
-    assert ('Viewing the public leaderboard' if locale=='en-US' else 'Разглеждането на публичната класация') in page.locator('#ranking-public-privacy').inner_text()
+    text=page.locator('#ranking-public-privacy').inner_text()
+    assert ('Scores currently stay in this browser only' if locale=='en-US' else 'В момента резултатите се запазват само в този браузър') in text
+    assert ('Publishing is optional' if locale=='en-US' else 'Публикуването е по избор') not in text
    else:
     page.wait_for_function('HUARONG_PUBLIC_ENABLED===true')
     page.evaluate("selectLayout(GAME_LAYOUTS.findIndex(l=>l.id==='rear_guard'));const path=runBFSSolver(currentState);for(const {move:m} of path)executeMove(m.pieceId,m.dx,m.dy)")
@@ -63,9 +64,16 @@ with sync_playwright() as p:
     for(const {move:m} of runBFSSolver(currentState))executeMove(m.pieceId,m.dx,m.dy);}""")
     assert page.evaluate("hd1UI.candidate('rear_guard').moves")==84
     page.locator('#modal-btn-replay').click();page.locator('#btn-leaderboard').click()
+    page.locator('#ranking-tab-local').click()
     page.locator('#ranking-layout').select_option('wings')
+    page.locator('#ranking-tab-public').click()
     page.wait_for_function("document.getElementById('hd1-rows').childElementCount>0")
     assert page.locator('#hd1-rows').inner_text()
+    page.locator('#ranking-settings > summary').click()
+    page.evaluate("document.getElementById('ranking-public-privacy').open=true")
+    privacy=page.locator('#ranking-public-privacy').inner_text()
+    assert ('Publishing is optional' if locale=='en-US' else 'Публикуването е по избор') in privacy
+    assert ('Scores currently stay in this browser only' if locale=='en-US' else 'В момента резултатите се запазват само в този браузър') not in privacy
     page.locator('#hd1-scope').select_option('week');page.wait_for_timeout(200)
     assert page.locator('#hd1-rows').inner_text()
     page.screenshot(path=str(ROOT/f'tests/public-fixture-{locale}.png'),full_page=True)
@@ -97,10 +105,10 @@ with sync_playwright() as p:
   saved=json.loads(before);assert saved['owner']=='LocalLong' and saved['best']['rear_guard'][1]==822
   actual=next(iter(saved['evidence'].values()))['m'];assert len(actual)==822
   page.locator('#btn-submit-score').click()
-  assert ('10 ×' in page.locator('#player-gate').inner_text())
+  assert ('10' in page.locator('#player-gate').inner_text())
   page.locator('#public-score-consent').focus();page.keyboard.press('Space')
   page.locator('#btn-confirm-gate').focus();page.keyboard.press('Enter')
-  page.wait_for_function("document.getElementById('hd1-status').textContent.includes('Above hd2 limit')" if locale=='en-US' else "document.getElementById('hd1-status').textContent.includes('Над лимита hd2')")
+  page.wait_for_function("document.getElementById('hd1-status').textContent.includes('Too many moves')" if locale=='en-US' else "document.getElementById('hd1-status').textContent.includes('Над допустимия брой ходове')")
   assert not posts and page.evaluate("!localStorage.getItem('huarong_rod_identity_v1') && !localStorage.getItem('huarong_hd1_outbox_v1')")
   assert page.evaluate('localStorage.getItem(SCORE_STORE_V2_KEY)')==before
   assert page.evaluate('nameLocked && nickname===\"LocalLong\" && huarongPrivacy.get()===false')
