@@ -3,7 +3,7 @@
   'use strict';
   const OUTBOX_KEY='huarong_hd1_outbox_v1';
   const DISMISSED_RECEIPT_KEY='huarong_hd1_dismissed_receipt_v1';
-  let snapshot=null,busy=false,generation=0;
+  let snapshot=null,busy=false,syncRequested=false,generation=0;
   const panel=document.createElement('section');
   panel.id='hd1-public-board';
   panel.className='rounded-xl border border-slate-700/70 bg-slate-950/35 p-3 text-xs';
@@ -142,6 +142,8 @@
     const sameRun=currentSubmission&&currentSubmission.layout===layout&&
       currentSubmission.moves===run.moves&&currentSubmission.player===player;
     const receiptId=id||(sameRun?currentSubmissionId:null);
+    // Do not reset an already accepted status when the same run opens the modal.
+    if(sameRun && receiptId && receiptId===currentSubmissionId)return;
     if(receiptId!==currentSubmissionId){
       latestConfirmations=0;settledShown=false;suppressedReceipt=null;
     }
@@ -174,7 +176,7 @@
       broadcast_unknown:[t('Неизвестно излъчване','Broadcast uncertain'),t('Резултатът на излъчването още не е установен.','The broadcast outcome has not yet been established.')],
       included:[t('Включено в блок','Included in block'),t('Очаква необходимите потвърждения.','Awaiting required confirmations.')],
       confirmed:[t('Потвърдено','Confirmed'),t('Резултатът е потвърден в блокчейна.','The result is confirmed on-chain.')],
-      not_improved:[t('Няма нов рекорд','No new record'),t('Няма строго подобрение; не се изпраща нова транзакция.','No strict improvement; no new transaction is published.')],
+      not_improved:[t('Няма подобрение по ходове','No move improvement'),t('Времето само подрежда вече приетите рекорди с равни ходове.','Time only breaks ties between already accepted move-based records.')],
       signing_unknown:[t('Подписването е спряно','Signing paused'),t('Провери състоянието по-късно.','Check the status later.')],
       reorged:[t('Проверява се отново','Rechecking'),t('Промяна във веригата; потвърждението се преоценява.','Chain changed; confirmation is being re-evaluated.')],
       session_required:[t('Няма валидна сесия','No valid session'),t('Този резултат не може да бъде публикуван.','This result cannot be published.')],
@@ -200,7 +202,7 @@
       queued:t('Прието','Queued'),unsigned_preparing:t('Подготовка','Preparing'),
       signed_persisted:t('Подписано','Signed'),broadcast_pending:t('Изпратено','Broadcast'),
       broadcast_unknown:t('Проверява се','Checking'),included:t('В блок','Included'),
-      confirmed:t('Потвърдено','Confirmed'),not_improved:t('Без нов рекорд','No new record'),
+      confirmed:t('Потвърдено','Confirmed'),not_improved:t('Без по-малко ходове','No fewer moves'),
       signing_unknown:t('Спряно','Paused'),reorged:t('Проверява се','Rechecking'),
       session_required:t('Невалидна сесия','No session'),invalid_session:t('Невалидна сесия','Invalid session')
     };
@@ -231,8 +233,43 @@
     const id=currentSubmissionId;
     try{
       const res=await fetch('/api/submissions/'+encodeURIComponent(id),{cache:'no-store',signal:AbortSignal.timeout(10000)});
-      if(res.ok&&currentSubmissionId===id)showStatus(await res.json(),id);
+      if(res.ok&&currentSubmissionId===id){
+        const state=await res.json();
+        if(currentSubmissionId!==id)return null;
+        showStatus(state,id);
+        if(!['confirmed','not_improved','epoch_changed','name_conflict','session_required','invalid_session','rejected','cancelled'].includes(state.status))watch(id);
+        return state;
+      }
     }catch{/* Do not misreport confirmed status after network failure. */}
+  }
+  // Poll only status and public scores. Never POST as a side effect of observing.
+  // A second game must not be needed to refresh a previously submitted score.
+  const WATCH_INTERVAL_MS=15000, WATCH_LIMIT_MS=35*60*1000;
+  let watchedReceipt=null,watchTimer=null,watchStarted=0,confirmedReads=0;
+  function watch(id){
+    if(!/^[a-f0-9]{64}$/.test(id||''))return;
+    if(watchedReceipt!==id){
+      clearTimeout(watchTimer);
+      watchedReceipt=id;watchTimer=null;watchStarted=Date.now();confirmedReads=0;
+    }
+    if(watchTimer!==null)return;
+    watchTimer=setTimeout(async()=>{
+      watchTimer=null;
+      if(watchedReceipt!==id||currentSubmissionId!==id)return;
+      const state=await refreshSubmission();
+      if(watchedReceipt!==id)return;
+      await refresh();
+      if(watchedReceipt!==id)return;
+      const visible=Array.isArray(snapshot?.rows)&&snapshot.rows.some(row=>
+        Object.values(row.bests||{}).some(best=>best?.receipt_id===id));
+      const terminal=['not_improved','epoch_changed','name_conflict','session_required','invalid_session','rejected','cancelled'].includes(state?.status);
+      if(terminal||(state?.status==='confirmed'&&(visible||++confirmedReads>=8))||
+          Date.now()-watchStarted>=WATCH_LIMIT_MS){
+        clearTimeout(watchTimer);watchTimer=null;watchedReceipt=null;
+        return;
+      }
+      watch(id);
+    },WATCH_INTERVAL_MS);
   }
   // The public per-layout tie-breaker is the accepted duration joined to its
   // confirmed receipt. Never reconstruct public time from this device's history.
@@ -256,8 +293,12 @@
       const result=await response.json();if(current!==generation)return;
       // Readable confirmed scores do not imply new-publication readiness.
       window.huarongLeaderboardReachable=true;
+      const wasAvailable=HUARONG_PUBLIC_ENABLED;
       snapshot=result;HUARONG_PUBLIC_ENABLED=result.available===true;
       window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
+      // Previously consented offline evidence must not wait for another game.
+      if(!wasAvailable&&HUARONG_PUBLIC_ENABLED&&allowPublicScores&&publicNameReady&&nameLocked)
+        queueMicrotask(sync);
       rows.replaceChildren();pending.replaceChildren();
       const list=Array.isArray(result.rows)?result.rows:[];
       const signedOutbox=outbox();
@@ -337,7 +378,8 @@
   }
   /** Opt-in only. Persist signed bytes before POST and reuse them after ambiguous failures. */
   async function sync() {
-    if(busy||!HUARONG_PUBLIC_ENABLED||!allowPublicScores||!publicNameReady||!nameLocked)return;
+    if(busy){syncRequested=true;return;}
+    if(!HUARONG_PUBLIC_ENABLED||!allowPublicScores||!publicNameReady||!nameLocked)return;
     busy=true;
     const player=nickname,consented=()=>allowPublicScores&&publicNameReady&&nameLocked&&nickname===player;
     try {
@@ -353,9 +395,9 @@
           if(known.ok) {
             const state=await known.json();if(!consented())return;showStatus(state,signed.id);
             // Publication authority is separate from local consent and legacy claim retryability.
-            if(state.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(state.status))return;
+            if(state.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(state.status))return state;
             // GET only observes. An explicit consented retry reuses the same signed POST.
-            if(!['not_improved','queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown'].includes(state.status))return;
+            if(!['not_improved','queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown'].includes(state.status))return state;
           }
           if(!consented())return;
           const headers={'Content-Type':'application/json','Idempotency-Key':signed.id};
@@ -370,8 +412,19 @@
           const response=await fetch('/api/score',{method:'POST',headers,body:signed.bytes,signal:AbortSignal.timeout(15000)});
           if(!consented())return;
           const state=await response.json();if(!consented())return;showStatus(state,signed.id);
+          if(response.ok&&state.status&&!['not_improved','epoch_changed','name_conflict','rejected','cancelled'].includes(state.status)){
+            watch(signed.id);
+            void refresh(); // Update pending count immediately; no second submission is needed.
+          }
           if(state.code==='epoch_changed')setPublicScoreConsent(false);
-        }catch(error){if(consented())showStatus({code:error.message},signed.id);}
+          return state;
+        }catch(error){
+          if(consented()){
+            showStatus({code:'status_unknown'},signed.id);
+            watch(signed.id); // A lost POST response does not prove a rejected claim.
+          }
+          return null;
+        }
       }
       // Persisted consent-authorized bytes remain recoverable even when a newer run is chosen.
       for(const signed of Object.values(durable).filter(row=>row.player===player)) {
@@ -397,18 +450,20 @@
           const closedBeforeSigning=newRun&&lastModalClosedAt&&Number(expected.at)<=lastModalClosedAt;
           if(closedBeforeSigning)dismissReceipt(claim.id);
           beginSubmission(signed,claim.id);
+          const posted=await retry(signed);
           if(newRun){
-            window.huarongExpectedSubmission=null;
-            // Only the new run may open a modal; an older dismissed run cannot.
-            if(!closedBeforeSigning)
+            const accepted=['queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown','included','confirmed'].includes(posted?.status);
+            const terminal=['not_improved','epoch_changed','name_conflict','session_required','invalid_session','rejected','cancelled'].includes(posted?.status||posted?.code);
+            if(accepted||terminal)window.huarongExpectedSubmission=null;
+            // A rejected/time-only result stays on the victory screen.
+            if(accepted&&!closedBeforeSigning)
               window.huarongOpenSubmissionStatus?.({layout,moves:evidence.moves,player});
           }
-          await retry(signed);
         }catch(error){if(consented())showStatus({code:error.message});}
       }
       backup.classList.toggle('hidden',!localStorage.getItem('huarong_rod_identity_v1'));
     }catch(error){showStatus({code:error.message});}
-    finally{busy=false;}
+    finally{busy=false;if(syncRequested){syncRequested=false;queueMicrotask(sync);}}
   }
   backup.onclick=async()=>{
     try {const module=await import('/leaderboard-client.js');const blob=new Blob([module.exportIdentity()],{type:'application/json'});
@@ -420,7 +475,12 @@
   rankLayout.addEventListener('change',()=>{layoutSelect.value=rankLayout.value;refresh();});
   panel.querySelector('#hd1-refresh').addEventListener('click',()=>{refresh();refreshSubmission();});
   document.getElementById('btn-leaderboard').addEventListener('click',()=>{syncLayoutChoices(true);refresh();refreshSubmission();});
-  window.addEventListener('online',()=>{refresh();sync();});
+  window.addEventListener('online',()=>{void refresh().then(sync);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh();});
+  // Keep an already-open board current even if no new game is submitted.
+  setInterval(()=>{
+    if(!document.hidden&&!document.getElementById('leaderboard-modal')?.classList.contains('hidden'))void refresh();
+  },30000);
   window.hd1UI={candidate,refresh,sync,beginSubmission,refreshSubmission,onModalOpened};
   refresh();
 })();

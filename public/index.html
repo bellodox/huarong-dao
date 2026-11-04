@@ -3109,7 +3109,9 @@
           const submitting={layout:score.layout,moves:score.moves,player:nickname};
           pendingPublicScore=null;
           submitScoreBtn.classList.add('hidden');
-          showSubmissionInLeaderboard(submitting);
+          window.huarongExpectedSubmission={...submitting,at:Date.now()};
+          window.hd1UI?.beginSubmission(submitting);
+          // Opening the leaderboard is gated on server acceptance.
           if(typeof queueRodVictory==='function')syncOutstandingBests();
       });
       // Keep keyboard focus inside the initial username dialog until it is submitted.
@@ -3327,6 +3329,8 @@
       }
       window.huarongUpdateRankingPrivacy=updateRankingPrivacy;
       function openRanking(which){
+          // Manually opening the board cancels automatic navigation.
+          if(submissionRedirectTimer!==null){clearTimeout(submissionRedirectTimer);submissionRedirectTimer=null;submissionRedirectKey=null;}
           rankingPreviousFocus=document.activeElement;
           if(typeof GAME_LAYOUTS!=='undefined'){
               rankLayout.replaceChildren();
@@ -3345,12 +3349,25 @@
           window.hd1UI?.onModalOpened?.();
           (which==='settings'?document.getElementById('nickname-input'):document.getElementById('btn-close-leaderboard')).focus();
       }
+      let submissionRedirectTimer=null,submissionRedirectKey=null;
       function showSubmissionInLeaderboard(score){
           if(!score||!HUARONG_PUBLIC_ENABLED)return;
-          document.getElementById('victory-modal').classList.add('hidden');
-          playerGate.classList.add('hidden');
+          const key=[score.layout,score.moves,score.player].join(':');
+          // The network submission is independent of this five-second UI delay.
+          if(submissionRedirectTimer!==null&&submissionRedirectKey===key)return;
+          if(submissionRedirectTimer!==null)clearTimeout(submissionRedirectTimer);
+          submissionRedirectKey=key;
           window.hd1UI?.beginSubmission(score);
-          openRanking('public');
+          const scoredEpoch=victoryEpoch;
+          submissionRedirectTimer=setTimeout(()=>{
+              submissionRedirectTimer=null;submissionRedirectKey=null;
+              // Replay, Next, manual navigation and new rounds cancel this transition.
+              if(scoredEpoch!==victoryEpoch||!roundFinalized||!allowPublicScores||!publicNameReady||
+                 document.getElementById('victory-modal').classList.contains('hidden')||
+                 !playerGate.classList.contains('hidden')||!leaderboardModal.classList.contains('hidden'))return;
+              document.getElementById('victory-modal').classList.add('hidden');
+              openRanking('public');
+          },5000);
       }
       window.huarongOpenSubmissionStatus=showSubmissionInLeaderboard;
       document.getElementById('ranking-header-player').onclick=()=>selectRankingTab('settings');
