@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — experimental SEO, 2026-11-04
+
+### Added
+- Static Bulgarian search/social metadata and game instructions, English browser metadata synchronization at the same canonical URL, original preview/favicon assets, crawl guidance, a single-root sitemap and factual game structured data. This does not create separate language-indexable pages or promise indexing/rich results; evidence and review status belong only in the [handoff](tests/release-evidence.md#experimental-seo-implementation--2026-11-04).
+
 ## 0.1.0 — experimental local release preparation, 2026-11-04
 
 ### Changed

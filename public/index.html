@@ -3,7 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Хуаронг Дао • Пъзел и класация</title>
+    <title>Хуаронг Дао — логически пъзел с плъзгащи блокове</title>
+    <meta name="description" content="Играй Хуаронг Дао (Klotski): плъзгай фигурите и изведи червения блок през изхода долу по средата. Започни с Тренировка и открий още подредби.">
+    <!-- One URL serves both UI languages: no invented hreflang variants.
+         https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites -->
+    <link rel="canonical" href="https://huarong-dao.spacexpanseorg.workers.dev/">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Huarong Dao">
+    <meta property="og:title" content="Хуаронг Дао — логически пъзел с плъзгащи блокове">
+    <meta property="og:description" content="Играй Хуаронг Дао (Klotski): плъзгай фигурите и изведи червения блок през изхода долу по средата. Започни с Тренировка и открий още подредби.">
+    <meta property="og:url" content="https://huarong-dao.spacexpanseorg.workers.dev/">
+    <meta property="og:locale" content="bg_BG">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta property="og:image" content="https://huarong-dao.spacexpanseorg.workers.dev/social-preview.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Хуаронг Дао: дъска с плъзгащи блокове, голям червен блок и изход долу по средата.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Хуаронг Дао — логически пъзел с плъзгащи блокове">
+    <meta name="twitter:description" content="Играй Хуаронг Дао (Klotski): плъзгай фигурите и изведи червения блок през изхода долу по средата. Започни с Тренировка и открий още подредби.">
+    <meta name="twitter:image" content="https://huarong-dao.spacexpanseorg.workers.dev/social-preview.png">
+    <meta name="twitter:image:alt" content="Хуаронг Дао: дъска с плъзгащи блокове, голям червен блок и изход долу по средата.">
+    <!-- Factual vocabulary only (https://schema.org/VideoGame); not a claim of
+         software-app rich-result eligibility, which has additional requirements. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["VideoGame", "WebApplication"],
+      "name": "Huarong Dao",
+      "alternateName": "Хуаронг Дао",
+      "url": "https://huarong-dao.spacexpanseorg.workers.dev/",
+      "image": "https://huarong-dao.spacexpanseorg.workers.dev/social-preview.png",
+      "description": "Плъзгай фигурите и изведи големия червен блок през изхода долу по средата. Започваш с Тренировка.",
+      "genre": "Puzzle",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web browser",
+      "inLanguage": ["bg", "en"]
+    }
+    </script>
     
     <!-- PWA & Mobile Web App Meta -->
     <meta name="theme-color" content="#0b0f19">
@@ -1525,7 +1564,7 @@
         main {
             display: grid !important;
             grid-template-columns: minmax(0,1fr);
-            grid-template-rows: auto minmax(0,1fr);
+            grid-template-rows: auto auto minmax(0,1fr);
             gap: .3rem;
             align-items: stretch !important;
             justify-content: stretch !important;
@@ -1535,6 +1574,7 @@
             min-height: 0;
         }
         main > div:first-child { margin-bottom: 0 !important; }
+        #game-explanation { margin:0; padding:0 .25rem; color:var(--color-slate-300); font-size:.75rem; line-height:1.35; }
         #game-frame {
             width: 100% !important;
             height: 100% !important;
@@ -1581,7 +1621,7 @@
         @media (max-width:365px) { #header-utility-row { min-height:2rem; } }
 
         @media (max-height: 620px) {
-            main { grid-template-rows: auto minmax(0,1fr); gap: .2rem; }
+            main { grid-template-rows: auto auto minmax(0,1fr); gap: .2rem; }
             #hint-banner { height: 2.75rem; max-height: 2.75rem; font-size: .65rem; }
         }
         header h1 { min-width:0; }
@@ -2016,6 +2056,8 @@
                 </button>
             </div>
         </div>
+
+        <p id="game-explanation">Хуаронг Дао (Klotski): плъзгай фигурите, за да изведеш червения блок през изхода долу по средата. Започваш с Тренировка.</p>
 
         <!-- Board Frame -->
         <div id="game-frame" class="relative w-full aspect-[4/5] p-2 board-frame flex flex-col items-center justify-between shrink-0">
@@ -4909,6 +4951,7 @@
       'use strict';
       const LANG_KEY = 'huarong_ui_lang_v1';
       const strings = new Map(Object.entries({
+        'Хуаронг Дао (Klotski): плъзгай фигурите, за да изведеш червения блок през изхода долу по средата. Започваш с Тренировка.':'Huarong Dao (Klotski): slide the pieces to move the red block to the bottom-center exit. You start with Training.',
         "Публична класация · преиграни резултати":"Public leaderboard · replayed results",
         "Над допустимия брой ходове · резултатът е запазен локално":"Too many moves for public ranking · saved locally",
         "Тренировка · без публично изпращане":"Practice · no public submission",
@@ -5275,10 +5318,29 @@
         pwaManifest.description=en?'Classic Klotski puzzle with layouts and dynamically recalculated solutions.':'Класически Klotski пъзел с подредби и динамично AI преизчисляване.';
         document.getElementById('manifest-link').href='data:application/manifest+json;charset=utf-8,'+encodeURIComponent(JSON.stringify(pwaManifest));
       }
+      const pageMetadata={
+        bg:{title:document.title,description:document.querySelector('meta[name="description"]').content,
+          imageAlt:document.querySelector('meta[property="og:image:alt"]').content,locale:'bg_BG',alternate:'en_US',name:'Хуаронг Дао'},
+        en:{title:'Huarong Dao — Sliding Block Puzzle',
+          description:'Play Huarong Dao (Klotski): slide the pieces and guide the red block to the bottom-center exit. Start with Training and explore more layouts.',
+          imageAlt:'Huarong Dao: a sliding-block board with a large red block and a bottom-center exit.',locale:'en_US',alternate:'bg_BG',name:'Huarong Dao'}
+      };
+      /** Sync presentation only; canonical, social URLs and bilingual structured data stay fixed. */
+      function syncPageMetadata(){
+        const metadata=pageMetadata[language];
+        document.title=metadata.title;
+        const values={description:metadata.description,'og:title':metadata.title,'og:description':metadata.description,
+          'og:locale':metadata.locale,'og:locale:alternate':metadata.alternate,'og:image:alt':metadata.imageAlt,
+          'twitter:title':metadata.title,'twitter:description':metadata.description,'twitter:image:alt':metadata.imageAlt,
+          'apple-mobile-web-app-title':metadata.name};
+        for(const [key,value] of Object.entries(values)){
+          document.querySelector('meta[name="'+key+'"],meta[property="'+key+'"]').content=value;
+        }
+      }
       function setLanguage(next){
         language=next==='en'?'en':'bg';
         document.documentElement.lang=language;
-        document.title=language==='en'?'Huarong Dao • Puzzle & Leaderboard':'Хуаронг Дао • Пъзел и класация';
+        syncPageMetadata();
         const english=language==='en';
         document.getElementById('game-story-description').classList.toggle('hidden',english);
         document.getElementById('game-story-en').classList.toggle('hidden',!english);
