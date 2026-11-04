@@ -247,6 +247,8 @@
   const WATCH_INTERVAL_MS=15000, WATCH_LIMIT_MS=35*60*1000;
   let watchedReceipt=null,watchTimer=null,watchStarted=0,confirmedReads=0;
   function watch(id){
+    // Polling is optional in non-browser VM fixtures, but always available in browsers.
+    if(typeof setTimeout!=='function'||typeof clearTimeout!=='function')return;
     if(!/^[a-f0-9]{64}$/.test(id||''))return;
     if(watchedReceipt!==id){
       clearTimeout(watchTimer);
@@ -297,7 +299,8 @@
       snapshot=result;HUARONG_PUBLIC_ENABLED=result.available===true;
       window.huarongUpdateRankingPrivacy?.(HUARONG_PUBLIC_ENABLED);
       // Previously consented offline evidence must not wait for another game.
-      if(!wasAvailable&&HUARONG_PUBLIC_ENABLED&&allowPublicScores&&publicNameReady&&nameLocked)
+      if(!wasAvailable&&HUARONG_PUBLIC_ENABLED&&typeof allowPublicScores==='boolean'&&allowPublicScores&&
+        typeof publicNameReady==='boolean'&&publicNameReady&&typeof nameLocked==='boolean'&&nameLocked)
         queueMicrotask(sync);
       rows.replaceChildren();pending.replaceChildren();
       const list=Array.isArray(result.rows)?result.rows:[];
@@ -476,9 +479,9 @@
   panel.querySelector('#hd1-refresh').addEventListener('click',()=>{refresh();refreshSubmission();});
   document.getElementById('btn-leaderboard').addEventListener('click',()=>{syncLayoutChoices(true);refresh();refreshSubmission();});
   window.addEventListener('online',()=>{void refresh().then(sync);});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refresh();});
+  document.addEventListener?.('visibilitychange',()=>{if(!document.hidden)void refresh();});
   // Keep an already-open board current even if no new game is submitted.
-  setInterval(()=>{
+  if(typeof setInterval==='function')setInterval(()=>{
     if(!document.hidden&&!document.getElementById('leaderboard-modal')?.classList.contains('hidden'))void refresh();
   },30000);
   window.hd1UI={candidate,refresh,sync,beginSubmission,refreshSubmission,onModalOpened};
