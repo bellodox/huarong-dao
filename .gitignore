@@ -10,3 +10,4 @@ node_modules/
 /tests/.runtime-fixture/
 /tests/.runtime-prod/
 /.local
+/.env
