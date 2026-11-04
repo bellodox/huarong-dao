@@ -34,7 +34,22 @@ def metadata_check(state,language):
  assert ('Тренировка' if language=='bg' else 'Training') in state['explanation']
  assert ('Играй' if language=='bg' else 'Play') in meta['description']
  assert ('Хуаронг' if language=='bg' else 'Huarong') in state['title']
- assert ('червен' if language=='bg' else 'red') in meta['og:image:alt']
+ expected={
+  'bg':{
+   'title':'Хуаронг Дао (Klotski) — играй безплатно онлайн',
+   'description':'Играй Хуаронг Дао (Klotski) безплатно в браузъра. Започни с Тренировка, пробвай 14 подредби или ползвай подсказки и автоматично решение на устройството.',
+   'alt':'Huarong Dao / Klotski. Английски надпис: „Можеш ли да освободиш червения блок?“. Дъската от Тренировка с изход долу по средата. Безплатно в браузъра · 14 подредби · подсказки.',
+   'explanation':'Хуаронг Дао (Klotski): можеш ли да изведеш червения блок през изхода долу по средата? Плъзгай фигурите. Започни с Тренировка.'},
+  'en':{
+   'title':'Huarong Dao (Klotski) — Play Free Online',
+   'description':'Play Huarong Dao (Klotski) free in your browser. Start with Training, try 14 layouts, or get unstuck with hints and an automatic solver running on your device.',
+   'alt':'Huarong Dao / Klotski. Can you free the red block? The Training board with a bottom-center exit. Free browser play · 14 layouts · hints.',
+   'explanation':'Huarong Dao (Klotski): can you free the red block through the bottom-center exit? Slide the pieces. Start with Training.'}
+ }[language]
+ assert state['title']==expected['title']
+ assert meta['description']==expected['description']
+ assert meta['og:image:alt']==expected['alt']
+ assert state['explanation']==expected['explanation']
 
 
 def geometry_check(page):
