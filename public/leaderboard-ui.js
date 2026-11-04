@@ -209,7 +209,17 @@
     const short=shortLabels[code]||t('Проверка','Checking');
     submissionState.textContent=(code==='confirmed'?'✓ ':'')+short+
       (count&&['included','confirmed'].includes(code)?' · '+count:'');
-    submissionNote.textContent=note+(count?' · '+count+' '+t('потвърждения','confirmations'):'');
+    const retryReasons={
+      retry_exhausted:t('изчерпани опити за публикуване','publication attempts exhausted'),
+      broadcast_budget_exhausted:t('изчерпан бюджет за излъчване','broadcast budget exhausted'),
+      transaction_budget_exhausted:t('изчерпан бюджет за транзакции','transaction budget exhausted'),
+      spend_budget_exhausted:t('изчерпан бюджет за разходи','spend budget exhausted'),
+      claim_outside_scope:t('извън разрешения обхват','outside authorized scope')
+    };
+    const blocked=row?.publication_retryable===false&&['queued','broadcast_unknown','broadcast_pending'].includes(code);
+    const reason=Object.hasOwn(retryReasons,row?.retry_code)?retryReasons[row.retry_code]:null;
+    submissionNote.textContent=blocked?t('Повторното публикуване не е достъпно','Publication retry unavailable')+(reason?' · '+reason:''):
+      note+(count?' · '+count+' '+t('потвърждения','confirmations'):'');
     submissionBox.title=label+' · '+submissionScore.textContent+' · '+submissionNote.textContent;
     submissionBox.setAttribute('aria-label',submissionBox.title);
     if(currentSubmissionId && (currentSubmissionId===dismissedReceipt ||

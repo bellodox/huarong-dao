@@ -69,6 +69,32 @@ test('hosted acceptance utility: injected bindings only, read-only default and e
   }finally {await db.close();}
 });
 
+test('finite acceptance recognizes included and confirmed publisher progress without spending again',async()=>{
+  const {db,storage}=await databaseFixture(),chain=chainFixture();
+  const fetcher=acceptanceFetch(storage,chain);
+  // The normal SQL next selector omits settled rows. Return the reconciled row
+  // explicitly to exercise the publisher's supported terminal progress outcomes.
+  const progressFetch=async(url,init)=>{
+    if(String(url).startsWith(bindings.SUPABASE_URL)&&JSON.parse(init.body).operation==='next')
+      return Response.json((await storage.read()).claims[0]);
+    return fetcher(url,init);
+  };
+  try {
+    await queueClaim(storage,chain);
+    const first=await liveAcceptance(bindings,publicationArgs,{fetch:fetcher});
+    const saved=(await storage.rpc('operational')).finite_scope;
+    chain.mine([chain.broadcasts[0]]);
+    const included=await liveAcceptance(bindings,['--resume-scope='+first.scope_id,'--ticks=2'],{fetch:progressFetch});
+    assert.deepEqual(included.outcomes,['included','included']);assert.equal(included.ok,true);
+    assert.equal(included.broadcasts,0);
+    for(let index=0;index<5;index++)chain.mine();
+    const confirmed=await liveAcceptance(bindings,['--resume-scope='+first.scope_id,'--ticks=2'],{fetch:progressFetch});
+    assert.deepEqual(confirmed.outcomes,['confirmed','confirmed']);assert.equal(confirmed.ok,true);
+    assert.equal(confirmed.broadcasts,0);assert.equal(chain.broadcasts.length,1);
+    assert.deepEqual((await storage.rpc('operational')).finite_scope,saved);
+  }finally {await db.close();}
+});
+
 test('insufficient finite fee or zero lock rejects before signing, and later ordinary cron stays fenced',async()=>{
   for(const option of ['--max-fee-units=1','--max-new-locked-units=0']) {
     const {db,storage}=await databaseFixture(),chain=chainFixture();

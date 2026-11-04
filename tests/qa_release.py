@@ -14,7 +14,10 @@ worker=(ROOT/'worker.js').read_text()
 relay=(ROOT/'leaderboard/relay-entry.js').read_text()
 assert "from './relay.js'" in worker and 'return handleRelayRequest(request,env,ctx)' in worker
 assert 'leaderboard/' not in worker and 'verifyClaim' not in worker and 'SupabaseStorage' not in worker
-assert "storage.publicRead('readiness'," in relay and 'readiness?.available===true' in relay
+storage=(ROOT/'leaderboard/storage.js').read_text()
+assert 'readiness=await publisherReadiness(storage,' in relay and 'readiness?.available===true' in relay
+assert "readiness=await storage.publicRead('readiness',payload)" in storage
+assert "if(readiness?.capability_revision!==4)return {available:false,code:'schema_upgrade_required'" in storage
 assert 'ctx.waitUntil(handleScheduled(env))' in worker and config['triggers']['crons']==['* * * * *']
 assert "crypto.subtle.sign('HMAC'" in relay and 'sha256(' not in relay
 assert "storage.publicRead('status'" in relay and 'publicLeaderboard(storage,url.searchParams)' in relay
@@ -23,6 +26,10 @@ assert config['build']['command']=='npm run check:relay'
 assert (ROOT/'relay.js').is_file()
 html=(ROOT/'public/index.html').read_text(encoding='utf-8')
 assert 'HUARONG_PUBLIC_ENABLED = false' in html
+manifest=json.loads((ROOT/'package.json').read_text())
+lock=json.loads((ROOT/'package-lock.json').read_text())
+assert manifest['version']==lock['version']==lock['packages']['']['version']=='0.1.0'
+assert 'Бета 0.1.0</span>' in html and "'Бета 0.1.0':'Beta 0.1.0'" in html
 assert 'beginRunEvidence' in html and 'leaderboard-ui.js' in html
 assert (ROOT/'public/leaderboard-client.js').is_file()
 assert (ROOT/'supabase/migrations/001_leaderboard.sql').is_file()

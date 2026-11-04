@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import requests
 from playwright.sync_api import sync_playwright
+from ranked_browser_fixture import complete_ranked
 ROOT=Path(__file__).resolve().parents[1]
 requests.post('http://127.0.0.1:8788/__fixture/reset',timeout=30).raise_for_status()
 with sync_playwright() as p:
@@ -24,25 +25,27 @@ with sync_playwright() as p:
    assert page.evaluate('GAME_LAYOUTS[currentLayoutIdx].id')=='training'
    if port==8787:
     page.locator('#btn-leaderboard').click()
-    page.screenshot(path=str(ROOT/f'tests/local-disabled-{locale}.png'),full_page=True)
+    assert page.locator('#leaderboard-modal').is_visible()
     assert page.evaluate('HUARONG_PUBLIC_ENABLED') is False
     assert not posted
-    page.locator('#ranking-settings > summary').click()
+    page.locator('#ranking-tab-settings').click()
     page.locator('#ranking-public-privacy > summary').click()
     assert page.locator('#ranking-public-privacy').is_visible()
     text=page.locator('#ranking-public-privacy').inner_text()
-    assert ('Scores currently stay in this browser only' if locale=='en-US' else 'В момента резултатите се запазват само в този браузър') in text
-    assert ('Publishing is optional' if locale=='en-US' else 'Публикуването е по избор') not in text
+    # HTTP can expose existing public records even when new issuance is disabled.
+    assert ('Publishing is optional' if locale=='en-US' else 'Публикуването е по избор') in text
+    assert ('Scores currently stay in this browser only' if locale=='en-US' else 'В момента резултатите се запазват само в този браузър') not in text
+    assert page.locator('#ranking-privacy-local').is_hidden()
    else:
     page.wait_for_function('HUARONG_PUBLIC_ENABLED===true')
-    page.evaluate("selectLayout(GAME_LAYOUTS.findIndex(l=>l.id==='rear_guard'));const path=runBFSSolver(currentState);for(const {move:m} of path)executeMove(m.pieceId,m.dx,m.dy)")
+    actual_path=complete_ranked(page)
     page.locator('#player-name-input').fill('BrowserPlayer');page.locator('#btn-confirm-gate').click()
     assert page.evaluate('nameLocked') and page.evaluate("!localStorage.getItem('huarong_rod_identity_v1')")
     page.locator('#btn-submit-score').click();page.locator('#public-score-consent').check();page.locator('#btn-confirm-gate').click()
     page.wait_for_function("JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1')||'{}') && Object.keys(JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1')||'{}')).length===1")
-    page.wait_for_function("document.getElementById('hd1-status').textContent.includes('непотвърдено') || document.getElementById('hd1-status').textContent.includes('unconfirmed')")
+    page.wait_for_function("document.getElementById('hd1-submission-state').textContent.includes('Проверява се') || document.getElementById('hd1-submission-state').textContent.includes('Checking')")
     assert len(posted)==1,posted
-    body=json.loads(posted[0]);assert list(body)==list('pwlbnms') and body['p']=='hd2' and len(body['m'])==82 and 'wif' not in posted[0]
+    body=json.loads(posted[0]);assert list(body)==list('pwlbnms') and body['p']=='hd2' and body['m']==actual_path and len(body['m'])==82 and 'wif' not in posted[0]
     state=requests.get('http://127.0.0.1:8788/__fixture/state',timeout=30).json()
     assert len(state['claims'])==1 and state['claims'][0]['raw'] and state['claims'][0]['state']=='broadcast_unknown',state
     assert state['coordinator']['generation']==1
@@ -57,11 +60,8 @@ with sync_playwright() as p:
     assert public.ok and 'max-age=5' in public.headers['Cache-Control']
     assert 'raw' not in public.text and 'prepared' not in public.text
     # Worse lifetime run must remain the chosen actual candidate, not the older optimum.
-    page.locator('#modal-btn-replay').click()
-    page.evaluate("""() => {selectLayout(GAME_LAYOUTS.findIndex(l=>l.id==='rear_guard'));const grid=buildGrid(currentState);
-    const id=Object.keys(currentState).find(id=>DIRECTIONS.some(d=>canMovePiece(id,currentState,d.dx,d.dy,grid)));
-    const d=DIRECTIONS.find(d=>canMovePiece(id,currentState,d.dx,d.dy,grid));executeMove(id,d.dx,d.dy);executeMove(id,-d.dx,-d.dy);
-    for(const {move:m} of runBFSSolver(currentState))executeMove(m.pieceId,m.dx,m.dy);}""")
+    page.keyboard.press('Escape')
+    page.evaluate("selectLayout(GAME_LAYOUTS.findIndex(l=>l.id==='rear_guard'));const grid=buildGrid(currentState);const id=Object.keys(currentState).find(id=>DIRECTIONS.some(d=>canMovePiece(id,currentState,d.dx,d.dy,grid)));const d=DIRECTIONS.find(d=>canMovePiece(id,currentState,d.dx,d.dy,grid));executeMove(id,d.dx,d.dy);executeMove(id,-d.dx,-d.dy);for(const {move:m} of runBFSSolver(currentState))executeMove(m.pieceId,m.dx,m.dy)")
     assert page.evaluate("hd1UI.candidate('rear_guard').moves")==84
     page.locator('#modal-btn-replay').click();page.locator('#btn-leaderboard').click()
     page.locator('#ranking-tab-local').click()
@@ -69,14 +69,15 @@ with sync_playwright() as p:
     page.locator('#ranking-tab-public').click()
     page.wait_for_function("document.getElementById('hd1-rows').childElementCount>0")
     assert page.locator('#hd1-rows').inner_text()
-    page.locator('#ranking-settings > summary').click()
+    page.locator('#ranking-tab-settings').click()
     page.evaluate("document.getElementById('ranking-public-privacy').open=true")
     privacy=page.locator('#ranking-public-privacy').inner_text()
     assert ('Publishing is optional' if locale=='en-US' else 'Публикуването е по избор') in privacy
     assert ('Scores currently stay in this browser only' if locale=='en-US' else 'В момента резултатите се запазват само в този браузър') not in privacy
+    page.locator('#ranking-tab-public').click()
     page.locator('#hd1-scope').select_option('week');page.wait_for_timeout(200)
     assert page.locator('#hd1-rows').inner_text()
-    page.screenshot(path=str(ROOT/f'tests/public-fixture-{locale}.png'),full_page=True)
+    assert page.locator('#leaderboard-modal').is_visible()
     page.evaluate('setPublicScoreConsent(false)');before=len(posted);page.evaluate('hd1UI.sync()');page.wait_for_timeout(100)
     assert len(posted)==before
     assert page.evaluate('huarongPrivacy.get()') is False
@@ -105,10 +106,16 @@ with sync_playwright() as p:
   saved=json.loads(before);assert saved['owner']=='LocalLong' and saved['best']['rear_guard'][1]==822
   actual=next(iter(saved['evidence'].values()))['m'];assert len(actual)==822
   page.locator('#btn-submit-score').click()
-  assert ('10' in page.locator('#player-gate').inner_text())
+  rules=page.locator('#player-gate-rules').inner_text()
+  assert ('Only move-based improvements are submitted with consent.' if locale=='en-US' else 'само нови лични рекорди по ходове') in rules, rules
   page.locator('#public-score-consent').focus();page.keyboard.press('Space')
   page.locator('#btn-confirm-gate').focus();page.keyboard.press('Enter')
-  page.wait_for_function("document.getElementById('hd1-status').textContent.includes('Too many moves')" if locale=='en-US' else "document.getElementById('hd1-status').textContent.includes('Над допустимия брой ходове')")
+  page.wait_for_function("document.getElementById('player-gate').classList.contains('hidden')")
+  # Unwitnessed completions never reach signing; independently retain the hd2 policy assertion.
+  rejection=page.evaluate("""async () => {const client=await import('/leaderboard-client.js');
+   try{client.createSignedClaim(hd1UI.candidate('rear_guard'),nickname,2900,{consented:()=>true});return null;}
+   catch(error){return error.message;}}""")
+  assert rejection=='ranked_move_limit', rejection
   assert not posts and page.evaluate("!localStorage.getItem('huarong_rod_identity_v1') && !localStorage.getItem('huarong_hd1_outbox_v1')")
   assert page.evaluate('localStorage.getItem(SCORE_STORE_V2_KEY)')==before
   assert page.evaluate('nameLocked && nickname===\"LocalLong\" && huarongPrivacy.get()===false')

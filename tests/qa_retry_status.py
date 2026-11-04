@@ -44,7 +44,8 @@ try:
             page.locator('#cookie-reject').click()
             page.evaluate("""() => {
                 nickname='RetryPlayer'; nameLocked=true; publicNameReady=true; allowPublicScores=true;
-                localStorage.setItem('huarong_hd1_outbox_v1', JSON.stringify({saved:{id:'saved',player:nickname,bytes:'exact-signed-evidence'}}));
+                localStorage.setItem('huarong_hd1_outbox_v1', JSON.stringify({saved:{id:'saved',player:nickname,bytes:'exact-signed-evidence',
+                  witness:{id:'fixture-session',proof:'fixture-proof',rodAnchor:{hash:'a'.repeat(64),height:123}}}}));
             }""")
             page.locator('#btn-leaderboard').click()
             page.wait_for_function("document.activeElement.id==='btn-close-leaderboard'")
@@ -63,8 +64,8 @@ try:
                     before = len(posts)
                     page.evaluate('hd1UI.sync()')
                     assert len(posts) == before, (locale, status, reason, 'blocked publication was reposted')
-                    page.wait_for_function('(text) => document.getElementById("hd1-status").textContent.includes(text)', arg=blocked)
-                    assert translations[0 if locale == 'en-US' else 1] in page.locator('#hd1-status').inner_text()
+                    page.wait_for_function('(text) => document.getElementById("hd1-submission-note").textContent.includes(text)', arg=blocked)
+                    assert translations[0 if locale == 'en-US' else 1] in page.locator('#hd1-submission-note').inner_text()
                     assert page.evaluate('document.activeElement.id') == 'btn-close-leaderboard'
                     checks += 1
             for metadata in [{}, {'retryable': True}, {'publication_retryable': True, 'retryable': True}]:
@@ -86,14 +87,14 @@ try:
                 before = len(posts)
                 page.evaluate('hd1UI.sync()')
                 assert len(posts) == before
-                assert blocked not in page.locator('#hd1-status').inner_text()
+                assert blocked not in page.locator('#hd1-submission-note').inner_text()
                 checks += 1
             # The initial local outbox recovery is still allowed when no server claim exists.
             state['get'] = None
             state['post'] = {'status': 'broadcast_pending', 'publication_retryable': False, 'retry_code': 'broadcast_budget_exhausted'}
             before = len(posts)
             page.evaluate('hd1UI.sync()')
-            page.wait_for_function('(text) => document.getElementById("hd1-status").textContent.includes(text)', arg=blocked)
+            page.wait_for_function('(text) => document.getElementById("hd1-submission-note").textContent.includes(text)', arg=blocked)
             assert len(posts) == before + 1
             checks += 1
             # Unknown backend reasons, including inherited property names, stay generic.
@@ -101,9 +102,22 @@ try:
                 state['get'] = {'status': 'queued', 'publication_retryable': False, 'retry_code': reason}
                 before = len(posts)
                 page.evaluate('hd1UI.sync()')
-                page.wait_for_function('(text) => document.getElementById("hd1-status").textContent === text', arg=blocked)
+                page.wait_for_function('(text) => document.getElementById("hd1-submission-note").textContent === text', arg=blocked)
                 assert len(posts) == before
                 checks += 1
+            # Witness-less historical bytes stay durable but never auto-publish.
+            page.evaluate("""() => {
+                const saved=JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1'));
+                delete saved.saved.witness;
+                localStorage.setItem('huarong_hd1_outbox_v1',JSON.stringify(saved));
+            }""")
+            historical = page.evaluate("localStorage.getItem('huarong_hd1_outbox_v1')")
+            before = len(posts)
+            page.evaluate('hd1UI.sync()')
+            assert len(posts) == before
+            assert page.evaluate("localStorage.getItem('huarong_hd1_outbox_v1')") == historical
+            page.evaluate('(saved) => localStorage.setItem("huarong_hd1_outbox_v1",saved)', original)
+            checks += 1
             page.evaluate('allowPublicScores=false')
             state['get'] = {'status': 'queued', 'publication_retryable': True}
             page.evaluate('hd1UI.sync()')
@@ -115,7 +129,7 @@ try:
             assert page.evaluate('document.activeElement.id') == 'btn-leaderboard'
             assert not errors, errors
             checks += 1
-            print('PASS', locale, '29 retry/consent scenarios, translated status, exact bytes retained, live region and focus', flush=True)
+            print('PASS', locale, '30 retry/consent scenarios, translated status, exact bytes retained, live region and focus', flush=True)
             context.close()
         browser.close()
     print('PASS', checks, 'scenarios', flush=True)

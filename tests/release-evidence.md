@@ -2,6 +2,49 @@
 
 ## Status and authority
 
+### Experimental local 0.1.0 release — 2026-11-04
+
+**Current factual release handoff; independent local validation and scoped reviews are recorded below. Parent retains final status and memory ownership; this is not production approval.** Baseline freshly verified by this documentation executor: Git branch **v0.1.1**, HEAD **fba3d1920425fcbcd4a1f0548270bdb2f352e860**, with pre-existing implementation/test changes, including two intent-to-add test sources. Package/lock metadata and both UI locales now identify **0.1.0**, retaining **Beta/experimental**. This section supersedes earlier current-status descriptions for this local release only. All dated evidence and approvals below remain historical and do not approve these later changes.
+
+#### Attributed implementation and validation evidence
+
+The following results are **executor evidence supplied in the release documentation task**, not application checks rerun by this writer. Source/diff inspection corroborates the described changes, not their reported execution results.
+
+- Aggregate npm run build **exit 0**; npm test **exit 0**, **233 passed / 0 failed / 0 skipped**, **917.2 seconds**. After later UI/test edits, the affected Node rerun reported **18 passed, exit 0**. The full suite predates subsequent QA/fixture modernization; it is not a full-suite pass for the final edited fixture tree, and affected reruns must not be added to the 233 as a unique-test total.
+- Release QA and edge QA **exit 0**; version/responsive matrix **159 checks, exit 0**; deep independent BFS **all 14 layouts, exit 0**; keyboard **both locales, exit 0**; accessibility **eight combinations, exit 0**; availability **both locales, exit 0**; retry status **60 scenarios, exit 0**. Runtime launcher, relay **44 parity probes**, **11 ranked / three practice** checks, historical D6 successor and independent reconstruction each reported **exit 0**.
+- Later [public UI modernization](qa_public_ui.py): **six scenarios** covering both locales, enabled/disabled and overlimit paths, **zero page errors**, reported **exit 0**. The [outbox retry suite](qa_outbox_retry.py) reported **exit 0** for offline/lost-ack retries with identical signed bytes, receipt ID and witness header; identity continuity; newer **1,536-move** evidence; another layout; witnessless suppression; and consent withdrawal with no POST. This is complete local evidence retention, not a new public move cap. [D6 successor](qa_d6_successor.py) was rerun and passed after modernization; its explicit control retains the historical pre-session mode.
+- Added [packaged session regression](packaged-sessions.test.js) covers real generated Worker routes in workerd with PostgreSQL-compatible PGlite: readiness rejection, start/checkpoint/finish/status, replay denial, bounded status disclosure, service-role permissions and accepted duration. Synthetic test gestures establish deterministic replay, not physical-input provenance or hosted PostgreSQL/Supabase behavior.
+- npm ls --all --omit=optional **exit 0**, reporting existing extraneous entries/platform optional omissions; no dependency upgrades. There is no lint/typecheck configuration. Simplifier reported **no change / no blocker**; this is not a security or Code Reviewer approval.
+- Executor reports all owned servers stopped, loopback ports **8787/8788/8790 closed**, disposable logs/bytecode deleted and existing screenshots preserved. This writer started no server and did not independently reproduce cleanup/network state.
+
+#### Release scope and preservation
+
+Inspected changes include regenerated stale [relay](../relay.js) restoring pre-existing session routes; [finite acceptance runner](live-publisher-acceptance.js) included/confirmed outcome handling; allowlisted Bulgarian/English retry explanations in the [UI](../public/leaderboard-ui.js); and [keyboard focus containment](../public/index.html) excluding negative-tabindex controls. Browser QA and loopback database/Worker fixtures now exercise witnessed sessions; normal tests remain offline and external transport diagnostics are opt-in. [Migration guidance](../docs/cloudflare-deployment.md#session-schema-and-conditional-operational-sql) distinguishes normal 010–012 session/status/time schema from pinned 008/009 exceptions, existing-authority extension 013 and conditional ACL repair 014. No hosted installation or new spending permission is inferred.
+
+This final administrative closeout edits only the [README](../README.md) timing caveat and this handoff. Earlier documentation edits and all implementation/test changes are pre-existing. Frozen requirements and historical acceptance records remain preserved. Parent specifically authorizes existing-store OSG persistence on its behalf; no implementation, application reruns, live operations, secret inspection, commits, tags or pushes are performed here. Graph branch main differs from actual Git v0.1.1; source/Git inspection is authoritative.
+
+#### Final attributed independent evidence and reviews
+
+The parent supplies these fresh final-scope results; this writer does not rerun application checks. Reviewed snapshot: uncommitted changes against **fba3d1920425fcbcd4a1f0548270bdb2f352e860**, branch **v0.1.1**.
+
+- **Independent tester:** **62 passed / zero failed / zero skipped**, **108.19 seconds**; generated relay **241,177 bytes** and browser parity passed, as did release QA. Browser public UI **six scenarios**, outbox **two scenarios**, keyboard **both locales**, retry status **60 scenarios**, availability and historical D6 passed. The full **233-pass** run above predates final fixtures; the independent 62 cover the affected final scope, not a new full-suite execution.
+- Initial tester outbox run hit a **120-second timeout** and is **inconclusive**, not passed. After inspection found no surviving process, a **240-second suite retry passed**, retaining individual **30-second** limits. No overlapping retry is claimed.
+- Coverage caveat: the witnessed overlimit UI message is **not proven**; signing-module rejection and **no POST** are proven. The earlier public-UI scenario description must not be read as proof of that specific message.
+- **npm audit --ignore-scripts --json:** reported **exit 0**, **zero vulnerabilities / 95 dependencies**. Code Reviewer freshly reported **18 passing checks** and security **six passing checks**; these overlap other evidence and are **not additive totals**.
+- **Code Reviewer: APPROVE WITH SUGGESTIONS** for the exact reviewed implementation, **no blocking code defects**. Its required status-handoff update is recorded here. Ordinary finite-runner continuation after confirmation is intentional for multiple claims within bounded ticks; recovery remains a single transaction and stops on success.
+- **Security: NO BLOCKING FINDINGS for local experimental scope only.** Retained documented risks: **medium**, client-reported times may be zero and win equal-move per-layout ties; **low**, missing checkpoint/finish/status rate limits; **low**, limited recent-session activity is public. These are recorded experimental risks, **not user acceptance or production approval**. No timing definition or frozen scoring semantics change.
+- Parent reports all owned servers/artifacts stopped or cleaned; existing screenshots and regression tests are retained. This writer starts no servers and does not independently reproduce that cleanup claim.
+
+#### Remaining external limits and production blocker
+
+Historical credential-exposure containment remains **unverified and a production blocker**. Hosted SQL installation/grants/concurrency, funded publication/recovery, live analytics, sustained scheduler behavior, deployed/local parity and exhaustive discovery remain **unverified**. Earlier hosted-read observations do not close these conditions. Scoped local reviews do not approve deployment or later substantive changes. No deploy, commit, tag, push or funded action is authorized.
+
+The earlier documentation executor reported **61 added local links/anchors/citation bounds passed**, version consistency and frozen-document preservation, with whitespace exit 0 and LF/CRLF warnings only. Those are historical administrative results, not this writer's checks. Fresh documentation validation and delegated OSG evidence are returned to the parent after execution; no success or persistence ID is predicted here.
+
+#### Historical evidence boundary
+
+All subsequent dated sections retain their original scope, observations, review verdicts and limitations. Their “current,” “complete” or “approved” labels are historical, not the status of the 0.1.0 changes above.
+
 ### Stale relay regeneration factual closeout — 2026-11-02
 
 **The separately authorized stale relay fix is locally regenerated, tested and reviewed; this is not whole-repository green or live acceptance.** Parent retains final status and persistence ownership; this executor supplies factual documentation and authorized existing-store OSG capability only. Git **leaderboard**, HEAD **23cddea0a58f77df220ae6b3d2fd068af4a8885c**. Earlier testing-only and analysis scopes below did not authorize regeneration; this later authorization supersedes their stale-artifact/full-manifest blockers only. Prior contents, pre-existing [README](../README.md) edits and retained evidence are preserved.

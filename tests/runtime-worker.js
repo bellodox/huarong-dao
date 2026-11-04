@@ -11,6 +11,10 @@ const storage={rpc:async(operation,payload={})=>{
   if(!response.ok)throw Error('fixture_database_unavailable');return response.json();
 }};
 storage.read=()=>storage.rpc('read');
+for(const [method,path] of [['session','session'],['sessionStatus','session-status']])storage[method]=async(operation,payload={})=>{
+  const response=await fetch('http://127.0.0.1:8790/'+path,{method:'POST',body:JSON.stringify({operation,payload})});
+  if(!response.ok)throw Error('fixture_session_database_unavailable');return response.json();
+};
 storage.publicRead=async(operation,payload={})=>{
   const response=await fetch('http://127.0.0.1:8790/public',{method:'POST',body:JSON.stringify({operation,payload})});
   if(!response.ok)throw Error('fixture_database_unavailable');return response.json();
@@ -50,7 +54,9 @@ export default {
     if(path.startsWith('/api/')) {
       // Known public fixture key and documentation-only IP: never production credentials.
       const local=new Request(request);local.headers.set('cf-connecting-ip','192.0.2.1');
-      return handleApi(local,{storage,available:true,rateSecret:'public-nonfunded-fixture-hmac-key-01',issuer:{chain,secret,markerKey}});
+      const {coordinator}=await storage.read();
+      const anchor={height:coordinator.snapshot.height,hash:coordinator.snapshot.hash};
+      return handleApi(local,{storage,available:true,readiness:{rod_anchor:anchor},rateSecret:'public-nonfunded-fixture-hmac-key-01',issuer:{chain,secret,markerKey}});
     }
     return worker.fetch(request,env);
   }

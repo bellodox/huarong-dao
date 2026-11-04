@@ -31,7 +31,7 @@ with sync_playwright() as p:
         page.route('**/*', route)
         page.goto('http://availability.test/', wait_until='domcontentloaded')
         page.wait_for_function('window.hd1UI !== undefined')
-        expected = 'Public submission unavailable' if locale == 'en-US' else 'Публичното изпращане не е достъпно'
+        expected = 'New submissions temporarily unavailable' if locale == 'en-US' else 'Новите изпращания временно не са достъпни'
         page.wait_for_function('(text) => document.getElementById("hd1-status").textContent.includes(text)', arg=expected)
         assert 'issuer_not_configured' in page.locator('#hd1-status').text_content()
         for code in ['initial_sync', 'schema_upgrade_required', 'publisher_stale', 'provider_timeout', 'provider_unavailable', 'publisher_unavailable', 'recovery_required']:
@@ -42,7 +42,7 @@ with sync_playwright() as p:
             assert page.evaluate('HUARONG_PUBLIC_ENABLED') is False
         state['publisher']['code'] = 'issuance_disabled'
         page.evaluate('hd1UI.refresh()')
-        disabled = 'Public submission disabled' if locale == 'en-US' else 'Публичното изпращане е изключено'
+        disabled = 'New submissions are off' if locale == 'en-US' else 'Новите изпращания са изключени'
         page.wait_for_function('(text) => document.getElementById("hd1-status").textContent.includes(text)', arg=disabled)
         assert not posts and not errors, (posts, errors)
         assert page.evaluate("!localStorage.getItem('huarong_rod_identity_v1') && !localStorage.getItem('huarong_hd1_outbox_v1')")

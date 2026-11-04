@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.0 — experimental local release preparation, 2026-11-04
+
+### Changed
+- Set package metadata and Bulgarian/English UI version to **0.1.0**, retaining the experimental Beta designation. Local release preparation never deploys, tags, commits or pushes; current evidence and gates are only in the [handoff](tests/release-evidence.md#experimental-local-010-release--2026-11-04).
+- Documented ranked session witnesses/status and per-layout accepted-time tie ordering in the [architecture](README.md#architecture) and [SQL guidance](docs/cloudflare-deployment.md#session-schema-and-conditional-operational-sql), preserving move-only eligibility, points, overall ranking and chain receipt contracts.
+- Modernized browser QA to actual witnessed sessions, including public UI and persisted outbox retry; loopback fixtures support session schema while the explicit historical D6 control retains its older mode. External transport diagnostics are opt-in; normal tests remain offline.
+
+### Fixed
+- Regenerated the stale [relay distribution](relay.js) from existing source, restoring packaged session routes; added a [workerd/PGlite route regression](tests/packaged-sessions.test.js).
+- Accepted included/confirmed reconciliation outcomes in the [finite acceptance runner](tests/live-publisher-acceptance.js), without expanding spending authority.
+- Added allowlisted bilingual explanations for denied publication retries in the [public UI](public/leaderboard-ui.js), without displaying arbitrary backend text.
+- Excluded negative-tabindex controls from the [leaderboard keyboard focus trap](public/index.html).
+
+Earlier entries below retain their historical scope, versions, validation and acceptance boundaries; they are not current release verdicts.
+
 ## Unreleased — experimental fee and positive-conflict recovery, 2026-10-31
 
 - Revised [fee construction](leaderboard/chain.js:9) to target 100 units per conservative estimated signed byte, retaining the 100,000-unit absolute cap and at most 3,999-unit omitted-change surplus. Observed relay-floor checks remain fail-closed; this supersedes the earlier unsigned-byte ceiling, not historical transaction evidence.

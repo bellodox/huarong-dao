@@ -164,7 +164,7 @@ with sync_playwright() as p, ExitStack() as cleanup:
  if 'Save your personal best' in texts or 'First level with local scores' in texts: defects.append('English practice descriptions promise scores')
  onboarding=page.locator('#game-story-modal').text_content()
  if 'You start with Training' not in onboarding or 'Choose Layout' not in onboarding: defects.append('English onboarding contradicts Training startup')
- assert page.locator('#beta-version').inner_text()=='Beta 0.1.0-beta.3'
+ assert page.locator('#beta-version').inner_text()=='Beta 0.1.0'
  page.locator('#btn-close-levels').click()
  ctx.add_cookies([
   {'name':'_ga','value':'parent','domain':'.example.test','path':'/'},

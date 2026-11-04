@@ -1,6 +1,7 @@
 /**
- * Read-only build-time ROD transport diagnostics. Automatically runs via npm test
- * (node --test tests/*.test.js). This is NODE IN THE BUILD ENVIRONMENT, not a
+ * Read-only ROD transport diagnostics. Live probes require explicit opt-in with
+ * HD1_LIVE_NETWORK_DIAGNOSTICS=true. Default manifest tests stay offline.
+ * This is NODE IN THE BUILD ENVIRONMENT, not a
  * deployed Cloudflare Worker isolate; results do NOT prove Worker connectivity.
  * Never reads env credentials, publishes transactions or makes database requests.
  */
@@ -102,9 +103,19 @@ async function fetchProbe() {
   } catch(error) {return {ok:false,connected:false,error:classify(error),elapsed_ms:Date.now()-start};}
 }
 
-// The real test is intentionally NON-GATING: transient external failures must
-// not prevent build/deployment, and cannot prove behavior of deployed Workers.
-test('ROD API transport diagnostics from Node build environment (non-gating)',{timeout:18000},async () => {
+test('offline transport diagnostic classification exposes only fixed vocabulary',()=>{
+  for(const [code,category] of [['ENOTFOUND','dns_possible'],['CERT_HAS_EXPIRED','tls_possible'],
+    ['ECONNREFUSED','connection_refused'],['ETIMEDOUT','timeout'],['ECONNRESET','connection_reset'],
+    ['ENETUNREACH','unreachable']]) {
+    const diagnostic=classify({code,message:'private upstream text'});
+    assert.deepEqual(diagnostic,{category,code});
+    assert(!JSON.stringify(diagnostic).includes('private'));
+  }
+  assert.deepEqual(classify(Error('private upstream text')),{category:'transport_unspecified',code:null});
+});
+
+// Opt-in only and NON-GATING: external results cannot prove deployed Workers.
+if(process.env.HD1_LIVE_NETWORK_DIAGNOSTICS==='true')test('ROD API transport diagnostics from Node build environment (non-gating)',{timeout:18000},async () => {
   const [dns,tcp,tlsResult,https]=await Promise.all([dnsProbe(),socketProbe(false),socketProbe(true),fetchProbe()]);
   const result={event:'hd1_rod_build_network_diagnostic',runtime:'node_build',not_worker_runtime:true,
     target:'api.spacexpanse.org:1234',read_only:true,timeout_ms:TIMEOUT_MS,

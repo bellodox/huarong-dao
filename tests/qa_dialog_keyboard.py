@@ -43,8 +43,28 @@ with sync_playwright() as p, ExitStack() as cleanup:
   page.keyboard.press('Enter')
   assert page.locator('#leaderboard-modal').is_visible(),'Keyboard must open the leaderboard'
   assert page.evaluate('document.activeElement.id')=='btn-close-leaderboard'
-  page.keyboard.press('Tab')
-  assert page.evaluate('document.activeElement.id')=='btn-cookie-settings','Tab from leaderboard close must reach cookie settings'
+  # Roving inactive tabs must not become unreachable focus-trap endpoints.
+  for key in ['Tab']*16+['Shift+Tab']*16:
+   page.keyboard.press(key)
+   assert page.evaluate('document.activeElement.closest("#leaderboard-modal") !== null'),'Focus escaped the ranking dialog'
+  page.locator('#btn-close-leaderboard').focus()
+  # Navigate the actual tabbed settings panel without bypassing focus handling.
+  for _ in range(20):
+   page.keyboard.press('Tab')
+   assert page.evaluate('document.activeElement.closest("#leaderboard-modal") !== null')
+   if page.evaluate('document.activeElement.getAttribute("role")')=='tab':break
+  assert page.evaluate('document.activeElement.getAttribute("role")')=='tab'
+  for _ in range(3):
+   if page.evaluate('document.activeElement.id')=='ranking-tab-settings':break
+   page.keyboard.press('ArrowRight')
+  assert page.evaluate('document.activeElement.id')=='ranking-tab-settings'
+  page.keyboard.press('Enter')
+  assert page.locator('#ranking-pane-settings').is_visible()
+  for _ in range(20):
+   page.keyboard.press('Tab')
+   assert page.evaluate('document.activeElement.closest("#leaderboard-modal") !== null')
+   if page.evaluate('document.activeElement.id')=='btn-cookie-settings':break
+  assert page.evaluate('document.activeElement.id')=='btn-cookie-settings','Keyboard must reach cookie settings in the settings tab'
   page.keyboard.press('Enter')
   assert page.locator('#leaderboard-modal').is_hidden(),'Cookie settings must hide the leaderboard'
   assert page.evaluate('document.activeElement.id')=='cookie-reject','Cookie settings must focus Reject'

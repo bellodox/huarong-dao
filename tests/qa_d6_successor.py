@@ -40,7 +40,7 @@ assert not public['rows'] and len(public['pending'])==3 and not public['stale']
 # Real browser mutation translation and consented outbox retry must display inclusion without POST.
 with sync_playwright() as p:
  browser=p.chromium.launch(headless=True)
- for locale,expected in [('en-US','Included in a block'),('bg-BG','Включено в блок')]:
+ for locale,expected in [('en-US','Included'),('bg-BG','В блок')]:
   context=browser.new_context(locale=locale);page=context.new_page();errors=[];posts=[]
   page.on('pageerror',lambda error:errors.append(str(error)))
   page.on('request',lambda request:posts.append(request.url) if request.url.endswith('/api/score') else None)
@@ -48,7 +48,9 @@ with sync_playwright() as p:
   page.goto(BASE+'/',wait_until='domcontentloaded');page.wait_for_function('window.hd1UI&&HUARONG_PUBLIC_ENABLED')
   page.evaluate("""signed=>{nickname='D6Player4';nameLocked=true;allowPublicScores=true;publicNameReady=true;
    localStorage.setItem('huarong_hd1_outbox_v1',JSON.stringify({[signed.id]:{...signed,player:nickname,localId:'fixture',epoch:2900}}));}""",claims[0])
-  page.evaluate('hd1UI.sync()');page.wait_for_function('(expected)=>document.getElementById("hd1-status").textContent.includes(expected)',arg=expected)
+  # Observing inclusion is read-only, including historical outbox entries without a witness.
+  page.evaluate('hd1UI.refreshSubmission()');page.wait_for_function('(expected)=>document.getElementById("hd1-submission-state").textContent.includes(expected)',arg=expected)
+  page.evaluate('hd1UI.sync()')
   assert not posts and not errors,(posts,errors)
   context.close()
  browser.close()

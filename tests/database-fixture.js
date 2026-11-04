@@ -9,7 +9,8 @@ const rpc=async(operation,payload={})=>(await db.query('select public.hd1_rpc($1
 async function reset(canonicalHead=false) {
   if(db)await db.close();db=new PGlite();
   await db.exec('create role anon;create role authenticated;create role service_role;');
-  await db.exec(migrations());
+  // The explicit D6 control retains its historical pre-session fixture contract.
+  await db.exec(canonicalHead?migrations():migrations('013_extend_continuing_beta_allowance.sql'));
   const history=JSON.parse(readFileSync(new URL('./fixtures/history.json',import.meta.url)));
   canonicalHistory={...history,headers:history.headers.slice(0,3)};
   const snapshot=reconstruct(canonicalHead?canonicalHistory:history);
@@ -47,7 +48,7 @@ const server=createServer(async(request,response)=>{
       response.end('{"fixture":"persisted_before_transport"}');return;
     }
     const {operation,payload}=JSON.parse(body);
-    const query=request.url==='/public'?'select public.hd1_public($1,$2::jsonb) as result':'select public.hd1_rpc($1,$2::jsonb) as result';
+    const query=request.url==='/session'?'select public.hd_session_rpc($1,$2::jsonb) as result':request.url==='/session-status'?'select public.hd_session_status($1,$2::jsonb) as result':request.url==='/public'?'select public.hd1_public($1,$2::jsonb) as result':'select public.hd1_rpc($1,$2::jsonb) as result';
     const result=(await db.query(query,[operation,JSON.stringify(payload)])).rows[0].result;
     response.end(JSON.stringify(result));
   }catch {response.statusCode=503;response.end('{"code":"fixture_unavailable"}');}

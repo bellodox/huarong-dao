@@ -1,88 +1,137 @@
-"""Real-browser exact signed outbox recovery, including newer same-layout weekly evidence."""
+"""Loopback exact signed outbox recovery with genuine ranked-session witnesses."""
 import json
 from pathlib import Path
 import requests
 from playwright.sync_api import sync_playwright
-ROOT=Path(__file__).resolve().parents[1]
-vectors=json.loads((ROOT/'tests/fixtures/receipt.json').read_text())
-import hashlib,subprocess
-# A distinct non-funded test key avoids the fixture's seeded confirmed player best.
-legacy_bytes=subprocess.check_output(['node','--input-type=module','-e',"import {signPlayer,canonical} from './leaderboard/receipt.js';import {readFileSync} from 'node:fs';const {s,...claim}=JSON.parse(readFileSync('tests/fixtures/receipt.json')).playerClaim;process.stdout.write(canonical(signPlayer({...claim,n:'OutboxPlayer'},Uint8Array.from([...Array(31).fill(0),4])),7));"],cwd=ROOT,text=True)
-legacy_claim=json.loads(legacy_bytes)
-legacy_id=hashlib.sha256(legacy_bytes.encode()).hexdigest()
+from ranked_browser_fixture import complete_ranked
+
+ROOT = Path(__file__).resolve().parents[1]
+BASE = 'http://127.0.0.1:8788'
+vectors = json.loads((ROOT / 'tests/fixtures/receipt.json').read_text())
+
 with sync_playwright() as p:
- browser=p.chromium.launch(headless=True)
- for outcome in ['offline','ambiguous']:
-  requests.post('http://127.0.0.1:8788/__fixture/reset',timeout=30).raise_for_status()
-  context=browser.new_context(locale='en-US')
-  page=context.new_page();errors=[];posts=[];phase={'value':'initial'}
-  page.on('pageerror',lambda error:errors.append(str(error)))
-  page.route('https://**',lambda route:route.abort())
-  page.route('**/api/leaderboard*',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps({'available':True,'epoch':2900,'rows':[],'pending':[],'stale':False})))
-  def status(route):
-   if phase['value']=='withdraw':page.evaluate('setPublicScoreConsent(false)')
-   route.fulfill(status=404 if phase['value']=='initial' else 200,content_type='application/json',body=json.dumps({'status':'broadcast_unknown'}))
-  def post(route):
-   posts.append({'bytes':route.request.post_data,'id':route.request.headers['idempotency-key']})
-   if len(json.loads(route.request.post_data)['m'])==116:
-    if outcome=='ambiguous':
-     response=route.fetch()
-     assert response.status==202,(response.status,response.text())
-     if phase['value']=='initial':route.abort()  # Actual Worker persisted/sent; browser lost acknowledgement.
-     else:route.fulfill(response=response)
-    else:route.abort()
-   else:route.fulfill(status=202,content_type='application/json',body=json.dumps({'status':'queued'}))
-  page.route('**/api/submissions/*',status);page.route('**/api/score',post)
-  page.goto('http://127.0.0.1:8788/',wait_until='domcontentloaded')
-  page.wait_for_function('window.hd1UI!==undefined && HUARONG_PUBLIC_ENABLED===true')
-  page.locator('#btn-game-story-done').click();page.locator('#cookie-reject').click()
-  page.evaluate('''claim=>{
-   nickname=claim.n;nameLocked=true;publicNameReady=true;allowPublicScores=true;
-   const evidence={p:claim.p,l:claim.l,b:claim.b,n:nickname,m:claim.m,moves:claim.m.length,assisted:false};
-   localStorage.setItem(SCORE_STORE_V2_KEY,JSON.stringify({owner:nickname,evidence:{older:evidence}}));
-  }''',legacy_claim)
-  page.evaluate('''signed=>localStorage.setItem('huarong_hd1_outbox_v1',JSON.stringify({[signed.id]:signed}))''',{'id':legacy_id,'bytes':legacy_bytes,'localId':'older','epoch':2900,'player':legacy_claim['n']})
-  page.evaluate('hd1UI.sync()')
-  assert len(posts)==1,posts
-  assert posts[0]['bytes']==legacy_bytes and json.loads(posts[0]['bytes'])['p']=='hd1'
-  assert page.evaluate("!localStorage.getItem('huarong_rod_identity_v1')")
-  original=posts[0];durable=page.evaluate("JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1'))")
-  assert durable[original['id']]['bytes']==original['bytes']
-  persisted=None
-  if outcome=='ambiguous':
-   state=requests.get('http://127.0.0.1:8788/__fixture/state',timeout=30).json()
-   persisted=state['claims'][0]
-   assert persisted['raw'] and persisted['state']=='broadcast_unknown' and persisted['bytes']==original['bytes']
-  page.evaluate('''claim=>{
-   const saved=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY));
-   saved.evidence.newer={p:claim.p,l:claim.l,b:claim.b,n:nickname,m:claim.m,moves:claim.m.length,assisted:false};
-   localStorage.setItem(SCORE_STORE_V2_KEY,JSON.stringify(saved));
-  }''',vectors['longReceipt'])
-  assert page.evaluate("hd1UI.candidate('wings').moves")==1536
-  phase['value']='retry';posts.clear();page.evaluate('hd1UI.sync()')
-  assert len(posts)==1,('legacy retry proceeds but new overlimit completion stays local',posts)
-  assert posts[0]==original,('exact original bytes/ID must survive newer evidence',posts)
-  assert page.evaluate("hd1UI.candidate('wings').m.length")==1536
-  assert page.evaluate("!localStorage.getItem('huarong_rod_identity_v1')")
-  page.wait_for_function("document.getElementById('hd1-status').textContent.includes('Above hd2 limit')")
-  after=page.evaluate("JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1'))")
-  assert after[original['id']]==durable[original['id']]
-  assert len(after)==1
-  # An overlimit candidate must not starve another layout's eligible actual path.
-  other=next(path for path in json.loads((ROOT/'tests/fixtures/paths.json').read_text()) if path['l']=='rear_guard')
-  page.evaluate('''path=>{const saved=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY));saved.evidence.other={...path,n:nickname,moves:path.m.length,assisted:false};localStorage.setItem(SCORE_STORE_V2_KEY,JSON.stringify(saved));}''',other)
-  posts.clear();page.evaluate('hd1UI.sync()')
-  assert len(posts)==2 and posts[0]==original
-  assert json.loads(posts[1]['bytes'])['p']=='hd2' and json.loads(posts[1]['bytes'])['m']==other['m']
-  assert page.evaluate("hd1UI.candidate('wings').m.length")==1536
-  if persisted:
-   state=requests.get('http://127.0.0.1:8788/__fixture/state',timeout=30).json()
-   assert state['coordinator']['generation']==1 and len(state['claims'])==1
-   assert state['claims'][0]['raw']==persisted['raw'] and state['claims'][0]['txid']==persisted['txid']
-  # Revocation while awaiting status must prevent all POSTs, including other outbox rows.
-  phase['value']='withdraw';posts.clear();page.evaluate('hd1UI.sync()');assert not posts
-  page.evaluate('hd1UI.sync()');assert not posts
-  assert not errors,errors
-  print('PASS browser outbox',outcome,'hd1 exact-byte retry + intact overlimit 1536 evidence + other-layout hd2; asynchronous withdrawal blocks all retries; 0 page errors',flush=True)
-  context.close()
- browser.close()
+    browser = p.chromium.launch(headless=True)
+    for outcome in ['offline', 'ambiguous']:
+        requests.post(BASE + '/__fixture/reset', timeout=30).raise_for_status()
+        context = browser.new_context(locale='en-US')
+        page = context.new_page()
+        page.set_default_timeout(30000)
+        errors, posts = [], []
+        phase = {'value': 'initial'}
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.route('https://**', lambda route: route.abort())
+
+        def status(route):
+            if phase['value'] == 'withdraw':
+                page.evaluate('setPublicScoreConsent(false)')
+            route.fulfill(status=404 if phase['value'] == 'initial' else 200,
+                          json={'status': 'broadcast_unknown'})
+
+        def post(route):
+            item = {'bytes': route.request.post_data,
+                    'id': route.request.headers['idempotency-key'],
+                    'witness': {key: value for key, value in route.request.headers.items()
+                                if key.startswith('x-hd-')}}
+            posts.append(item)
+            if json.loads(item['bytes'])['l'] == 'wings':
+                if outcome == 'ambiguous':
+                    response = route.fetch(timeout=30000)
+                    assert response.status == 202, (response.status, response.text())
+                    if phase['value'] == 'initial':
+                        route.abort()  # SQL persisted exact bytes; browser lost acknowledgement.
+                    else:
+                        route.fulfill(response=response)
+                else:
+                    route.abort()
+            else:
+                response = route.fetch(timeout=30000)
+                assert response.status == 202, (response.status, response.text())
+                route.fulfill(response=response)
+
+        page.route('**/api/submissions/*', status)
+        page.route('**/api/score', post)
+        page.goto(BASE + '/', wait_until='domcontentloaded')
+        page.wait_for_function('window.hd1UI && HUARONG_PUBLIC_ENABLED')
+        page.locator('#btn-game-story-done').click()
+        page.locator('#cookie-reject').click()
+        original_path = complete_ranked(page, 'wings')
+        page.locator('#player-name-input').fill('OutboxPlayer')
+        page.locator('#btn-confirm-gate').click()
+        assert page.evaluate("!localStorage.getItem('huarong_rod_identity_v1')")
+        page.locator('#btn-submit-score').click()
+        page.locator('#public-score-consent').check()
+        page.locator('#btn-confirm-gate').click()
+        page.wait_for_function("Object.keys(JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1') || '{}')).length === 1")
+        # Signing starts asynchronously; an overlapping sync only queues work, it does not await it.
+        page.wait_for_function("document.getElementById('hd1-submission-note').textContent.includes('The request may have been accepted')")
+        assert len(posts) >= 1, posts
+        original = posts[0]
+        assert json.loads(original['bytes'])['m'] == original_path
+        assert json.loads(original['bytes'])['p'] == 'hd2' and original['witness']['x-hd-session-proof']
+        assert all(item == original for item in posts)
+        durable = page.evaluate("JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1'))")
+        assert durable[original['id']]['bytes'] == original['bytes']
+        persisted = None
+        if outcome == 'ambiguous':
+            state = requests.get(BASE + '/__fixture/state', timeout=30).json()
+            persisted = state['claims'][0]
+            assert persisted['raw'] and persisted['state'] == 'broadcast_unknown'
+            assert persisted['bytes'] == original['bytes']
+        page.evaluate('''claim => {
+            const saved=JSON.parse(localStorage.getItem(SCORE_STORE_V2_KEY));
+            saved.evidence.newer={...claim,n:nickname,moves:claim.m.length,assisted:false};
+            localStorage.setItem(SCORE_STORE_V2_KEY,JSON.stringify(saved));
+        }''', vectors['longReceipt'])
+        assert page.evaluate("hd1UI.candidate('wings').moves") == 1536
+        identity = page.evaluate("localStorage.getItem('huarong_rod_identity_v1')")
+        phase['value'] = 'retry'
+        posts.clear()
+        page.evaluate('hd1UI.sync()')
+        assert posts == [original], ('exact bytes/ID/witness survive newer evidence', posts)
+        assert page.evaluate("localStorage.getItem('huarong_rod_identity_v1')") == identity
+        assert page.evaluate("hd1UI.candidate('wings').m.length") == 1536
+        after = page.evaluate("JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1'))")
+        assert after == durable, 'Witness-less newer evidence must stay local and not replace the signed outbox'
+        # Real eligible evidence on another layout must not be starved by the overlimit row.
+        page.keyboard.press('Escape')
+        if page.locator('#victory-modal').is_visible():
+            page.locator('#modal-btn-replay').click()
+        page.evaluate('setPublicScoreConsent(false)')
+        other_path = complete_ranked(page)
+        page.wait_for_function("hd1UI.candidate('rear_guard')?.witness?.proof")
+        posts.clear()
+        page.evaluate('setPublicScoreConsent(true)')
+        page.evaluate('hd1UI.sync()')
+        page.wait_for_function("document.getElementById('hd1-submission-note').textContent.includes('awaiting') || document.getElementById('hd1-submission-note').textContent.includes('Awaiting') || document.getElementById('hd1-submission-note').textContent.includes('broadcast outcome')")
+        page.wait_for_function("Object.keys(JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1'))).length === 2")
+        assert posts[0] == original and len(posts) == 2, posts
+        assert json.loads(posts[1]['bytes'])['p'] == 'hd2'
+        assert json.loads(posts[1]['bytes'])['m'] == other_path
+        assert posts[1]['witness']['x-hd-session-id'] != original['witness']['x-hd-session-id']
+        assert page.evaluate("hd1UI.candidate('wings').m.length") == 1536
+        state = requests.get(BASE + '/__fixture/state', timeout=30).json()
+        assert state['coordinator']['generation'] == 1
+        if persisted:
+            same = next(row for row in state['claims'] if row['id'] == original['id'])
+            assert len(state['claims']) == 2
+            assert same['raw'] == persisted['raw'] and same['txid'] == persisted['txid']
+        # Historical witness-less bytes remain durable, but are not automatically retried.
+        page.evaluate('''() => {const saved=JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1'));
+            saved.historical={id:'0'.repeat(64),player:nickname,bytes:'historical-exact-bytes'};
+            localStorage.setItem('huarong_hd1_outbox_v1',JSON.stringify(saved));}''')
+        posts.clear()
+        page.evaluate('hd1UI.sync()')
+        assert posts and all(item['bytes'] != 'historical-exact-bytes' for item in posts)
+        assert page.evaluate("JSON.parse(localStorage.getItem('huarong_hd1_outbox_v1')).historical.bytes") == 'historical-exact-bytes'
+        phase['value'] = 'withdraw'
+        posts.clear()
+        before = page.evaluate("localStorage.getItem('huarong_hd1_outbox_v1')")
+        page.evaluate('hd1UI.sync()')
+        page.evaluate('hd1UI.sync()')
+        assert not posts, 'Withdrawal while awaiting status must block every POST'
+        assert page.evaluate("localStorage.getItem('huarong_hd1_outbox_v1')") == before
+        assert not errors, errors
+        print('PASS browser outbox', outcome,
+              'exact hd2 bytes/ID/witness retry; intact 1536-move evidence; other-layout real session; withdrawal blocks all retries; 0 page errors', flush=True)
+        context.close()
+    browser.close()

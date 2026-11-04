@@ -3498,6 +3498,10 @@ var SupabaseStorage = class {
   async recoveryRead(operation = "inspect", payload = {}) {
     return this.request("hd1_recovery_read", operation, payload);
   }
+  /** Service-only STABLE, bounded, allowlisted session inspection. */
+  async sessionStatus(operation = "recent", payload = {}) {
+    return this.request("hd_session_status", operation, payload);
+  }
   async request(functionName, operation, payload) {
     let response;
     try {
@@ -3512,9 +3516,51 @@ var SupabaseStorage = class {
         throw storageFailure("schema_upgrade_required", "schema");
       throw storageFailure("storage_unavailable", error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "transport");
     }
-    if (!["hd1_public", "hd1_recovery_read"].includes(functionName)) {
-      if (!response.ok) throw Error("storage_unavailable");
-      return response.json();
+    if (!["hd1_public", "hd1_recovery_read", "hd_session_status"].includes(functionName)) {
+      if (!response.ok) {
+        let backendCode = null;
+        const reader2 = response.body?.getReader();
+        if (reader2) {
+          const chunks2 = [];
+          let length2 = 0;
+          try {
+            while (true) {
+              const { done, value } = await reader2.read();
+              if (done) break;
+              length2 += value.length;
+              if (length2 > 8192) break;
+              chunks2.push(value);
+            }
+            if (length2 <= 8192) {
+              const bytes2 = new Uint8Array(length2);
+              let offset2 = 0;
+              for (const chunk of chunks2) {
+                bytes2.set(chunk, offset2);
+                offset2 += chunk.length;
+              }
+              const body = JSON.parse(new TextDecoder().decode(bytes2));
+              if (typeof body?.code === "string") backendCode = body.code;
+            }
+          } catch {
+          } finally {
+            try {
+              await reader2.cancel();
+            } catch {
+            }
+          }
+        }
+        throw storageFailure(
+          "storage_unavailable",
+          response.status === 401 ? "authentication" : response.status === 403 ? "permission" : response.status >= 500 ? "upstream_unavailable" : "upstream_rejected",
+          response.status,
+          backendCode
+        );
+      }
+      try {
+        return await response.json();
+      } catch {
+        throw storageFailure("storage_unavailable", "invalid_response", response.status);
+      }
     }
     const reader = response.body?.getReader(), chunks = [];
     let length = 0;
@@ -3553,6 +3599,10 @@ var SupabaseStorage = class {
       throw storageFailure("storage_unavailable", response.status === 401 ? "authentication" : response.status === 403 ? "permission" : response.status >= 500 ? "upstream_unavailable" : "upstream_rejected", response.status, result?.code);
     }
     return result;
+  }
+  /** Independent session rows avoid the publisher coordinator lock. */
+  async session(operation, payload = {}) {
+    return this.request("hd_session_rpc", operation, payload);
   }
   async read() {
     return this.rpc("read");
@@ -3681,6 +3731,264 @@ function checkOrigin(request) {
   if (origin !== new URL(request.url).origin || request.headers.get("sec-fetch-site") === "cross-site") throw new ClaimError("origin_forbidden", 403);
 }
 
+// leaderboard/session.js
+var SESSION_BODY_LIMIT = 65536;
+var SESSION_INTERVAL = 40;
+var SESSION_DOMAIN = "huarong/ranked-session/v1";
+var HEX = /^[0-9a-f]{64}$/;
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+var TOKEN = /^[A-Za-z0-9_-]{43}$/;
+var RULES = Object.freeze({
+  protocol: RANKED_PROFILE,
+  pieces: PIECES,
+  shapes: SHAPES,
+  directions: DIRECTIONS,
+  goal: { piece: "CC", topLeftCell: 13 },
+  move: "one legal cell per symbol, piece identity preserved",
+  scoring: "floor((20*optimum^3+moves^2)/(2*moves^2))",
+  rankedMoveMultiplier: RANKED_MOVE_MULTIPLIER
+});
+var SessionFailure = class extends Error {
+  constructor(code, status = 422) {
+    super(code);
+    this.code = code;
+    this.status = status;
+  }
+};
+function isSessionId(id) {
+  return typeof id === "string" && UUID.test(id);
+}
+function isSessionToken(value) {
+  return typeof value === "string" && TOKEN.test(value);
+}
+function rankedLayout(layout) {
+  return typeof layout === "string" && Object.hasOwn(CATALOG, layout) && !CATALOG[layout].practice;
+}
+function randomToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+function randomNonce() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function hashParts(...parts) {
+  const data = new TextEncoder().encode(JSON.stringify([SESSION_DOMAIN, ...parts]));
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function tokenHash(token) {
+  return hashParts("token", token);
+}
+async function traceDigest(trace) {
+  return hashParts("trace", trace);
+}
+async function layoutSeed(layoutId) {
+  if (!rankedLayout(layoutId)) throw new SessionFailure("invalid_layout");
+  const layout = CATALOG[layoutId];
+  const rulesDigest = await hashParts("rules", RULES);
+  return {
+    rulesDigest,
+    layoutSeed: await hashParts("layout", layoutId, layout.board, layout.optimum, rulesDigest),
+    board: layout.board,
+    optimum: layout.optimum
+  };
+}
+function validateRodAnchor(anchor) {
+  if (!anchor || typeof anchor !== "object" || !HEX.test(anchor.hash) || !Number.isSafeInteger(anchor.height) || anchor.height < 0 || anchor.height > 999999999)
+    throw new SessionFailure("rod_anchor_unavailable", 503);
+  return { height: anchor.height, hash: anchor.hash };
+}
+async function sessionSeed(layoutId, sessionId, nonce, rodAnchor) {
+  if (!isSessionId(sessionId) || typeof nonce !== "string" || !HEX.test(nonce)) throw new SessionFailure("invalid_nonce");
+  const anchor = validateRodAnchor(rodAnchor);
+  const origin = await layoutSeed(layoutId);
+  return {
+    ...origin,
+    rodAnchor: anchor,
+    sessionSeed: await hashParts("session", origin.layoutSeed, sessionId, nonce, anchor.height, anchor.hash)
+  };
+}
+async function readSessionBody(request) {
+  if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") throw new SessionFailure("malformed", 400);
+  const length = request.headers.get("content-length");
+  if (length !== null && (!/^\d+$/.test(length) || Number(length) > SESSION_BODY_LIMIT)) throw new SessionFailure("payload_too_large", 413);
+  const reader = request.body?.getReader();
+  if (!reader) throw new SessionFailure("malformed", 400);
+  const chunks = [];
+  let size = 0;
+  for (; ; ) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > SESSION_BODY_LIMIT) {
+      await reader.cancel();
+      throw new SessionFailure("payload_too_large", 413);
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let off = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, off);
+    off += chunk.length;
+  }
+  let body;
+  try {
+    body = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    throw new SessionFailure("malformed", 400);
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new SessionFailure("malformed", 400);
+  return body;
+}
+function verifySessionEvidence(layoutId, moves, traces, { complete = false } = {}) {
+  if (!rankedLayout(layoutId)) throw new SessionFailure("invalid_layout");
+  if (typeof moves !== "string" || !/^[A-Za-z0-9_-]*$/.test(moves) || moves.length > RANKED_MAX_MOVES[layoutId])
+    throw new SessionFailure("invalid_moves");
+  if (!Array.isArray(traces) || traces.length !== moves.length) throw new SessionFailure("invalid_telemetry");
+  let state = positions(CATALOG[layoutId].board), lastTime = -1, lastPiece = -1, lastKind = -1;
+  for (let i = 0; i < moves.length; i++) {
+    const symbol = moves[i], action = ALPHABET.indexOf(symbol);
+    if (action < 0 || action >= 40) throw new SessionFailure("invalid_moves");
+    const entry = traces[i];
+    if (!Array.isArray(entry) || entry.length !== 6 || entry.some((x) => !Number.isSafeInteger(x))) throw new SessionFailure("invalid_telemetry");
+    const [kind, ms, x0, y0, x1, y1] = entry;
+    if (kind !== 0 && kind !== 1 && kind !== 2 || ms < lastTime || ms < 0 || ms > 18e5 || [x0, x1].some((x) => x < -700 || x > 4700) || [y0, y1].some((y) => y < -700 || y > 5700)) throw new SessionFailure("invalid_telemetry");
+    lastTime = ms;
+    const piece = Math.floor(action / 4), [dx, dy] = DIRECTIONS[action % 4];
+    const [width, height] = SHAPES[piece], px = state[piece] % 4, py = Math.floor(state[piece] / 4);
+    if (kind === 2) {
+      if (piece !== lastPiece || lastKind === 0 || lastKind === -1) throw new SessionFailure("telemetry_drag_sequence");
+    } else if (x0 < px * 1e3 - 250 || x0 > (px + width) * 1e3 + 250 || y0 < py * 1e3 - 250 || y0 > (py + height) * 1e3 + 250)
+      throw new SessionFailure("telemetry_tile_mismatch");
+    if (kind === 0) {
+      if (Math.abs(x1 - x0) > 250 || Math.abs(y1 - y0) > 250) throw new SessionFailure("telemetry_tap_mismatch");
+      let legal = 0;
+      for (let d = 0; d < 4; d++) try {
+        step(state, ALPHABET[piece * 4 + d]);
+        legal++;
+      } catch {
+      }
+      if (legal !== 1) throw new SessionFailure("telemetry_tap_mismatch");
+    } else {
+      const mx = x1 - x0, my = y1 - y0;
+      if (dx !== 0) {
+        if (Math.sign(mx) !== dx || Math.abs(mx) < 320 || Math.abs(mx) <= Math.abs(my))
+          throw new SessionFailure("telemetry_drag_mismatch");
+      } else if (Math.sign(my) !== dy || Math.abs(my) < 320)
+        throw new SessionFailure("telemetry_drag_mismatch");
+    }
+    try {
+      state = step(state, symbol);
+    } catch {
+      throw new SessionFailure("invalid_moves");
+    }
+    lastPiece = piece;
+    lastKind = kind;
+  }
+  if (complete && (state[0] !== 13 || moves.length < CATALOG[layoutId].optimum)) throw new SessionFailure("unsolved");
+  return { moves: moves.length, solved: state[0] === 13 };
+}
+async function processSessionRequest(request, { storage, available, rateSecret, rodAnchor } = {}) {
+  if (!available || !storage) return Response.json({ code: "issuance_disabled" }, { status: 503 });
+  const pathname = new URL(request.url).pathname;
+  const body = await readSessionBody(request);
+  if (pathname === "/api/session/start") {
+    if (!rankedLayout(body.layout) || Object.keys(body).some((k) => k !== "layout")) throw new SessionFailure("invalid_layout");
+    const ip = request.headers.get("cf-connecting-ip");
+    if (typeof rateSecret !== "string" || rateSecret.length < 32 || !ip || ip.length > 64) throw new SessionFailure("issuance_disabled", 503);
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(rateSecret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const signed = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("hd2-session-ip-v1\0" + ip)));
+    const bucket = Array.from(signed, (b) => b.toString(16).padStart(2, "0")).join("");
+    const id = crypto.randomUUID(), token = randomToken(), nonce = randomNonce();
+    const seed2 = await sessionSeed(body.layout, id, nonce, rodAnchor);
+    const firstTrace = await traceDigest([]);
+    const head = await hashParts("chain-initial", seed2.sessionSeed);
+    const result2 = await storage.session("start", {
+      id,
+      layout: body.layout,
+      bucket,
+      token_hash: await tokenHash(token),
+      nonce,
+      rules_digest: seed2.rulesDigest,
+      layout_seed: seed2.layoutSeed,
+      session_seed: seed2.sessionSeed,
+      rod_block_hash: seed2.rodAnchor.hash,
+      rod_block_height: seed2.rodAnchor.height,
+      trace_digest: firstTrace,
+      chain_head: head
+    });
+    if (result2?.code !== "ok") throw new SessionFailure(
+      ["rate_limited", "anchor_changed"].includes(result2?.code) ? result2.code : "session_unavailable",
+      result2?.code === "rate_limited" ? 429 : result2?.code === "anchor_changed" ? 409 : 503
+    );
+    return Response.json({
+      id,
+      token,
+      nonce,
+      interval: SESSION_INTERVAL,
+      head,
+      rulesDigest: seed2.rulesDigest,
+      layoutSeed: seed2.layoutSeed,
+      sessionSeed: seed2.sessionSeed,
+      rodAnchor: seed2.rodAnchor,
+      board: seed2.board,
+      optimum: seed2.optimum
+    }, { headers: { "Cache-Control": "no-store" } });
+  }
+  if (!["/api/session/checkpoint", "/api/session/finish"].includes(pathname)) throw new SessionFailure("not_found", 404);
+  const final = pathname.endsWith("/finish");
+  if (!isSessionId(body.id) || !isSessionToken(body.token) || !rankedLayout(body.layout) || typeof body.nonce !== "string" || !HEX.test(body.nonce) || typeof body.head !== "string" || !HEX.test(body.head) || !Number.isSafeInteger(body.seq) || body.seq < 0 || body.seq > 40) throw new SessionFailure("malformed", 400);
+  if (!body.rodAnchor || typeof body.rodAnchor !== "object" || !HEX.test(body.rodAnchor.hash) || !Number.isSafeInteger(body.rodAnchor.height) || body.rodAnchor.height < 0)
+    throw new SessionFailure("malformed", 400);
+  const seed = await sessionSeed(body.layout, body.id, body.nonce, body.rodAnchor);
+  if (body.rulesDigest !== seed.rulesDigest || body.layoutSeed !== seed.layoutSeed || body.sessionSeed !== seed.sessionSeed)
+    throw new SessionFailure("seed_mismatch");
+  verifySessionEvidence(body.layout, body.moves, body.trace, { complete: final });
+  if (!final && body.moves.length !== SESSION_INTERVAL * (body.seq + 1)) throw new SessionFailure("checkpoint_boundary");
+  if (final && body.seq < 2) throw new SessionFailure("checkpoints_missing");
+  const priorTrace = await traceDigest(body.trace.slice(0, SESSION_INTERVAL * body.seq));
+  const currentTrace = await traceDigest(body.trace);
+  const nextHead = await hashParts(
+    "chain-advance",
+    body.head,
+    seed.sessionSeed,
+    body.seq,
+    final ? "finish" : "checkpoint",
+    body.moves,
+    currentTrace
+  );
+  const inputDigest = final ? await hashParts("input-final", seed.sessionSeed, body.moves, currentTrace) : null;
+  const durationDs = final ? Math.round((body.trace.at(-1)[1] - body.trace[0][1]) / 100) : null;
+  const next = randomToken(), proof = final ? randomToken() : null;
+  const result = await storage.session("advance", {
+    id: body.id,
+    layout: body.layout,
+    seq: body.seq,
+    token_hash: await tokenHash(body.token),
+    nonce: body.nonce,
+    rules_digest: seed.rulesDigest,
+    layout_seed: seed.layoutSeed,
+    session_seed: seed.sessionSeed,
+    rod_block_hash: seed.rodAnchor.hash,
+    rod_block_height: seed.rodAnchor.height,
+    moves: body.moves,
+    prior_trace_digest: priorTrace,
+    trace_digest: currentTrace,
+    previous_head: body.head,
+    next_head: nextHead,
+    final,
+    input_digest: inputDigest,
+    ...final ? { duration_ds: durationDs } : {},
+    next_hash: final ? null : await tokenHash(next),
+    proof_hash: final ? await tokenHash(proof) : null
+  });
+  if (result?.code !== "ok") throw new SessionFailure(result?.code || "session_conflict", 409);
+  const common = { id: body.id, head: nextHead };
+  return Response.json(final ? { ...common, proof, inputDigest, rulesDigest: seed.rulesDigest, layoutSeed: seed.layoutSeed, sessionSeed: seed.sessionSeed, nonce: body.nonce, rodAnchor: seed.rodAnchor } : { ...common, seq: body.seq + 1, token: next }, { headers: { "Cache-Control": "no-store" } });
+}
+
 // leaderboard/issuer.js
 function broadcastDiagnostic(error) {
   if (["provider_timeout", "provider_unavailable", "broadcast_txid_mismatch"].includes(error?.message)) return error.message;
@@ -3692,8 +4000,8 @@ function broadcastDiagnostic(error) {
   return "broadcast_failed";
 }
 async function admit(storage, verified) {
-  const { id, text, player, claim, moves, points } = verified;
-  return storage.rpc("admit", { id, bytes: text, player, nickname: claim.n, layout: claim.l, epoch: claim.w, moves, points });
+  const { id, text, player, claim, moves, points, session } = verified;
+  return storage.rpc("admit", { id, bytes: text, player, nickname: claim.n, layout: claim.l, epoch: claim.w, moves, points, move_path: claim.m, profile: claim.p, ...session ? { session } : {} });
 }
 async function broadcastStored(storage, chain, claim) {
   if (!claim.raw || !claim.txid) throw Error("missing_persisted_bytes");
@@ -4859,14 +5167,33 @@ async function acquire(runtime, provider, storage, job) {
 }
 async function runPublisher(storage, config, { fetch: fetcher = globalThis.fetch, providerOptions = {}, scope = null, recovery = null } = {}) {
   if (config.code) return { code: config.code };
-  const capability = await (recovery ? recoveryReadiness(storage) : publisherReadiness(storage));
-  if (["schema_upgrade_required", "recovery_schema_upgrade_required"].includes(capability.code)) return { code: capability.code };
+  let capability;
+  try {
+    capability = await (recovery ? recoveryReadiness(storage) : publisherReadiness(storage));
+  } catch (error) {
+    console.error(JSON.stringify({ event: "hd1_publisher_early_failure", phase: "readiness", ...storageDiagnostic(error) }));
+    throw error;
+  }
+  if (["schema_upgrade_required", "recovery_schema_upgrade_required"].includes(capability.code)) {
+    console.warn(JSON.stringify({ event: "hd1_publisher_early_failure", phase: "capability", code: capability.code }));
+    return { code: capability.code };
+  }
   const backend = storage;
   storage = { read: () => backend.read(), rpc: (operation, payload = {}) => backend.rpc(operation, { ...payload, scope, recovery }) };
   const job = crypto.randomUUID();
-  let runtime = await storage.rpc("job", { owner: job });
+  let runtime;
+  try {
+    runtime = await storage.rpc("job", { owner: job });
+  } catch (error) {
+    console.error(JSON.stringify({ event: "hd1_publisher_early_failure", phase: "job", ...storageDiagnostic(error) }));
+    throw error;
+  }
   if (runtime.code === "job_busy") return { code: "job_busy" };
-  if (!runtime.owner) return { code: FINITE_FAILURES.has(runtime.code) || runtime.code?.startsWith("recovery_") ? runtime.code : "publisher_unavailable" };
+  if (!runtime.owner) {
+    const code = FINITE_FAILURES.has(runtime.code) || runtime.code?.startsWith("recovery_") ? runtime.code : "publisher_unavailable";
+    console.warn(JSON.stringify({ event: "hd1_publisher_early_failure", phase: "job_rejected", code }));
+    return { code };
+  }
   let calls = 0, phase = "initialize";
   const startedAt = Date.now(), deadline = startedAt + PUBLISHER_DEADLINE_MS;
   const boundedFetch = (...args) => {
@@ -5076,6 +5403,24 @@ async function handleApi(request, { storage = null, issuer = null, available = f
   const url = new URL(request.url);
   let stage = "api";
   try {
+    if (url.pathname === "/api/session/status") {
+      if (request.method !== "GET") return json({ code: "method_not_allowed" }, 405);
+      if (!storage) return json({ code: "issuance_disabled", retryable: false }, 503);
+      if ([...url.searchParams.keys()].some((key) => key !== "id") || url.searchParams.getAll("id").length > 1)
+        return json({ code: "invalid_query" }, 400);
+      const id = url.searchParams.get("id");
+      if (id !== null && !isSessionId(id)) return json({ code: "invalid_session_id" }, 400);
+      stage = "session_read";
+      const result = await storage.sessionStatus(id === null ? "recent" : "get", id === null ? {} : { id });
+      if (result?.code === "not_found") return json(result, 404);
+      if (result?.code) return json({ code: "session_status_unavailable" }, 503);
+      return json(result);
+    }
+    if (url.pathname.startsWith("/api/session/")) {
+      if (request.method !== "POST") return json({ code: "not_found" }, 404);
+      checkOrigin(request);
+      return await processSessionRequest(request, { storage, available, rateSecret, rodAnchor: readiness?.rod_anchor });
+    }
     if (url.pathname === "/api/leaderboard" && request.method === "GET") {
       if (!storage) return json({
         available: false,
@@ -5109,9 +5454,32 @@ async function handleApi(request, { storage = null, issuer = null, available = f
       const rate = ipRate.code === "ok" ? await storage.rpc("rate", { bucket: "global" }) : ipRate;
       if (rate.code !== "ok") return json({ code: "rate_limited", retryable: true }, 429);
       const verified = verifyClaim(await readClaim(request), request.headers.get("idempotency-key"));
+      const sessionId = request.headers.get("x-hd-session-id");
+      const sessionProof = request.headers.get("x-hd-session-proof");
+      const seed = request.headers.get("x-hd-session-seed");
+      const layoutSeed2 = request.headers.get("x-hd-layout-seed");
+      const rulesDigest = request.headers.get("x-hd-rules-digest");
+      const nonce = request.headers.get("x-hd-session-nonce");
+      const head = request.headers.get("x-hd-session-head");
+      const inputDigest = request.headers.get("x-hd-session-input-digest");
+      const rodHash = request.headers.get("x-hd-rod-block-hash");
+      const rodHeight = Number(request.headers.get("x-hd-rod-block-height"));
+      const isHex = (value) => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
+      verified.session = isSessionId(sessionId) && isSessionToken(sessionProof) && [seed, layoutSeed2, rulesDigest, nonce, head, inputDigest, rodHash].every(isHex) && Number.isSafeInteger(rodHeight) && rodHeight >= 0 && request.headers.has("x-hd-rod-block-height") ? {
+        id: sessionId,
+        proof_hash: await tokenHash(sessionProof),
+        session_seed: seed,
+        layout_seed: layoutSeed2,
+        rules_digest: rulesDigest,
+        nonce,
+        head,
+        input_digest: inputDigest,
+        rod_block_hash: rodHash,
+        rod_block_height: rodHeight
+      } : null;
       let result = await admit(storage, verified);
       if (result.code) {
-        const status2 = { queue_full: 429, name_conflict: 409, epoch_changed: 409, idempotency_conflict: 409 }[result.code] || 503;
+        const status2 = { queue_full: 429, name_conflict: 409, epoch_changed: 409, idempotency_conflict: 409, session_required: 422, invalid_session: 422 }[result.code] || 503;
         return json({ code: result.code, retryable: status2 >= 429 }, status2);
       }
       if (issuer && ["queued", "unsigned_preparing", "signed_persisted", "broadcast_pending", "broadcast_unknown"].includes(result.state)) {
@@ -5128,6 +5496,7 @@ async function handleApi(request, { storage = null, issuer = null, available = f
     }
     return json({ code: "not_found" }, 404);
   } catch (error) {
+    if (error instanceof SessionFailure) return json({ code: error.code, retryable: false }, error.status);
     if (error instanceof ClaimError) return json({ code: error.code, retryable: false }, error.status);
     if (["invalid_query", "stale_cursor"].includes(error?.message)) return json({ code: error.message }, 400);
     return backendUnavailable(stage, error);
@@ -5142,7 +5511,7 @@ async function handleRelayRequest(request, bindings = {}, context = null) {
       storage = new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY);
     let readiness = { available: false, code: config.code ?? "initial_sync" };
     stage = "readiness";
-    if (storage && !config.code) readiness = await publisherReadiness(storage, { appKey: config.appKey, markerKey: config.markerKey, baseUrl: config.baseUrl });
+    if (storage && !config.code) readiness = await publisherReadiness(storage, { appKey: config.appKey, markerKey: config.markerKey, baseUrl: config.baseUrl, ...new URL(request.url).pathname === "/api/session/start" && request.method === "POST" ? { include_anchor: true } : {} });
     stage = "api";
     const response = await handleApi(request, {
       storage,
@@ -5157,14 +5526,93 @@ async function handleRelayRequest(request, bindings = {}, context = null) {
     return backendUnavailable(stage, error);
   }
 }
+var SCHEDULED_CODES = /* @__PURE__ */ new Set([
+  "ready",
+  "initial_sync",
+  "job_busy",
+  "confirmed",
+  "included",
+  "broadcast_pending",
+  "broadcast_unknown",
+  "signed_persisted",
+  "retry_later",
+  "signer_busy",
+  "stale_state",
+  "provider_unavailable",
+  "publisher_unavailable",
+  "provider_timeout",
+  "history_changed",
+  "reorg_detected",
+  "reconciliation_required",
+  "funds_unavailable",
+  "finite_scope_required",
+  "claim_outside_scope",
+  "transaction_budget_exhausted",
+  "broadcast_budget_exhausted",
+  "spend_budget_exhausted",
+  "invalid_budget_plan",
+  "schema_upgrade_required",
+  "recovery_schema_upgrade_required",
+  "recovery_required",
+  "retired_original",
+  "epoch_changed",
+  "not_improved",
+  "invalid_provider_config",
+  "unconfirmed_pending",
+  "identity_configuration_mismatch",
+  "funding_compression_incompatible",
+  "provider_error",
+  "retry_exhausted",
+  "conflict_suspected",
+  "backend_unavailable",
+  "issuer_not_configured",
+  "issuance_disabled",
+  "storage_not_configured",
+  "rate_secret_not_configured",
+  "invalid_publisher_configuration",
+  "provider_response_too_large",
+  "relay_fee_insufficient",
+  "relay_fee_unavailable",
+  "relay_fee_policy_incompatible",
+  "queued",
+  "recovery_completed"
+]);
+function scheduledCode(value) {
+  return SCHEDULED_CODES.has(value) ? value : "unexpected_result";
+}
 async function handleScheduled(bindings = {}) {
-  const config = publisherConfig(bindings);
-  if (config.code) return { code: config.code };
-  try {
-    return await runPublisher(new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY), config);
-  } catch {
-    return { code: "backend_unavailable" };
+  let storage = null;
+  if (bindings.SUPABASE_URL && bindings.SUPABASE_SERVICE_KEY) {
+    try {
+      storage = new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY);
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "hd1_cron_storage_failure", ...storageDiagnostic(error) }));
+    }
   }
+  const config = publisherConfig(bindings);
+  let result;
+  if (config.code) {
+    console.warn(JSON.stringify({ event: "hd1_cron_result", code: scheduledCode(config.code) }));
+    result = { code: config.code };
+  } else {
+    try {
+      result = await runPublisher(storage ?? new SupabaseStorage(bindings.SUPABASE_URL, bindings.SUPABASE_SERVICE_KEY), config);
+      const code = scheduledCode(result?.code);
+      const log = code === "ready" || code === "initial_sync" || code === "confirmed" || code === "included" ? "log" : "warn";
+      console[log](JSON.stringify({ event: "hd1_cron_result", code }));
+    } catch (error) {
+      console.error(JSON.stringify({ event: "hd1_cron_failure", phase: "publisher", ...storageDiagnostic(error) }));
+      result = { code: "backend_unavailable" };
+    }
+  }
+  if (storage) {
+    try {
+      await storage.session("gc");
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "hd1_cron_gc_failure", ...storageDiagnostic(error) }));
+    }
+  }
+  return result;
 }
 function verifyOffline(text, appKey = null) {
   if (utf8(text).length > 8192) throw new ClaimError("payload_too_large", 413);
@@ -5265,7 +5713,11 @@ export {
   RANKED_PROFILE,
   RECOVERY_CONFIRMATIONS,
   RECOVERY_HEADER_BOUND,
+  SESSION_BODY_LIMIT,
+  SESSION_DOMAIN,
+  SESSION_INTERVAL,
   SHAPES,
+  SessionFailure,
   SupabaseStorage,
   address,
   admit,
@@ -5296,10 +5748,14 @@ export {
   handleScheduled,
   hash160,
   hash256,
+  hashParts,
   hexToBytes3 as hexToBytes,
   improves,
   inspectRecovery,
   installRecovery,
+  isSessionId,
+  isSessionToken,
+  layoutSeed,
   le,
   leaderboardPage,
   medianTime,
@@ -5310,16 +5766,21 @@ export {
   parseTransaction,
   payScript,
   positions,
+  processSessionRequest,
   publicLeaderboard,
   publicStatus,
   publisherConfig,
   publisherReadiness,
   push,
+  randomNonce,
+  randomToken,
   rank,
+  rankedLayout,
   rankedMoveLimit,
   rawReader,
   readClaim,
   readPush,
+  readSessionBody,
   receiptId,
   reconcile,
   reconstruct,
@@ -5330,6 +5791,7 @@ export {
   replay,
   runPublisher,
   serialize,
+  sessionSeed,
   sighash,
   sign,
   signApp,
@@ -5337,11 +5799,15 @@ export {
   signTransaction,
   step,
   storageDiagnostic,
+  tokenHash,
+  traceDigest,
   utf8,
   validName,
+  validateRodAnchor,
   variable,
   varint,
   verifyClaim,
   verifyInput,
-  verifyOffline
+  verifyOffline,
+  verifySessionEvidence
 };

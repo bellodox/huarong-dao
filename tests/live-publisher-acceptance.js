@@ -146,7 +146,7 @@ export async function liveAcceptance(bindings,args=[],{fetch:fetcher=globalThis.
   const allowedDiagnostics=new Set(['provider_timeout','provider_unavailable','broadcast_txid_mismatch',
     'broadcast_fee_rejected','broadcast_rejected','broadcast_failed']);
   // Read-only default does not call the scheduler, acquire a job or enter a signing barrier.
-  const progress=new Set(['initial_sync','ready','broadcast_pending','broadcast_unknown','retry_later']);
+  const progress=new Set(['initial_sync','ready','broadcast_pending','broadcast_unknown','retry_later','included','confirmed']);
   if(authorized)for(let i=0;i<ticks;i++) {
     const result=await runPublisher(storage,config,{fetch:guarded,scope:scope.id}),outcome=result.code;
     outcomes.push(outcome);

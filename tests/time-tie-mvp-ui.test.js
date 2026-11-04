@@ -106,6 +106,25 @@ test('backdrop and Escape also dismiss, with no MutationObserver required',()=>{
   assert.equal(f.store.get('huarong_hd1_dismissed_receipt_v1'),RECEIPT_B);
 });
 
+test('submission notice preserves authoritative retry failures with allowlisted translated reasons',async()=>{
+  const f=fixture(),ui=f.context.window.hd1UI;
+  ui.beginSubmission({layout:'rear_guard',moves:82,player:'ALICE'},RECEIPT_A);
+  for(const language of ['bg','en']) {
+    f.context.document.documentElement.lang=language;
+    for(const status of ['queued','broadcast_unknown','broadcast_pending']) {
+      f.set({submission:{status,publication_retryable:false,retry_code:'spend_budget_exhausted'}});
+      await f.submitted();
+      assert.match(f.element('#hd1-submission-note').textContent,language==='en'?/spend budget exhausted/:/изчерпан бюджет за разходи/);
+    }
+    for(const retry_code of ['constructor','<img src=x onerror=alert(1)>']) {
+      f.set({submission:{status:'queued',publication_retryable:false,retry_code}});await f.submitted();
+      assert.equal(f.element('#hd1-submission-note').textContent,language==='en'?'Publication retry unavailable':'Повторното публикуване не е достъпно');
+    }
+    f.set({submission:{status:'included',publication_retryable:false,retry_code:null}});await f.submitted();
+    assert.doesNotMatch(f.element('#hd1-submission-note').textContent,/retry unavailable|Повторното/);
+  }
+});
+
 test('time tie-break explanation uses English after language switch',()=>{
   const f=fixture();
   f.context.document.documentElement.lang='en';
