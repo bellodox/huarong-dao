@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /probe
 
-Sitemap: https://huarong-dao.spacexpanseorg.workers.dev/sitemap.xml
+Sitemap: https://klotski.games.spacexpanse.com/sitemap.xml

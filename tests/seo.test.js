@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 
-const origin='https://huarong-dao.spacexpanseorg.workers.dev/';
+const origin='https://klotski.games.spacexpanse.com/';
 const asset=name=>readFileSync(new URL('../public/'+name,import.meta.url));
 const html=asset('index.html').toString('utf8');
 const head=html.match(/<head>([\s\S]*?)<\/head>/)[1];

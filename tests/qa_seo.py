@@ -4,7 +4,7 @@ from pathlib import Path
 from xml.etree import ElementTree
 from playwright.sync_api import sync_playwright
 
-ORIGIN='https://huarong-dao.spacexpanseorg.workers.dev/'
+ORIGIN='https://klotski.games.spacexpanse.com/'
 ROOT=Path(__file__).resolve().parents[1]
 VIEWPORTS=[(320,480),(320,568),(390,844),(768,900),(1024,900),(1440,900)]
 
