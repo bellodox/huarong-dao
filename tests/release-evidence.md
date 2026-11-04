@@ -2,6 +2,14 @@
 
 ## Status and authority
 
+### Two-pillar SEO positioning correction — 2026-11-04
+
+**Local correction complete; final Code Reviewer APPROVE, no blocking findings.** Reviewed against baseline **564f558322c88b7c006abe4a1b459f61186d7b64**, branch **v0.1.1**. Scope: existing [metadata](../public/index.html:6), [social preview](../public/social-preview.png), [static SEO tests](seo.test.js) and [browser SEO checks](qa_seo.py). Both locales now foreground AI training/optimal hints for every layout and weekly public competition with persistent confirmed results. Portability is accurately qualified as on-chain independent reconstruction plus an exportable identity backup, not an implemented import UI or automatic local/profile synchronization. Public participation stays opt-in and ranked runs unassisted.
+
+- Review first required restoration of an unrequested explanation removal; the final corrected diff preserves baseline explanation, translation, CSS and grid exactly. No gameplay, consent, routes, crawl files, dependencies or new features changed. No security-boundary trigger was found. Earlier approvals do not extend to this later scope.
+- **Reviewer-executed:** seven SEO tests passed, whitespace check passed, PNG verified **1200 x 630** and visually inspected. **Frontend-reported after correction:** complete browser suite passed **72 language/viewport states, four startup/consent and two no-JavaScript contexts**, including the explanation fitting above the board at **320 x 480**; no page/console errors; owned servers stopped and temporary outputs removed. These browser results were not independently rerun by the reviewer. Earlier full-suite counts remain historical.
+- This is local SEO presentation validation only, not deployed parity, live publisher readiness, cross-device recovery, indexing, external social rendering or traction proof. No push or deployment occurred. Broader research remains [frozen for future scope](../docs/seo-traction-findings-2026-11-04.md). Parent owns final OSG persistence.
+
 ### SEO copy/visual refinement and frozen research — 2026-11-04
 
 **Local refinement complete; final Code Reviewer APPROVE with no findings.** Parent owns final review/status and OSG persistence. This documentation executor freshly verified branch **v0.1.1**, HEAD **766386df9739a8ae3dd2d4dc1647ed8496bae7dc**, and the four pre-existing changed implementation/test files. The earlier SEO approval below is historical and does not approve this later refinement. The latest authorized scope is existing SEO copy/visuals only; the [frozen findings](../docs/seo-traction-findings-2026-11-04.md) preserve research and future candidates without authorizing them.

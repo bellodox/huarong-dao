@@ -32,24 +32,28 @@ def metadata_check(state,language):
  assert meta['og:locale']==('bg_BG' if language=='bg' else 'en_US')
  assert meta['og:locale:alternate']==('en_US' if language=='bg' else 'bg_BG')
  assert ('Тренировка' if language=='bg' else 'Training') in state['explanation']
- assert ('Играй' if language=='bg' else 'Play') in meta['description']
+ assert ('всяка подредба' if language=='bg' else 'every layout') in meta['description']
+ assert ('Състезавай се с други всяка седмица' if language=='bg' else 'Compete with others weekly') in meta['description']
+ assert ('архив на самоличността' if language=='bg' else 'identity backup') in meta['description']
+ assert 'AI' in state['title'] and ('седмична' if language=='bg' else 'Weekly') in state['title']
  assert ('Хуаронг' if language=='bg' else 'Huarong') in state['title']
  expected={
   'bg':{
-   'title':'Хуаронг Дао (Klotski) — играй безплатно онлайн',
-   'description':'Играй Хуаронг Дао (Klotski) безплатно в браузъра. Започни с Тренировка, пробвай 14 подредби или ползвай подсказки и автоматично решение на устройството.',
-   'alt':'Huarong Dao / Klotski. Английски надпис: „Можеш ли да освободиш червения блок?“. Дъската от Тренировка с изход долу по средата. Безплатно в браузъра · 14 подредби · подсказки.',
+   'title':'Хуаронг Дао — AI тренировка и седмична публична класация',
+   'description':'Хуаронг Дао (Klotski): AI подсказки и обучение за всяка подредба. Състезавай се с други всяка седмица с трайни публични резултати, архив на самоличността и възстановима от блокчейна класация.',
+   'alt':'Huarong Dao / Klotski. Дъската от Тренировка. Английски надписи: AI обучение и оптимални подсказки за всяка подредба; седмично публично състезание с трайни публични резултати в блокчейна, които могат да се възстановят независимо; архив на самоличността за изтегляне.',
    'explanation':'Хуаронг Дао (Klotski): можеш ли да изведеш червения блок през изхода долу по средата? Плъзгай фигурите. Започни с Тренировка.'},
   'en':{
-   'title':'Huarong Dao (Klotski) — Play Free Online',
-   'description':'Play Huarong Dao (Klotski) free in your browser. Start with Training, try 14 layouts, or get unstuck with hints and an automatic solver running on your device.',
-   'alt':'Huarong Dao / Klotski. Can you free the red block? The Training board with a bottom-center exit. Free browser play · 14 layouts · hints.',
+   'title':'Huarong Dao — AI Training & Weekly Public Leaderboards',
+   'description':'Huarong Dao (Klotski): AI hints and training for every layout. Compete with others weekly with persistent public results, identity backup and chain-reconstructable rankings.',
+   'alt':'Huarong Dao / Klotski. The Training board. AI learning and optimal hints for every layout; weekly public competition with persistent public results, on-chain and independently reconstructable; exportable identity backup.',
    'explanation':'Huarong Dao (Klotski): can you free the red block through the bottom-center exit? Slide the pieces. Start with Training.'}
  }[language]
  assert state['title']==expected['title']
  assert meta['description']==expected['description']
  assert meta['og:image:alt']==expected['alt']
  assert state['explanation']==expected['explanation']
+ assert 'AI' in json.loads(state['structured'])['description']
 
 
 def geometry_check(page):
@@ -66,6 +70,7 @@ def geometry_check(page):
  explanation=geometry['bounds']['game-explanation']
  assert explanation['scroll']<=explanation['client']+1,geometry
  assert explanation['bottom']<=geometry['bounds']['game-frame']['y'],geometry
+ assert geometry['bounds']['board']['height']>=100,geometry
  assert geometry['bounds']['game-frame']['bottom']<=page.locator('body > footer').bounding_box()['y']+1,geometry
  return geometry['bounds']['board']['height']
 

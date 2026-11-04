@@ -50,9 +50,9 @@ function pngSize(name){
 test('static Bulgarian metadata is unique, useful and canonical at the actual root',()=>{
   const titles=[...head.matchAll(/<title>([^<]+)<\/title>/g)];
   assert.equal(titles.length,1);
-  assert.equal(titles[0][1],'Хуаронг Дао (Klotski) — играй безплатно онлайн');
+  assert.equal(titles[0][1],'Хуаронг Дао — AI тренировка и седмична публична класация');
   assert.match(html,/<html lang="bg"/);
-  assert.equal(meta('description'),'Играй Хуаронг Дао (Klotski) безплатно в браузъра. Започни с Тренировка, пробвай 14 подредби или ползвай подсказки и автоматично решение на устройството.');
+  assert.equal(meta('description'),'Хуаронг Дао (Klotski): AI подсказки и обучение за всяка подредба. Състезавай се с други всяка седмица с трайни публични резултати, архив на самоличността и възстановима от блокчейна класация.');
   const canonical=tags('link').filter(tag=>tag.rel==='canonical');
   assert.equal(canonical.length,1);
   assert.equal(canonical[0].href,origin);
@@ -71,7 +71,7 @@ test('social cards use matching titles/descriptions, accessible alt and existing
     assert.equal(meta(prefix+':title'),title);
     assert.equal(meta(prefix+':description'),meta('description'));
     assert.equal(meta(prefix+':image'),origin+'social-preview.png');
-    assert.equal(meta(prefix+':image:alt'),'Huarong Dao / Klotski. Английски надпис: „Можеш ли да освободиш червения блок?“. Дъската от Тренировка с изход долу по средата. Безплатно в браузъра · 14 подредби · подсказки.');
+    assert.equal(meta(prefix+':image:alt'),'Huarong Dao / Klotski. Дъската от Тренировка. Английски надписи: AI обучение и оптимални подсказки за всяка подредба; седмично публично състезание с трайни публични резултати в блокчейна, които могат да се възстановят независимо; архив на самоличността за изтегляне.');
   }
   assert.equal(meta('twitter:card'),'summary_large_image');
   assert.equal(meta('og:image:type'),'image/png');
@@ -98,7 +98,7 @@ test('structured data is parseable and limited to factual bilingual game propert
   assert.equal(game.applicationCategory,'GameApplication');
   assert.equal(game.operatingSystem,'Web browser');
   assert.deepEqual(game.inLanguage,['bg','en']);
-  assert.equal(game.description,'Безплатен браузърен пъзел Хуаронг Дао (Klotski) с 14 подредби, начална Тренировка, подсказки и автоматично решение на устройството. Плъзгай фигурите и изведи червения блок през изхода долу по средата.');
+  assert.equal(game.description,'Хуаронг Дао (Klotski): AI обучение, оптимални подсказки и автоматично решение за всяка от 14 подредби. Състезавай се с други в седмичната публична класация. Потвърдените публични резултати са трайни и класацията може да се възстанови от блокчейна; самоличността може да се архивира. Публичното участие е по избор, само с неподпомогнати състезателни игри; локалните резултати не се синхронизират автоматично.');
 });
 
 test('robots allows rendering and advertises only the canonical sitemap',()=>{
@@ -125,4 +125,18 @@ test('short challenge invitation exists in static main content with matching Eng
   const english='Huarong Dao (Klotski): can you free the red block through the bottom-center exit? Slide the pieces. Start with Training.';
   assert.ok(html.includes("'"+explanation+"':'"+english+"'"));
   assert.ok(explanation.length<=140 && english.length<=140,'keep the existing fixed-viewport invitation succinct');
+});
+
+test('both pillars remain in English metadata alongside the on-board explanation',()=>{
+  const english=html.match(/en:\{title:'([^']+)',\s*description:'([^']+)'/);
+  assert.ok(english);
+  assert.match(english[1],/AI Training.*Weekly Public Leaderboards/);
+  assert.match(english[2],/every layout.*Compete with others weekly.*persistent public results/);
+  assert.match(english[2],/identity backup.*chain-reconstructable rankings/);
+  assert.ok(html.includes('persistent public results, on-chain and independently reconstructable; exportable identity backup.'));
+  assert.ok(!html.includes('portable results through identity backup'));
+  assert.equal((html.match(/grid-template-rows: auto auto minmax\(0,1fr\);/g)||[]).length,2);
+  assert.ok(html.includes('#game-explanation { margin:0; padding:0 .25rem; color:var(--color-slate-300); font-size:.75rem; line-height:1.35; }'));
+  const description=JSON.parse(head.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]).description;
+  assert.match(description,/по избор.*неподпомогнати.*не се синхронизират автоматично/);
 });
