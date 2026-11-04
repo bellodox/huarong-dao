@@ -2,6 +2,14 @@
 
 ## Status and authority
 
+### Research-backed SEO wording — 2026-11-04
+
+**Local implementation complete; final Code Reviewer APPROVE WITH SUGGESTIONS, no blockers.** Baseline **d24eaa9a7460af6f04de3d4d6fdd8d23f91e7d50**, branch **v0.1.1**. This later scope supersedes the acquisition wording described below, not its historical evidence. Changes cover [search/social metadata and PWA descriptions](../public/index.html:6), [focused assertions](seo.test.js) and [browser checks](qa_seo.py). Search copy leads with online puzzle play, 14 layouts, optimal hints and weekly unaided competition; social copy uses a separate red-block challenge. Structured description qualifies independently verifiable ROD move records without promising chain reconstruction of timing-based rankings. Gameplay, visible explanation, consent, styling and artwork remain unchanged; no security-boundary trigger was identified.
+
+- **Reviewer-executed:** seven Node SEO tests passed, zero failures, exit 0. Review covers the three implementation/test files only; two optional test-maintainability suggestions are not blockers and were not implemented.
+- **Frontend-reported fresh evidence:** browser QA passed 72 language/viewport states, four startup/consent and two no-JavaScript contexts, exit 0; no console/runtime errors, POSTs, identity creation or premature solver startup. Whitespace check passed; owned loopback servers and disposable artifacts were cleaned. Browser results were not independently rerun by the reviewer or parent.
+- No deployment, push, indexing, external social rendering or traffic-uplift proof. Broader research remains frozen. This handoff addition is factual administrative closeout, not an extension of review to new implementation. Parent owns final OSG persistence.
+
 ### Two-pillar SEO positioning correction — 2026-11-04
 
 **Local correction complete; final Code Reviewer APPROVE, no blocking findings.** Reviewed against baseline **564f558322c88b7c006abe4a1b459f61186d7b64**, branch **v0.1.1**. Scope: existing [metadata](../public/index.html:6), [social preview](../public/social-preview.png), [static SEO tests](seo.test.js) and [browser SEO checks](qa_seo.py). Both locales now foreground AI training/optimal hints for every layout and weekly public competition with persistent confirmed results. Portability is accurately qualified as on-chain independent reconstruction plus an exportable identity backup, not an implemented import UI or automatic local/profile synchronization. Public participation stays opt-in and ranked runs unassisted.

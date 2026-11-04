@@ -50,9 +50,9 @@ function pngSize(name){
 test('static Bulgarian metadata is unique, useful and canonical at the actual root',()=>{
   const titles=[...head.matchAll(/<title>([^<]+)<\/title>/g)];
   assert.equal(titles.length,1);
-  assert.equal(titles[0][1],'Хуаронг Дао — AI тренировка и седмична публична класация');
+  assert.equal(titles[0][1],'Хуаронг Дао (Klotski) — играй онлайн с подсказки и класация');
   assert.match(html,/<html lang="bg"/);
-  assert.equal(meta('description'),'Хуаронг Дао (Klotski): AI подсказки и обучение за всяка подредба. Състезавай се с други всяка седмица с трайни публични резултати, архив на самоличността и възстановима от блокчейна класация.');
+  assert.equal(meta('description'),'Играй Хуаронг Дао (Klotski) онлайн с 14 подредби. Учи с оптимални подсказки за всяка подредба, после решавай без помощ за седмичната класация.');
   const canonical=tags('link').filter(tag=>tag.rel==='canonical');
   assert.equal(canonical.length,1);
   assert.equal(canonical[0].href,origin);
@@ -65,11 +65,13 @@ test('static Bulgarian metadata is unique, useful and canonical at the actual ro
   for(const tag of metadata.filter(tag=>tag.name||tag.property))meta(tag.name||tag.property);
 });
 
-test('social cards use matching titles/descriptions, accessible alt and existing absolute image',()=>{
+test('social cards share distinct challenge copy, accessible alt and existing absolute image',()=>{
   const title=head.match(/<title>([^<]+)<\/title>/)[1];
   for(const prefix of ['og','twitter']){
-    assert.equal(meta(prefix+':title'),title);
-    assert.equal(meta(prefix+':description'),meta('description'));
+    assert.equal(meta(prefix+':title'),'Освободи червения блок. Намери по-краткия път.');
+    assert.equal(meta(prefix+':description'),'Хуаронг Дао (Klotski): 14 подредби и оптимални подсказки, когато се затрудниш. Решавай без помощ за седмичната класация.');
+    assert.notEqual(meta(prefix+':title'),title);
+    assert.notEqual(meta(prefix+':description'),meta('description'));
     assert.equal(meta(prefix+':image'),origin+'social-preview.png');
     assert.equal(meta(prefix+':image:alt'),'Huarong Dao / Klotski. Дъската от Тренировка. Английски надписи: AI обучение и оптимални подсказки за всяка подредба; седмично публично състезание с трайни публични резултати в блокчейна, които могат да се възстановят независимо; архив на самоличността за изтегляне.');
   }
@@ -98,7 +100,7 @@ test('structured data is parseable and limited to factual bilingual game propert
   assert.equal(game.applicationCategory,'GameApplication');
   assert.equal(game.operatingSystem,'Web browser');
   assert.deepEqual(game.inLanguage,['bg','en']);
-  assert.equal(game.description,'Хуаронг Дао (Klotski): AI обучение, оптимални подсказки и автоматично решение за всяка от 14 подредби. Състезавай се с други в седмичната публична класация. Потвърдените публични резултати са трайни и класацията може да се възстанови от блокчейна; самоличността може да се архивира. Публичното участие е по избор, само с неподпомогнати състезателни игри; локалните резултати не се синхронизират автоматично.');
+  assert.equal(game.description,'Хуаронг Дао (Klotski) е браузърен пъзел с плъзгащи се блокове, 14 подредби, оптимални подсказки и автоматично проиграване на решенията. Нови неподпомогнати състезателни игри могат да участват в седмичната и общата класация. Публичното публикуване е по избор. Потвърдените записи на ходовете в ROD могат независимо да се проиграят и проверят; локалните резултати не се синхронизират автоматично.');
 });
 
 test('robots allows rendering and advertises only the canonical sitemap',()=>{
@@ -127,16 +129,18 @@ test('short challenge invitation exists in static main content with matching Eng
   assert.ok(explanation.length<=140 && english.length<=140,'keep the existing fixed-viewport invitation succinct');
 });
 
-test('both pillars remain in English metadata alongside the on-board explanation',()=>{
+test('English acquisition copy prioritizes online play, learning and unaided weekly competition',()=>{
   const english=html.match(/en:\{title:'([^']+)',\s*description:'([^']+)'/);
   assert.ok(english);
-  assert.match(english[1],/AI Training.*Weekly Public Leaderboards/);
-  assert.match(english[2],/every layout.*Compete with others weekly.*persistent public results/);
-  assert.match(english[2],/identity backup.*chain-reconstructable rankings/);
+  assert.equal(english[1],'Klotski (Huarong Dao) — Play Online, Hints & Weekly Rankings');
+  assert.equal(english[2],'Play Klotski (Huarong Dao) online with 14 layouts. Learn with optimal hints for every layout, then solve unaided to compete on the weekly leaderboard.');
+  assert.ok(html.includes("socialTitle:'Free the red block. Find fewer moves.',socialDescription:'Huarong Dao (Klotski): 14 layouts and optimal hints when you get stuck. Solve unaided to compete on the weekly leaderboard.'"));
+  assert.doesNotMatch(english[2],/identity backup|chain-reconstructable/);
   assert.ok(html.includes('persistent public results, on-chain and independently reconstructable; exportable identity backup.'));
   assert.ok(!html.includes('portable results through identity backup'));
   assert.equal((html.match(/grid-template-rows: auto auto minmax\(0,1fr\);/g)||[]).length,2);
   assert.ok(html.includes('#game-explanation { margin:0; padding:0 .25rem; color:var(--color-slate-300); font-size:.75rem; line-height:1.35; }'));
   const description=JSON.parse(head.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]).description;
-  assert.match(description,/по избор.*неподпомогнати.*не се синхронизират автоматично/);
+  assert.match(description,/Нови неподпомогнати.*седмичната и общата класация.*по избор.*записи на ходовете в ROD.*независимо.*не се синхронизират автоматично/);
+  assert.doesNotMatch(description,/самоличността|възстанови.*класация|време/);
 });

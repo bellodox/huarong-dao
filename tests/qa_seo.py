@@ -16,7 +16,8 @@ def snapshot(page):
   canonical:document.querySelector('link[rel="canonical"]').href,
   alternates:document.querySelectorAll('link[hreflang]').length,
   explanation:document.getElementById('game-explanation').textContent,
-  structured:document.querySelector('script[type="application/ld+json"]').textContent
+  structured:document.querySelector('script[type="application/ld+json"]').textContent,
+  manifest:document.querySelector('link[rel="manifest"]').getAttribute('href')
  })''')
 
 
@@ -25,35 +26,46 @@ def metadata_check(state,language):
  assert state['canonical']==ORIGIN and state['alternates']==0
  meta=state['meta']
  assert meta['og:url']==ORIGIN
- assert meta['og:title']==meta['twitter:title']==state['title']
- assert meta['description']==meta['og:description']==meta['twitter:description']
+ assert meta['og:title']==meta['twitter:title']!=state['title']
+ assert meta['og:description']==meta['twitter:description']!=meta['description']
  assert meta['og:image']==meta['twitter:image']==ORIGIN+'social-preview.png'
  assert meta['og:image:alt']==meta['twitter:image:alt']
  assert meta['og:locale']==('bg_BG' if language=='bg' else 'en_US')
  assert meta['og:locale:alternate']==('en_US' if language=='bg' else 'bg_BG')
  assert ('Тренировка' if language=='bg' else 'Training') in state['explanation']
  assert ('всяка подредба' if language=='bg' else 'every layout') in meta['description']
- assert ('Състезавай се с други всяка седмица' if language=='bg' else 'Compete with others weekly') in meta['description']
- assert ('архив на самоличността' if language=='bg' else 'identity backup') in meta['description']
- assert 'AI' in state['title'] and ('седмична' if language=='bg' else 'Weekly') in state['title']
+ assert ('без помощ за седмичната класация' if language=='bg' else 'unaided to compete on the weekly leaderboard') in meta['description']
+ assert '14' in meta['description'] and 'Klotski' in state['title']
  assert ('Хуаронг' if language=='bg' else 'Huarong') in state['title']
  expected={
   'bg':{
-   'title':'Хуаронг Дао — AI тренировка и седмична публична класация',
-   'description':'Хуаронг Дао (Klotski): AI подсказки и обучение за всяка подредба. Състезавай се с други всяка седмица с трайни публични резултати, архив на самоличността и възстановима от блокчейна класация.',
+   'title':'Хуаронг Дао (Klotski) — играй онлайн с подсказки и класация',
+   'description':'Играй Хуаронг Дао (Klotski) онлайн с 14 подредби. Учи с оптимални подсказки за всяка подредба, после решавай без помощ за седмичната класация.',
+   'social_title':'Освободи червения блок. Намери по-краткия път.',
+   'social_description':'Хуаронг Дао (Klotski): 14 подредби и оптимални подсказки, когато се затрудниш. Решавай без помощ за седмичната класация.',
    'alt':'Huarong Dao / Klotski. Дъската от Тренировка. Английски надписи: AI обучение и оптимални подсказки за всяка подредба; седмично публично състезание с трайни публични резултати в блокчейна, които могат да се възстановят независимо; архив на самоличността за изтегляне.',
    'explanation':'Хуаронг Дао (Klotski): можеш ли да изведеш червения блок през изхода долу по средата? Плъзгай фигурите. Започни с Тренировка.'},
   'en':{
-   'title':'Huarong Dao — AI Training & Weekly Public Leaderboards',
-   'description':'Huarong Dao (Klotski): AI hints and training for every layout. Compete with others weekly with persistent public results, identity backup and chain-reconstructable rankings.',
+   'title':'Klotski (Huarong Dao) — Play Online, Hints & Weekly Rankings',
+   'description':'Play Klotski (Huarong Dao) online with 14 layouts. Learn with optimal hints for every layout, then solve unaided to compete on the weekly leaderboard.',
+   'social_title':'Free the red block. Find fewer moves.',
+   'social_description':'Huarong Dao (Klotski): 14 layouts and optimal hints when you get stuck. Solve unaided to compete on the weekly leaderboard.',
    'alt':'Huarong Dao / Klotski. The Training board. AI learning and optimal hints for every layout; weekly public competition with persistent public results, on-chain and independently reconstructable; exportable identity backup.',
    'explanation':'Huarong Dao (Klotski): can you free the red block through the bottom-center exit? Slide the pieces. Start with Training.'}
  }[language]
  assert state['title']==expected['title']
  assert meta['description']==expected['description']
+ assert meta['og:title']==expected['social_title']
+ assert meta['og:description']==expected['social_description']
  assert meta['og:image:alt']==expected['alt']
  assert state['explanation']==expected['explanation']
- assert 'AI' in json.loads(state['structured'])['description']
+ structured_description=json.loads(state['structured'])['description']
+ assert 'Потвърдените записи на ходовете в ROD могат независимо да се проиграят и проверят' in structured_description
+ assert 'локалните резултати не се синхронизират автоматично' in structured_description
+ if state['manifest']:
+  from urllib.parse import unquote
+  manifest=json.loads(unquote(state['manifest'].split(',',1)[1]))
+  assert manifest['description']==expected['description']
 
 
 def geometry_check(page):

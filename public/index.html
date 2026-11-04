@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Хуаронг Дао — AI тренировка и седмична публична класация</title>
-    <meta name="description" content="Хуаронг Дао (Klotski): AI подсказки и обучение за всяка подредба. Състезавай се с други всяка седмица с трайни публични резултати, архив на самоличността и възстановима от блокчейна класация.">
+    <title>Хуаронг Дао (Klotski) — играй онлайн с подсказки и класация</title>
+    <meta name="description" content="Играй Хуаронг Дао (Klotski) онлайн с 14 подредби. Учи с оптимални подсказки за всяка подредба, после решавай без помощ за седмичната класация.">
     <!-- One URL serves both UI languages: no invented hreflang variants.
          https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites -->
     <link rel="canonical" href="https://huarong-dao.spacexpanseorg.workers.dev/">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Huarong Dao">
-    <meta property="og:title" content="Хуаронг Дао — AI тренировка и седмична публична класация">
-    <meta property="og:description" content="Хуаронг Дао (Klotski): AI подсказки и обучение за всяка подредба. Състезавай се с други всяка седмица с трайни публични резултати, архив на самоличността и възстановима от блокчейна класация.">
+    <meta property="og:title" content="Освободи червения блок. Намери по-краткия път.">
+    <meta property="og:description" content="Хуаронг Дао (Klotski): 14 подредби и оптимални подсказки, когато се затрудниш. Решавай без помощ за седмичната класация.">
     <meta property="og:url" content="https://huarong-dao.spacexpanseorg.workers.dev/">
     <meta property="og:locale" content="bg_BG">
     <meta property="og:locale:alternate" content="en_US">
@@ -22,8 +22,8 @@
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Huarong Dao / Klotski. Дъската от Тренировка. Английски надписи: AI обучение и оптимални подсказки за всяка подредба; седмично публично състезание с трайни публични резултати в блокчейна, които могат да се възстановят независимо; архив на самоличността за изтегляне.">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Хуаронг Дао — AI тренировка и седмична публична класация">
-    <meta name="twitter:description" content="Хуаронг Дао (Klotski): AI подсказки и обучение за всяка подредба. Състезавай се с други всяка седмица с трайни публични резултати, архив на самоличността и възстановима от блокчейна класация.">
+    <meta name="twitter:title" content="Освободи червения блок. Намери по-краткия път.">
+    <meta name="twitter:description" content="Хуаронг Дао (Klotski): 14 подредби и оптимални подсказки, когато се затрудниш. Решавай без помощ за седмичната класация.">
     <meta name="twitter:image" content="https://huarong-dao.spacexpanseorg.workers.dev/social-preview.png">
     <meta name="twitter:image:alt" content="Huarong Dao / Klotski. Дъската от Тренировка. Английски надписи: AI обучение и оптимални подсказки за всяка подредба; седмично публично състезание с трайни публични резултати в блокчейна, които могат да се възстановят независимо; архив на самоличността за изтегляне.">
     <!-- Factual vocabulary only (https://schema.org/VideoGame); not a claim of
@@ -36,7 +36,7 @@
       "alternateName": "Хуаронг Дао",
       "url": "https://huarong-dao.spacexpanseorg.workers.dev/",
       "image": "https://huarong-dao.spacexpanseorg.workers.dev/social-preview.png",
-      "description": "Хуаронг Дао (Klotski): AI обучение, оптимални подсказки и автоматично решение за всяка от 14 подредби. Състезавай се с други в седмичната публична класация. Потвърдените публични резултати са трайни и класацията може да се възстанови от блокчейна; самоличността може да се архивира. Публичното участие е по избор, само с неподпомогнати състезателни игри; локалните резултати не се синхронизират автоматично.",
+      "description": "Хуаронг Дао (Klotski) е браузърен пъзел с плъзгащи се блокове, 14 подредби, оптимални подсказки и автоматично проиграване на решенията. Нови неподпомогнати състезателни игри могат да участват в седмичната и общата класация. Публичното публикуване е по избор. Потвърдените записи на ходовете в ROD могат независимо да се проиграят и проверят; локалните резултати не се синхронизират автоматично.",
       "genre": "Puzzle",
       "applicationCategory": "GameApplication",
       "operatingSystem": "Web browser",
@@ -2388,7 +2388,7 @@
         const pwaManifest = {
             name: "Хуаронг Дао — логически пъзел",
             short_name: "Хуаронг Дао",
-            description: "Класически Klotski пъзел с подредби и динамично AI преизчисляване.",
+            description: "Играй Хуаронг Дао (Klotski) онлайн с 14 подредби. Учи с оптимални подсказки за всяка подредба, после решавай без помощ за седмичната класация.",
             start_url: "./",
             display: "standalone",
             background_color: "#0b0f19",
@@ -5315,23 +5315,25 @@
         const en=language==='en';
         pwaManifest.name=en?'Huarong Dao — Sliding Block Puzzle':'Хуаронг Дао — логически пъзел';
         pwaManifest.short_name=en?'Huarong Dao':'Хуаронг Дао';
-        pwaManifest.description=en?'Classic Klotski puzzle with layouts and dynamically recalculated solutions.':'Класически Klotski пъзел с подредби и динамично AI преизчисляване.';
+        pwaManifest.description=en?'Play Klotski (Huarong Dao) online with 14 layouts. Learn with optimal hints for every layout, then solve unaided to compete on the weekly leaderboard.':'Играй Хуаронг Дао (Klotski) онлайн с 14 подредби. Учи с оптимални подсказки за всяка подредба, после решавай без помощ за седмичната класация.';
         document.getElementById('manifest-link').href='data:application/manifest+json;charset=utf-8,'+encodeURIComponent(JSON.stringify(pwaManifest));
       }
       const pageMetadata={
         bg:{title:document.title,description:document.querySelector('meta[name="description"]').content,
+          socialTitle:document.querySelector('meta[property="og:title"]').content,socialDescription:document.querySelector('meta[property="og:description"]').content,
           imageAlt:document.querySelector('meta[property="og:image:alt"]').content,locale:'bg_BG',alternate:'en_US',name:'Хуаронг Дао'},
-        en:{title:'Huarong Dao — AI Training & Weekly Public Leaderboards',
-          description:'Huarong Dao (Klotski): AI hints and training for every layout. Compete with others weekly with persistent public results, identity backup and chain-reconstructable rankings.',
+        en:{title:'Klotski (Huarong Dao) — Play Online, Hints & Weekly Rankings',
+          description:'Play Klotski (Huarong Dao) online with 14 layouts. Learn with optimal hints for every layout, then solve unaided to compete on the weekly leaderboard.',
+          socialTitle:'Free the red block. Find fewer moves.',socialDescription:'Huarong Dao (Klotski): 14 layouts and optimal hints when you get stuck. Solve unaided to compete on the weekly leaderboard.',
           imageAlt:'Huarong Dao / Klotski. The Training board. AI learning and optimal hints for every layout; weekly public competition with persistent public results, on-chain and independently reconstructable; exportable identity backup.',locale:'en_US',alternate:'bg_BG',name:'Huarong Dao'}
       };
       /** Sync presentation only; canonical, social URLs and bilingual structured data stay fixed. */
       function syncPageMetadata(){
         const metadata=pageMetadata[language];
         document.title=metadata.title;
-        const values={description:metadata.description,'og:title':metadata.title,'og:description':metadata.description,
+        const values={description:metadata.description,'og:title':metadata.socialTitle,'og:description':metadata.socialDescription,
           'og:locale':metadata.locale,'og:locale:alternate':metadata.alternate,'og:image:alt':metadata.imageAlt,
-          'twitter:title':metadata.title,'twitter:description':metadata.description,'twitter:image:alt':metadata.imageAlt,
+          'twitter:title':metadata.socialTitle,'twitter:description':metadata.socialDescription,'twitter:image:alt':metadata.imageAlt,
           'apple-mobile-web-app-title':metadata.name};
         for(const [key,value] of Object.entries(values)){
           document.querySelector('meta[name="'+key+'"],meta[property="'+key+'"]').content=value;
