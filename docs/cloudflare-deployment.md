@@ -1,6 +1,6 @@
 # Cloudflare deployment guide — experimental publisher
 
-Operator runbook, updated 2026-11-04 for experimental local **0.1.0** (Beta designation retained). Commands below are **instructions for later operator execution**, not evidence of deployment or permission to deploy. Current scope, supplied evidence, incident containment and final review status are centralized in the [execution handoff](../tests/release-evidence.md#experimental-local-010-release--2026-11-04). Local “ship/release” never means deploy, tag, commit or push. No cloud login, account probe, deploy, funding, secret read, commit or push was performed by this documentation executor.
+Operator runbook, updated 2026-11-04 for experimental local **0.1.0** (Beta designation retained). Commands below are **instructions for later operator execution**, not evidence of deployment or permission to deploy. Current scope, supplied evidence, incident containment and final review status are centralized in the [execution handoff](../tests/release-evidence.md#experimental-local-011-release-preparation--2026-11-04). Local “ship/release” never means deploy, tag, commit or push. No cloud login, account probe, deploy, funding, secret read, commit or push was performed by this documentation executor.
 
 ## 1. Choose the readiness tier
 

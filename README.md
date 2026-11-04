@@ -2,7 +2,7 @@
 
 A browser sliding-block puzzle with 14 layouts, local score/evidence persistence, Bulgarian/English UI and an optional consent-based ROD public leaderboard. Local play does not require a wallet or public-score consent. Public receipts retain the complete move path; chain confirmation, not database rows alone, establishes ranking evidence.
 
-Version **0.1.0** retains the experimental **Beta** designation in both UI locales; it is not a production-readiness claim. Current validation, review scope and remaining gates belong only in the [execution handoff](tests/release-evidence.md#experimental-local-010-release--2026-11-04). Earlier hosted observations there remain historical. The [normative plan](tasks/plan.md), [checklist](tasks/todo.md) and [operator runbook](docs/cloudflare-deployment.md) define requirements and operational boundaries. “Ship” or “release” means local preparation/validation only: never deployment, tagging, commits or pushes.
+Version **0.1.1** retains the experimental **Beta** designation in both UI locales; it is not a production-readiness claim. Current validation, review scope and remaining gates belong only in the [execution handoff](tests/release-evidence.md#experimental-local-011-release-preparation--2026-11-04). Earlier hosted observations there remain historical. The [normative plan](tasks/plan.md), [checklist](tasks/todo.md) and [operator runbook](docs/cloudflare-deployment.md) define requirements and operational boundaries. “Ship” or “release” means local preparation/validation only: never deployment, tagging, commits or pushes.
 
 ## Architecture
 

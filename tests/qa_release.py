@@ -28,8 +28,8 @@ html=(ROOT/'public/index.html').read_text(encoding='utf-8')
 assert 'HUARONG_PUBLIC_ENABLED = false' in html
 manifest=json.loads((ROOT/'package.json').read_text())
 lock=json.loads((ROOT/'package-lock.json').read_text())
-assert manifest['version']==lock['version']==lock['packages']['']['version']=='0.1.0'
-assert 'Бета 0.1.0</span>' in html and "'Бета 0.1.0':'Beta 0.1.0'" in html
+assert manifest['version']==lock['version']==lock['packages']['']['version']=='0.1.1'
+assert 'Бета 0.1.1</span>' in html and "'Бета 0.1.1':'Beta 0.1.1'" in html
 assert 'beginRunEvidence' in html and 'leaderboard-ui.js' in html
 assert (ROOT/'public/leaderboard-client.js').is_file()
 assert (ROOT/'supabase/migrations/001_leaderboard.sql').is_file()

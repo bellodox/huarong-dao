@@ -29,7 +29,7 @@ with sync_playwright() as p:
    check(initial['practices']==['training','first_steps','next_steps'],f'{locale} {w}: practice 3')
    check(initial['tiers']==[0,4,3,2,1],f'{locale} {w}: tiers ascending difficulty')
    check(not initial['overflow'] and initial['hintwidth']>50,f'{locale} {w}: fit and reserved hint')
-   check(page.locator('#beta-version').evaluate('(el)=>el.textContent.includes("0.1.0") && el.getBoundingClientRect().height<20'),f'{locale} {w}: visible single-line experimental release identifier')
+   check(page.locator('#beta-version').evaluate('(el)=>el.textContent.includes("0.1.1") && el.getBoundingClientRect().height<20'),f'{locale} {w}: visible single-line experimental release identifier')
    check(page.locator('#cookie-consent').is_visible(),f'{locale} {w}: cookie banner visible')
    check(not any('googletagmanager.com' in u for u in requests),f'{locale} {w}: no analytics before consent')
    check(not errors,f'{locale} {w}: no JS exceptions {errors[:2]}')

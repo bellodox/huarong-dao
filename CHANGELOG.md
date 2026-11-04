@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased — experimental SEO, 2026-11-04
+## 0.1.1 — experimental local release preparation, 2026-11-04
 
 ### Added
-- Static Bulgarian search/social metadata and game instructions, English browser metadata synchronization at the same canonical URL, original preview/favicon assets, crawl guidance, a single-root sitemap and factual game structured data. This does not create separate language-indexable pages or promise indexing/rich results; evidence and review status belong only in the [handoff](tests/release-evidence.md#experimental-seo-implementation--2026-11-04).
+- Static Bulgarian search/social metadata, English browser metadata synchronization at the same canonical URL, original Training-board social preview and favicon, crawl guidance, a single-root sitemap and factual game structured data. This does not create separate language-indexable pages or promise indexing, rich results or traffic gains.
 
 ### Changed
-- Refined existing bilingual titles/descriptions and the visible red-block/Training invitation, with an original Training-board social preview and matching SEO assertions; canonical/crawl URLs, favicon, gameplay, analytics and routes are unchanged. Broader ideas are preserved only as [frozen, non-authorizing future findings](docs/seo-traction-findings-2026-11-04.md); current evidence and review status belong only in the [refinement handoff](tests/release-evidence.md#seo-copyvisual-refinement-and-frozen-research--2026-11-04).
+- Refined bilingual search descriptions around online play, 14 layouts, optimal hints and unaided weekly competition, with separate red-block social copy. Independently verifiable ROD move records do not imply automatic local-score synchronization or reconstruction of timing-based rankings.
+- Removed the explanation above the board and added a fuller Bulgarian/English introduction only inside the startup story modal, covering assistance exclusions, fresh unassisted ranked attempts, optional public consent and permanent published data. Gameplay, scoring and consent contracts are unchanged.
+- Set package metadata and Bulgarian/English Beta badge to **0.1.1**, with matching release assertions. The experimental designation and frozen scope remain unchanged. Broader ideas remain [non-authorizing future findings](docs/seo-traction-findings-2026-11-04.md); current validation, final reviews and remaining gates belong only in the [release handoff](tests/release-evidence.md#experimental-local-011-release-preparation--2026-11-04).
 
 ## 0.1.0 — experimental local release preparation, 2026-11-04
 

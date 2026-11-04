@@ -2,6 +2,51 @@
 
 ## Status and authority
 
+### Experimental local 0.1.1 release preparation — 2026-11-04
+
+**Local documentation, exit-evidence work and final scoped reviews complete; not production approval or deployment.** Fresh Git inspection confirmed branch **v0.1.1**, HEAD **40c1191488e9cbebd6e1f954f6dfb4cd6a12a7c9**. The comparison baseline **b2b3baa** is a reconstructed prior-release boundary, **not a release tag**. Earlier scoped approvals below remain historical and do not approve this release delta. Parent retains final status ownership and authorizes this closeout executor to refresh OSG on its behalf.
+
+#### Source and documentation scope
+
+- Committed changes since the reconstructed baseline provide existing SEO metadata/localization, original public images, robots guidance, the single-root sitemap, focused SEO tests and the startup-modal introduction/board-explanation removal. No feature work is added by release preparation; broader [research findings](../docs/seo-traction-findings-2026-11-04.md) remain frozen and non-authorizing.
+- Fresh working-tree inspection found exactly six intentional pre-existing non-Markdown modifications: [manifest](../package.json) and [lockfile](../package-lock.json) version **0.1.1**, [HTML](../public/index.html) Bulgarian/English **Beta 0.1.1**, and matching assertions in [edge](qa_edge.py), [v14](qa_v14.py) and [release](qa_release.py) checks. Dependency versions and generated distributions are unchanged.
+- This executor edits only the [README](../README.md), [changelog](../CHANGELOG.md) and this handoff, plus disposable test-execution evidence under the root tests directory. The README points here for current status; the dated changelog curates the existing 0.1.1 scope. Historical 0.1.0 evidence and all frozen requirements remain preserved.
+
+#### Local validation and attribution
+
+The following are **parent-supplied release-preparation results**, not fresh reruns by this documentation executor:
+
+| Command / check | Supplied result |
+| --- | --- |
+| npm run build | Exit 0; both generated distributions unchanged. |
+| npm audit | Exit 0; zero vulnerabilities. Not proof of credential containment. |
+| npm test, initial run | Final summary: **240 passed, zero failed/cancelled/skipped, 877.8 seconds**. Wrapper timed out at 300 seconds; actual final npm exit was not captured. This is summary evidence, not exit-0 evidence. |
+| Loopback launcher and python.exe tests/qa_seo.py | Exit 0; SEO covers **72 language/viewport states**. Local only. |
+| python.exe tests/qa_edge.py | Exit 0. |
+| python.exe tests/qa_v14.py | Exit 0; **159 checks**, after correcting the stale badge expectation. |
+| python.exe tests/qa_dialog_keyboard.py | Exit 0; both locales. |
+| python.exe tests/qa_accessibility.py | Exit 0; bounded regression coverage, not a comprehensive accessibility audit. |
+| python.exe tests/qa_release.py | Exit 0 after correcting stale version expectations. |
+| Launcher stop and cleanup | Both loopback servers stopped, exit 0; task artifacts removed; ports **8787/8788/8790/9230/9231** free. |
+
+The initial v14/release failures were stale version assertions, subsequently corrected and rerun successfully; they are not hidden or counted as passing initial runs. No other application rerun is needed for these documentation-only edits.
+
+**Fresh executor npm exit-evidence rerun:** exactly one detached Windows Python wrapper invoked npm test through CMD at approximately **13:55 UTC**, saving combined stdout/stderr and an independent final exit/duration record under tests. Inspected completion record: **npm exit 0**, **758.127564 seconds** wrapper wall duration; Node summary: **240 tests, 240 passed, zero failed/cancelled/skipped/todo, zero suites**, **754.011253 seconds** Node duration. Relay parity pretest completed as part of npm test. Wrapper PID **7240** was absent after completion. No duplicate run or other application rerun was started. The earlier missing-exit gap is closed by this separate fresh run, not by inferring an exit for the initial run.
+
+**Fresh documentation checks:** all **336 local Markdown links/file targets/citation bounds** across the three edited documents were inspected. The new/changed links and anchors pass; one pre-existing historical beta.2 changelog link points to a removed README deployment heading and remains unchanged outside this scope. The initial zero-match and over-escaped heading checks were rejected and corrected, not counted as successful validation. Removing this new release section reproduces the prior handoff exactly. Whole working-tree whitespace check exited **0**, with LF/CRLF conversion warnings only. Raw test output, final result, PID and wrapper were inspected and all four disposable files removed before parent review; durable counts/exits remain here. Fresh loopback checks found ports **8787/8788/8790/9230/9231** free. Final Git inspection showed only the six original non-Markdown modifications and these three documentation edits, with no untracked artifacts.
+
+#### Parent-authorized OSG persistence
+
+Public CLI refresh completed for this explicit workspace; parent retains final status ownership. Initial bounded context and resolved-entity history exited **0**; source-current historical review heading was used only as a related entity, not approval of this release. Sync returned **ok true**, **123 changes / 108 files**, graph **c0ba0d5f543adbb6a969cfedc503a44213f4fa7216d2014d4a4b9480100d6b011**; its invoking shell exited **0**, but no separate child exit record was saved. It reported **2,193 AMBIGUOUS_DECLARATION skips**, so indexing is not exhaustive. First embed exited **0**, complete: **3,493 total, 5 embedded, 3,488 reused, 1 removed, zero remaining/skipped**. Remember exited **0**, one relationship resolved: episode **agent:episode:d7725b1cb564e59068a0ea6b**, graph **ce66de7b65480fef8d4cd96f32faa7803d8145ad3537cbc321eb7ffdbcc9cd6ce**. Its only warning was **POLICY_REFS_UNAVAILABLE**: host-loaded rule hashes were not verified. Second embed exited **0**, complete: **3,494 total, 1 embedded, 3,493 reused, zero remaining/removed/skipped**. Verify exited **0**, **95 commits / 55,360 elements**, no warnings; this establishes graph integrity, not application correctness or retrieval-quality certification. Representative task context exited **0**, retrieved the saved episode with anchors ok and both keyword/vector seeds, no fallback warning. Graph branch **main** differs from actual Git **v0.1.1**; the episode records actual HEAD **40c1191488e9cbebd6e1f954f6dfb4cd6a12a7c9**. Existing runtime preserved; no initialization, migration, repair or installation. This persistence-reference paragraph was added after refresh and is not claimed to be indexed by that refresh.
+
+#### Remaining limits and parent-owned gates
+
+- **Parent-supplied final Code Reviewer: APPROVE WITH SUGGESTIONS**, no blockers; the only suggestions were stale current-handoff navigation pointers. Reviewer verified consistent version/changelog and the intended nine-file release diff. **Parent-supplied Vulnerability Checker: NO BLOCKING FINDINGS**, static/local scope only, not production certification. The security agent freshly ran node --test --test-reporter=tap [tests/seo.test.js](seo.test.js): exit **0**, **7 passed**, zero failed/skipped/cancelled, and cleaned its log. Build, 240-test, browser and audit evidence above remains attributed to the respective executor reports, not independently reproduced by these reviews or this closeout executor. Parent accepts these verdicts for the reviewed scope only; historical verdicts below do not extend to it.
+- The two current-handoff anchors in the [checklist](../tasks/todo.md:3) and [operator runbook](../docs/cloudflare-deployment.md:3) were corrected to this existing 0.1.1 heading as administrative navigation only, not substantive review scope expansion. No other historical links were repaired.
+- **Production credential-exposure containment remains unverified.** No secret inspection, cloud authentication, rotation or hosted-binding check is performed; an offline audit/test pass cannot close that incident boundary.
+- No fresh hosted SQL/PostgREST or independent-session concurrency validation, funded chain publication/confirmation, live analytics, continuous scheduler health, deployed/source parity, indexing or external social-preview validation. Earlier hosted observations below remain attributed historical evidence, not 0.1.1 live results.
+- Experimental Beta only: no features, dependencies, deployment, cloud authorization, secret reads, funded actions, commit, tag or push. Local tests do not establish production readiness or live service acceptance.
+
 ### Board explanation removal and startup introduction — 2026-11-04
 
 **Local correction complete; Code Reviewer approved with optional suggestions and no blockers.** Baseline **f0482b8**. Explicit user correction supersedes earlier instructions to preserve the board explanation: its paragraph, style and translation are removed, and both main-grid rules now reserve two rows. A fuller bilingual introduction appears only inside the startup story modal, with bounded scrolling. Search/social metadata, gameplay and consent behavior are unchanged. Scope: [HTML](../public/index.html), [Node tests](seo.test.js), [browser checks](qa_seo.py).

@@ -1,6 +1,6 @@
 # Execution checklist — hd1-plan-3 design
 
-For experimental local **0.1.0**, use only the [current release handoff](../tests/release-evidence.md#experimental-local-010-release--2026-11-04) for validation and pending final gates. The dated checkboxes below retain their historical acceptance/review scope and do not approve later release changes. Current [session-schema guidance](../docs/cloudflare-deployment.md#session-schema-and-conditional-operational-sql) supplements the historical 004 readiness references; capability 4 is not proof that sessions/status/time are installed. Historical “disabled UI,” “no live experiment” and absent-access labels below describe those task boundaries, not a current hosted-state assessment.
+For experimental local **0.1.0**, use only the [current release handoff](../tests/release-evidence.md#experimental-local-011-release-preparation--2026-11-04) for validation and pending final gates. The dated checkboxes below retain their historical acceptance/review scope and do not approve later release changes. Current [session-schema guidance](../docs/cloudflare-deployment.md#session-schema-and-conditional-operational-sql) supplements the historical 004 readiness references; capability 4 is not proof that sessions/status/time are installed. Historical “disabled UI,” “no live experiment” and absent-access labels below describe those task boundaries, not a current hosted-state assessment.
 
 ## Experimental fee/recovery amendment — 2026-10-31
 
