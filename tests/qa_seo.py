@@ -15,7 +15,7 @@ def snapshot(page):
   meta:Object.fromEntries([...document.head.querySelectorAll('meta[name],meta[property]')].map(el=>[el.name||el.getAttribute('property'),el.content])),
   canonical:document.querySelector('link[rel="canonical"]').href,
   alternates:document.querySelectorAll('link[hreflang]').length,
-  explanation:document.getElementById('game-explanation').textContent,
+  explanation:document.getElementById('game-explanation')!==null,
   structured:document.querySelector('script[type="application/ld+json"]').textContent,
   manifest:document.querySelector('link[rel="manifest"]').getAttribute('href')
  })''')
@@ -32,7 +32,7 @@ def metadata_check(state,language):
  assert meta['og:image:alt']==meta['twitter:image:alt']
  assert meta['og:locale']==('bg_BG' if language=='bg' else 'en_US')
  assert meta['og:locale:alternate']==('en_US' if language=='bg' else 'bg_BG')
- assert ('Тренировка' if language=='bg' else 'Training') in state['explanation']
+ assert state['explanation'] is False
  assert ('всяка подредба' if language=='bg' else 'every layout') in meta['description']
  assert ('без помощ за седмичната класация' if language=='bg' else 'unaided to compete on the weekly leaderboard') in meta['description']
  assert '14' in meta['description'] and 'Klotski' in state['title']
@@ -58,7 +58,7 @@ def metadata_check(state,language):
  assert meta['og:title']==expected['social_title']
  assert meta['og:description']==expected['social_description']
  assert meta['og:image:alt']==expected['alt']
- assert state['explanation']==expected['explanation']
+ assert state['explanation'] is False
  structured_description=json.loads(state['structured'])['description']
  assert 'Потвърдените записи на ходовете в ROD могат независимо да се проиграят и проверят' in structured_description
  assert 'локалните резултати не се синхронизират автоматично' in structured_description
@@ -70,7 +70,7 @@ def metadata_check(state,language):
 
 def geometry_check(page):
  geometry=page.evaluate('''() => {
-  const ids=['game-explanation','game-frame','board','exit-passage','btn-reset','btn-language'];
+  const ids=['game-frame','board','exit-passage','btn-reset','btn-language'];
   const bounds=Object.fromEntries(ids.map(id=>{const el=document.getElementById(id),r=el.getBoundingClientRect();
    return [id,{x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom,right:r.right,scroll:el.scrollHeight,client:el.clientHeight}];}));
   return {bounds,width:innerWidth,height:innerHeight,overflow:document.documentElement.scrollWidth>innerWidth};
@@ -79,9 +79,6 @@ def geometry_check(page):
  for name,box in geometry['bounds'].items():
   assert box['width']>0 and box['height']>0,(name,geometry)
   assert box['x']>=-1 and box['y']>=-1 and box['right']<=geometry['width']+1 and box['bottom']<=geometry['height']+1,(name,geometry)
- explanation=geometry['bounds']['game-explanation']
- assert explanation['scroll']<=explanation['client']+1,geometry
- assert explanation['bottom']<=geometry['bounds']['game-frame']['y'],geometry
  assert geometry['bounds']['board']['height']>=100,geometry
  assert geometry['bounds']['game-frame']['bottom']<=page.locator('body > footer').bounding_box()['y']+1,geometry
  return geometry['bounds']['board']['height']
@@ -104,6 +101,9 @@ with sync_playwright() as p:
    page.locator('#game-story-modal').wait_for(state='visible')
    assert page.evaluate('document.activeElement.id')=='btn-close-game-story'
    assert not page.locator('#story-literary-details').get_attribute('open')
+   assert page.locator('#game-introduction').is_visible()
+   assert ('14 подредби' if locale=='bg-BG' else '14 layouts') in page.locator('#game-introduction').inner_text()
+   assert page.locator('#btn-game-story-done').bounding_box()['y']>=0
    page.locator('#btn-game-story-done').click()
    assert page.locator('#cookie-consent').is_visible()
    assert page.evaluate("GAME_LAYOUTS[currentLayoutIdx].id==='training' && !solverEnabled && !assistedRun && userMovesCount===0")
@@ -143,7 +143,7 @@ with sync_playwright() as p:
   context=browser.new_context(java_script_enabled=False,locale='en-US',viewport={'width':320,'height':480})
   page=context.new_page();response=page.goto(base,wait_until='load');assert response.status==200
   state=snapshot(page);metadata_check(state,'bg');geometry_check(page)
-  assert page.locator('#game-explanation').is_visible()
+  assert page.locator('#game-explanation').count()==0
   assert page.locator('#board > .tile').count()==0
   for asset in ['robots.txt','sitemap.xml','social-preview.png','favicon.png']:
    response=context.request.get(base+asset);assert response.status==200,(asset,response.status)
@@ -152,7 +152,7 @@ with sync_playwright() as p:
     assert root.tag=='{http://www.sitemaps.org/schemas/sitemap/0.9}urlset'
     assert [el.text for el in root.iter('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]==[ORIGIN]
    if asset.endswith('.png'):assert response.headers['content-type'].startswith('image/png')
-  print('PASS no-JS Bulgarian description, visible instructions, 320x480 fit, real XML parse and four asset GETs on',port,flush=True)
+  print('PASS no-JS Bulgarian metadata, no board explanation, 320x480 fit, real XML parse and four asset GETs on',port,flush=True)
   context.close()
  browser.close()
 print('PASS 72 language/viewport states, four startup/consent contexts, two no-JS contexts; no live requests',flush=True)

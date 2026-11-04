@@ -2,6 +2,13 @@
 
 ## Status and authority
 
+### Board explanation removal and startup introduction — 2026-11-04
+
+**Local correction complete; Code Reviewer approved with optional suggestions and no blockers.** Baseline **f0482b8**. Explicit user correction supersedes earlier instructions to preserve the board explanation: its paragraph, style and translation are removed, and both main-grid rules now reserve two rows. A fuller bilingual introduction appears only inside the startup story modal, with bounded scrolling. Search/social metadata, gameplay and consent behavior are unchanged. Scope: [HTML](../public/index.html), [Node tests](seo.test.js), [browser checks](qa_seo.py).
+
+- **Parent-executed:** seven Node SEO tests passed, exit 0; browser QA passed 72 language/viewport states, four startup/consent and two no-JavaScript contexts, exit 0, after correcting test indentation. Startup checks cover the new localized modal text and reachable play button at 320 × 480. Whitespace check passed. Task-owned outputs were removed and launcher stopped; reviewer independently confirmed no listeners remained on ports 8787/8788.
+- **Review limits:** reviewer inspected the three-file diff but did not rerun tests. Optional suggestions concern explicit keyboard focus for the scrollable introduction and stronger button-bottom/scroll assertions; these were not implemented. No security-boundary change, deployment or live parity claim. This factual closeout does not extend approval to later implementation. Parent owns OSG persistence.
+
 ### Research-backed SEO wording — 2026-11-04
 
 **Local implementation complete; final Code Reviewer APPROVE WITH SUGGESTIONS, no blockers.** Baseline **d24eaa9a7460af6f04de3d4d6fdd8d23f91e7d50**, branch **v0.1.1**. This later scope supersedes the acquisition wording described below, not its historical evidence. Changes cover [search/social metadata and PWA descriptions](../public/index.html:6), [focused assertions](seo.test.js) and [browser checks](qa_seo.py). Search copy leads with online puzzle play, 14 layouts, optimal hints and weekly unaided competition; social copy uses a separate red-block challenge. Structured description qualifies independently verifiable ROD move records without promising chain reconstruction of timing-based rankings. Gameplay, visible explanation, consent, styling and artwork remain unchanged; no security-boundary trigger was identified.

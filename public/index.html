@@ -1564,7 +1564,7 @@
         main {
             display: grid !important;
             grid-template-columns: minmax(0,1fr);
-            grid-template-rows: auto auto minmax(0,1fr);
+            grid-template-rows: auto minmax(0,1fr);
             gap: .3rem;
             align-items: stretch !important;
             justify-content: stretch !important;
@@ -1574,7 +1574,6 @@
             min-height: 0;
         }
         main > div:first-child { margin-bottom: 0 !important; }
-        #game-explanation { margin:0; padding:0 .25rem; color:var(--color-slate-300); font-size:.75rem; line-height:1.35; }
         #game-frame {
             width: 100% !important;
             height: 100% !important;
@@ -1621,7 +1620,7 @@
         @media (max-width:365px) { #header-utility-row { min-height:2rem; } }
 
         @media (max-height: 620px) {
-            main { grid-template-rows: auto auto minmax(0,1fr); gap: .2rem; }
+            main { grid-template-rows: auto minmax(0,1fr); gap: .2rem; }
             #hint-banner { height: 2.75rem; max-height: 2.75rem; font-size: .65rem; }
         }
         header h1 { min-width:0; }
@@ -2057,8 +2056,6 @@
             </div>
         </div>
 
-        <p id="game-explanation">Хуаронг Дао (Klotski): можеш ли да изведеш червения блок през изхода долу по средата? Плъзгай фигурите. Започни с Тренировка.</p>
-
         <!-- Board Frame -->
         <div id="game-frame" class="relative w-full aspect-[4/5] p-2 board-frame flex flex-col items-center justify-between shrink-0">
             <!-- Inner Board Grid -->
@@ -2124,6 +2121,7 @@
                 <p class="font-bold text-amber-300 mb-1">Как се играе?</p>
                 <p>Плъзгай фигурите, за да изведеш големия червен блок през изхода долу по средата. Започваш с „Тренировка“. За други подредби отвори 🧩 Избери подредба.</p>
             </div>
+            <p id="game-introduction" class="text-xs text-slate-300 mb-3 custom-scroll" style="max-height:24dvh;overflow-y:auto;touch-action:pan-y;flex-shrink:0">Хуаронг Дао (Klotski) предлага 14 подредби — от Тренировка до сложни състезателни предизвикателства. Плъзгай фигурите, без да ги повдигаш или завърташ. Когато се затрудниш, виж оптималния следващ ход или проиграй решението автоматично. Помощта изключва записването на резултат за този опит. За класиране започни нов опит на състезателна подредба и го завърши без помощ. Публичното участие е по избор: допустимите лични рекорди могат да участват в седмичната и общата класация. Публикуването изисква отделно съгласие; публикуваните име, публичен ключ и ходове остават публични и не могат да бъдат изтрити.</p>
             <details id="story-literary-details" class="min-h-0 overflow-y-auto custom-scroll border border-slate-700 rounded-xl px-3 py-2">
               <summary class="cursor-pointer text-sm text-amber-300 font-bold">📜 Историята зад пъзела</summary>
               <div class="mt-3">
@@ -4951,7 +4949,7 @@
       'use strict';
       const LANG_KEY = 'huarong_ui_lang_v1';
       const strings = new Map(Object.entries({
-        'Хуаронг Дао (Klotski): можеш ли да изведеш червения блок през изхода долу по средата? Плъзгай фигурите. Започни с Тренировка.':'Huarong Dao (Klotski): can you free the red block through the bottom-center exit? Slide the pieces. Start with Training.',
+        'Хуаронг Дао (Klotski) предлага 14 подредби — от Тренировка до сложни състезателни предизвикателства. Плъзгай фигурите, без да ги повдигаш или завърташ. Когато се затрудниш, виж оптималния следващ ход или проиграй решението автоматично. Помощта изключва записването на резултат за този опит. За класиране започни нов опит на състезателна подредба и го завърши без помощ. Публичното участие е по избор: допустимите лични рекорди могат да участват в седмичната и общата класация. Публикуването изисква отделно съгласие; публикуваните име, публичен ключ и ходове остават публични и не могат да бъдат изтрити.':'Huarong Dao (Klotski) offers 14 layouts, from Training to demanding competitive challenges. Slide the pieces without lifting or rotating them. When you get stuck, see the optimal next move or play through the solution automatically. Using assistance disables score saving for that attempt. To earn a score, start a fresh attempt on a competitive layout and finish without help. Public participation is optional: eligible personal records can enter the weekly and lifetime leaderboards. Publishing requires separate consent; your published name, public key and moves remain public and cannot be erased.',
         "Публична класация · преиграни резултати":"Public leaderboard · replayed results",
         "Над допустимия брой ходове · резултатът е запазен локално":"Too many moves for public ranking · saved locally",
         "Тренировка · без публично изпращане":"Practice · no public submission",

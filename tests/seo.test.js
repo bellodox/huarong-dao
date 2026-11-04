@@ -120,13 +120,12 @@ test('sitemap is a single well-formed canonical URL without invented dates or al
   assert.equal(parsed[1],origin);
 });
 
-test('short challenge invitation exists in static main content with matching English copy',()=>{
+test('explanation is confined to startup modal rather than the game board',()=>{
   const main=html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/)[1];
-  const explanation=main.match(/<p id="game-explanation">([^<]+)<\/p>/)[1];
-  assert.equal(explanation,'Хуаронг Дао (Klotski): можеш ли да изведеш червения блок през изхода долу по средата? Плъзгай фигурите. Започни с Тренировка.');
-  const english='Huarong Dao (Klotski): can you free the red block through the bottom-center exit? Slide the pieces. Start with Training.';
-  assert.ok(html.includes("'"+explanation+"':'"+english+"'"));
-  assert.ok(explanation.length<=140 && english.length<=140,'keep the existing fixed-viewport invitation succinct');
+  assert.doesNotMatch(html,/game-explanation/);
+  assert.doesNotMatch(main,/game-introduction/);
+  assert.match(html,/<p id="game-introduction"/);
+  assert.ok(html.includes('Huarong Dao (Klotski) offers 14 layouts'));
 });
 
 test('English acquisition copy prioritizes online play, learning and unaided weekly competition',()=>{
@@ -138,8 +137,7 @@ test('English acquisition copy prioritizes online play, learning and unaided wee
   assert.doesNotMatch(english[2],/identity backup|chain-reconstructable/);
   assert.ok(html.includes('persistent public results, on-chain and independently reconstructable; exportable identity backup.'));
   assert.ok(!html.includes('portable results through identity backup'));
-  assert.equal((html.match(/grid-template-rows: auto auto minmax\(0,1fr\);/g)||[]).length,2);
-  assert.ok(html.includes('#game-explanation { margin:0; padding:0 .25rem; color:var(--color-slate-300); font-size:.75rem; line-height:1.35; }'));
+  assert.equal((html.match(/grid-template-rows: auto minmax\(0,1fr\);/g)||[]).length,2);
   const description=JSON.parse(head.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]).description;
   assert.match(description,/Нови неподпомогнати.*седмичната и общата класация.*по избор.*записи на ходовете в ROD.*независимо.*не се синхронизират автоматично/);
   assert.doesNotMatch(description,/самоличността|възстанови.*класация|време/);
