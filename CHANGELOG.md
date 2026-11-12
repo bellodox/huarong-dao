@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased — experimental new public admission ceiling, 2026-11-12
+## 0.2.1 — experimental local release preparation, 2026-11-12
 
 ### Changed
 - New public score admissions allow **220 moves inclusive**; unadmitted 221+ claims are rejected, while existing admitted exact IDs retain idempotent status semantics. This separate [admission amendment](tasks/plan.md#experimental-new-public-admission-amendment--2026-11-12) preserves frozen hd1 replay and hd2 10× optimum validity without retrospective redefinition.
 - Added client preidentity/pre-sign checks, non-destructive durable over-limit POST retry suppression, a 220-move ranked-session bound and Bulgarian/English local-only guidance. Local results and full actual-path evidence remain unlimited.
-- Existing admitted 448-move queued evidence remains fee-cap blocked and preserved: no deletion, re-signing or reset. A 220-move path does not guarantee fee fit with arbitrary multiple funding inputs. See the [operator guidance](docs/cloudflare-deployment.md#new-public-score-admission-policy) and [attributed validation/review handoff](tests/release-evidence.md#experimental-new-public-admission-ceiling--2026-11-12); no deployment is claimed.
+- Set package metadata, Bulgarian/English Beta badges and matching QA version assertions to **0.2.1**. The 220-move policy is committed locally, not deployed. A 220-move path does not guarantee fee fit with arbitrary multiple funding inputs. See the [operator guidance](docs/cloudflare-deployment.md#new-public-score-admission-policy) and [current release handoff](tests/release-evidence.md#experimental-local-021-release-preparation--2026-11-12) for attributed cancellation, validation and pending reviews; no deployment is claimed.
 
 ## 0.1.1 — experimental local release preparation, 2026-11-04
 

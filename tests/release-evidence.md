@@ -2,6 +2,40 @@
 
 ## Status and authority
 
+### Experimental local 0.2.1 release preparation — 2026-11-12
+
+**Local release preparation and scoped Code Reviewer review complete: APPROVE, no issues. No deployment or live recovery acceptance claimed.** Fresh documentation-executor Git inspection confirms branch **v0.2**, HEAD **9cfbf5b8e31339e95277fe11e612b9cd3110df6b**. The user externally changed the baseline: this revision was initially clean and already includes the committed 220-move policy. Inspection found exactly six pre-existing non-Markdown modifications: [manifest](../package.json) and [lockfile](../package-lock.json) version **0.2.1**, Bulgarian/English **Beta 0.2.1** in the [HTML asset](../public/index.html), and matching assertions in [release](qa_release.py), [edge](qa_edge.py) and [version/responsive QA](qa_v14.py). These changes are preserved; this executor edits release documentation only.
+
+#### Fresh release-executor evidence — supplied, not documentation reruns
+
+| Check | Executor-reported result |
+| --- | --- |
+| npm run build | Exit **0**; both generated bundles unchanged, parity passed. |
+| [Release QA](qa_release.py) | Exit **0**. |
+| Focused Node SEO, relay, client and ranked-policy tests | **43 passed, exit 0**. |
+| [Version/responsive QA](qa_v14.py) | **159 checks, exit 0**, Bulgarian/English across **three viewports**. |
+| [Edge QA](qa_edge.py) | Exit **0**. |
+| Browser bundle parity / whitespace | Both exit **0**. |
+
+The earlier **246 distinct passes across split runs** below are historical policy-scope evidence, not a fresh full-suite run for 0.2.1. An uninterrupted aggregate run remains **INCONCLUSIVE**. **Parent-supplied final Code Reviewer: APPROVE, no issues**, covering **10 changed files against HEAD 9cfbf5b8e31339e95277fe11e612b9cd3110df6b**, branch **v0.2**. This release delta changes version metadata, UI version labels, matching QA assertions and documentation only, with no dependency or policy changes; no new security review is triggered, and previous security approval is not extended. Parent retains final review/status and persistence ownership; this executor performs only administrative handoff edits and the explicitly authorized existing-store OSG refresh on the parent's behalf. No application reruns, implementation edits, delegation, commit, tag, push or deployment are performed.
+
+#### Latest user-reported claim status — not a fresh hosted check
+
+At **13:35 UTC on 2026-11-12**, the user reported successful cancellation of receipt **02a0ec6a48619f934453862d809925fee3e03fd576f979fe2a1fd4b2a83acdd0**: status **cancelled**, transaction ID **null**, **0 confirmations**, claim retryable **false**, publication retryable **false**, **448 moves**, **78 points**, epoch **2966**. This supersedes the earlier current-language assertion that this claim remains queued/fee-cap blocked; the historical investigation below is preserved. No hosted request or independent cancellation verification was performed here. The **220-move policy is local and not deployed**, live recovery remains **unverified**, and frozen fee, exact-byte, journal and authority contracts are unchanged.
+
+#### Parent-authorized final OSG persistence — 2026-11-12
+
+The existing-store public CLI used the explicit target workspace on every command: bounded context/resolved history → sync → embed → remember → embed → verify → context. Initial context had a stale historical release heading; source inspection and post-sync entity context confirmed it current before remember. That heading is a related handoff anchor, not approval of this release. All invoking shells exited **0** and all envelopes returned **ok true**, error null; sync output was redirected and its child exit was not separately saved. No initialization, repair, migration or legacy bank was used.
+
+- Sync: **133 changes / 110 files / zero renames**, graph **c5a9da2876ce6698e3abfdbc9c49c978106739c95b9200587e08219ccfc96d196**; **2,205 AMBIGUOUS_DECLARATION warnings**, declarations skipped, so indexing is not exhaustive.
+- First embed: **3,577 total / five embedded / 3,572 reused / one removed / zero remaining or skipped**, complete=true. Second embed: **3,578 total / one embedded / 3,577 reused / zero removed, remaining or skipped**, complete=true. Both used **Xenova/all-MiniLM-L6-v2@q8**, without warnings.
+- Remember: **one relationship resolved**, episode **agent:episode:f7825dd23178188c3f6299e9**, graph **c5fc9bd1b0bc92b66f4d91e71c4648b385551c8db5caeb597c9ab0d4b59565d5f**. Only warning: **POLICY_REFS_UNAVAILABLE**, host-loaded rule hashes not verified/recorded.
+- Verify: **101 commits / 57,933 elements**, no warnings. Final task context retrieved this episode with anchors **ok**, the actual Git branch/revision above, and blended keyword/vector seeds; no fallback warning. Graph branch **main** is not the actual Git branch **v0.2**.
+
+Fresh administrative checks passed **nine current-release local link targets** and whole-working-tree whitespace, exit **0**, with LF/CRLF conversion warnings only. No application reruns or live requests occurred. Graph integrity and eligible-text embedding completion do not establish exhaustive indexing, measured retrieval quality or hosted readiness. This persistence transcription is added after refresh, not recursively remembered or claimed indexed. Parent retains final status ownership.
+
+All subsequent dated sections retain historical evidence, baseline, review and persistence scope; their present-tense/current labels do not supersede this release section.
+
 ### Experimental new public admission ceiling — 2026-11-12
 
 **Local experimental implementation, validation and final independent reviews complete; uninterrupted aggregate test run INCONCLUSIVE. No deployment or live acceptance claimed.** Administrative closeout verified Git **v0.1.1**, HEAD **d517924441353dc655bb819145581c009f8e28f0**. Final results below are independently reported evidence supplied by the parent, not application reruns by this writer. Parent retains overall status and record ownership; this executor performs only scoped handoff edits and the explicitly authorized existing-store OSG refresh on the parent's behalf. Earlier reviews below do not approve this delta.
@@ -10,7 +44,7 @@
 
 - The [normative amendment](../tasks/plan.md#experimental-new-public-admission-amendment--2026-11-12) separates new **inclusive 220-move public admission** from frozen historical hd1 replay and hd2 10× optimum canonical validity. New unadmitted 221+ claims receive non-retryable HTTP 422, code submission_move_limit; existing admitted exact IDs retain SQL idempotent/status semantics, not expanded publication authority.
 - [Client signing](../leaderboard/client.js:21) checks before identity creation/signing. The [durable browser retry](../public/leaderboard-ui.js:419) preserves stored signed entries and status observation while suppressing over-limit POST/re-sign attempts. Ranked sessions advertise/enforce 220 for new witnesses; Bulgarian/English victory, rules and status guidance retain unlimited local results and complete actual paths.
-- The **existing admitted 448-move queued claim remains blocked by the 100,000-unit fee cap**; no deletion, re-signing or reset is authorized or claimed. A 220-move path does not guarantee fee fit with arbitrary multiple funding inputs. Historical receipts, outbox, counters, reservations and signing fences remain preserved. This operational condition is task-supplied, not a fresh hosted-state observation by this writer.
+- **At this historical policy closeout**, the admitted 448-move queued claim was reported blocked by the **100,000-unit fee cap**; no deletion, re-signing or reset was authorized or claimed. The later user-reported cancellation is recorded in the current release section above. A 220-move path does not guarantee fee fit with arbitrary multiple funding inputs. Historical receipts, outbox, counters, reservations and signing fences remain preserved. This historical operational condition was task-supplied, not a fresh hosted-state observation by this writer.
 
 #### Executor-reported validation — not documentation reruns
 
@@ -26,7 +60,7 @@
 
 **Parent-supplied final independent reviews:** Code Reviewer **APPROVE, no issues**, and Vulnerability Checker **NO BLOCKING FINDINGS, no confirmed vulnerabilities**; both cover all **22 changed/added files against HEAD d517924441353dc655bb819145581c009f8e28f0**, branch **v0.1.1**. Verdicts apply only to the reviewed local experimental scope, not hosted operation, deployment or future changes. Administrative transcription does not expand either review.
 
-Earlier documentation validation reported **25 added local links/anchors/citation bounds passed, exit 0**, and whole working-tree whitespace **exit 0**, with LF/CRLF warnings only; rejected zero-match/escaping attempts were not counted. The earlier documentation executor edited five requested Markdown documents and performed no staging; the two initially untracked policy tests became index-added externally. This final administrative executor edits only this section and performs no application reruns. Hosted behavior, deployed/source parity, arbitrary-input fee fit and funded confirmation remain unverified. The existing **448-move queued claim / 100,000-unit fee-cap blocker is unchanged**. No uninterrupted-full-suite-green or production-readiness claim is made.
+Earlier documentation validation reported **25 added local links/anchors/citation bounds passed, exit 0**, and whole working-tree whitespace **exit 0**, with LF/CRLF warnings only; rejected zero-match/escaping attempts were not counted. The earlier documentation executor edited five requested Markdown documents and performed no staging; the two initially untracked policy tests became index-added externally. That final administrative executor edited only this section and performed no application reruns. Hosted behavior, deployed/source parity, arbitrary-input fee fit and funded confirmation remained unverified. At that closeout, the **448-move queued claim / 100,000-unit fee-cap blocker was reported unchanged**; see the current release section for the later user-reported cancellation. No uninterrupted-full-suite-green or production-readiness claim is made.
 
 #### Parent-authorized final OSG refresh — 2026-11-12
 
