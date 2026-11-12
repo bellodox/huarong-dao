@@ -180,7 +180,9 @@ test('illegal inputs, impossible pointers, missing trace, and practice layouts a
     e=>e.code==='unsolved');
 });
 
-test('client witness agrees with relay-derived initial seed, checkpoints, final trace and head',async()=>{
+for(const count of [88,220,221])test(`client witness ${count} moves: inclusive admission ceiling and relay agreement`,async()=>{
+  const moves=count===88?SOLUTION:'VX'.repeat(Math.ceil((count-SOLUTION.length)/2))+SOLUTION;
+  const observations=traceSolution(moves);
   const store=new SessionStore();
   // Minimal fake browser hosting the unchanged pointer API of the ranked-session module.
   const window={};
@@ -195,12 +197,15 @@ test('client witness agrees with relay-derived initial seed, checkpoints, final 
   vm.runInNewContext(source,{window,crypto:webcrypto,performance,fetch,PointerEvent,AbortSignal,TextEncoder,Uint8Array,
     Array,Object,Number,Math,Promise,Error,JSON});
   await window.hdRanked.start('rear_guard',CATALOG.rear_guard.board);
-  for(let i=0;i<SOLUTION.length;i++){
-    const tr=TRACE[i],x0=tr[2]/10,y0=tr[3]/10,x1=tr[4]/10,y1=tr[5]/10;
-    window.hdRanked.record(SOLUTION[i],{kind:1,event:new PointerEvent('pointermove',x1,y1),
+  assert.equal(window.hdRanked.maxMoves,220);
+  assert.equal(window.hdRanked.eligible(220),true);assert.equal(window.hdRanked.eligible(221),false);
+  for(let i=0;i<count;i++){
+    const tr=observations[i],x0=tr[2]/10,y0=tr[3]/10,x1=tr[4]/10,y1=tr[5]/10;
+    window.hdRanked.record(moves[i],{kind:1,event:new PointerEvent('pointermove',x1,y1),
       rect:{left:0,top:0,width:400,height:500},x0,y0,x1,y1});
   }
-  const witness=await window.hdRanked.finish(SOLUTION);
+  const witness=await window.hdRanked.finish(moves.slice(0,count));
+  if(count>220){assert.equal(witness,null);assert([...store.rows.values()].every(row=>row.state==='active'));return;}
   assert.ok(witness,'browser must receive a sealed witness');
   assert.match(witness.inputDigest,HEX);
   assert.equal(store.rows.get(witness.id).chain_head,witness.head);

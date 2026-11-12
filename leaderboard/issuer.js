@@ -1,6 +1,7 @@
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { parseCanonical,canonical,signApp } from './receipt.js';
 import { buildTransaction,signTransaction } from './chain.js';
+import { PUBLIC_SUBMISSION_MAX_MOVES } from './profile.js';
 
 /** Reduce untrusted failures to fixed diagnostic categories; never return payload text. */
 export function broadcastDiagnostic(error) {
@@ -16,6 +17,12 @@ export function broadcastDiagnostic(error) {
 /** Admit only a Worker-verified claim using the atomic SQL decision/reservation. */
 export async function admit(storage,verified) {
   const {id,text,player,claim,moves,points,session}=verified;
+  // A verified ID binds exact signed bytes. Only an already admitted ID may
+  // use the historical idempotent path; never queue a new over-ceiling claim.
+  if(moves>PUBLIC_SUBMISSION_MAX_MOVES) {
+    const existing=await storage.publicRead('status',{id});
+    if(existing?.receipt_id!==id)return {code:'submission_move_limit'};
+  }
   return storage.rpc('admit',{id,bytes:text,player,nickname:claim.n,layout:claim.l,epoch:claim.w,moves,points,move_path:claim.m,profile:claim.p,...(session?{session}:{})});
 }
 /** One bounded recovery/broadcast attempt, always using durably stored exact bytes. */

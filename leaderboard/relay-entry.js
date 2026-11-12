@@ -101,7 +101,7 @@ export async function handleApi(request,{storage=null,issuer=null,available=fals
            rod_block_hash:rodHash,rod_block_height:rodHeight} : null;
       let result=await admit(storage,verified);
       if(result.code) {
-        const status={queue_full:429,name_conflict:409,epoch_changed:409,idempotency_conflict:409,session_required:422,invalid_session:422}[result.code]||503;
+        const status={queue_full:429,name_conflict:409,epoch_changed:409,idempotency_conflict:409,session_required:422,invalid_session:422,submission_move_limit:422}[result.code]||503;
         return json({code:result.code,retryable:status>=429},status);
       }
       if(issuer && ['queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown'].includes(result.state)) {

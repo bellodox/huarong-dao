@@ -4,7 +4,7 @@
  */
 import {
   ALPHABET,CATALOG,PIECES,SHAPES,DIRECTIONS,positions,step,
-  RANKED_PROFILE,RANKED_MOVE_MULTIPLIER,RANKED_MAX_MOVES
+  RANKED_PROFILE,RANKED_MOVE_MULTIPLIER,RANKED_MAX_MOVES,PUBLIC_SUBMISSION_MAX_MOVES
 } from './profile.js';
 
 export const SESSION_BODY_LIMIT=65536;
@@ -165,7 +165,7 @@ export async function processSessionRequest(request,{storage,available,rateSecre
     if(result?.code!=='ok')throw new SessionFailure(
       ['rate_limited','anchor_changed'].includes(result?.code)?result.code:'session_unavailable',
       result?.code==='rate_limited'?429:result?.code==='anchor_changed'?409:503);
-    return Response.json({id,token,nonce,interval:SESSION_INTERVAL,head,
+    return Response.json({id,token,nonce,interval:SESSION_INTERVAL,maxMoves:PUBLIC_SUBMISSION_MAX_MOVES,head,
       rulesDigest:seed.rulesDigest,layoutSeed:seed.layoutSeed,sessionSeed:seed.sessionSeed,
       rodAnchor:seed.rodAnchor,board:seed.board,optimum:seed.optimum},{headers:{'Cache-Control':'no-store'}});
   }
@@ -180,6 +180,10 @@ export async function processSessionRequest(request,{storage,available,rateSecre
   const seed=await sessionSeed(body.layout,body.id,body.nonce,body.rodAnchor);
   if(body.rulesDigest!==seed.rulesDigest||body.layoutSeed!==seed.layoutSeed||body.sessionSeed!==seed.sessionSeed)
     throw new SessionFailure('seed_mismatch');
+  // Admission is separate from RULES/digests. Existing sessions keep their
+  // identity, but an unadmitted over-ceiling run cannot obtain a new witness.
+  if(typeof body.moves==='string'&&body.moves.length>PUBLIC_SUBMISSION_MAX_MOVES)
+    throw new SessionFailure('submission_move_limit');
   verifySessionEvidence(body.layout,body.moves,body.trace,{complete:final});
   if(!final&&body.moves.length!==SESSION_INTERVAL*(body.seq+1))throw new SessionFailure('checkpoint_boundary');
   if(final&&body.seq<2)throw new SessionFailure('checkpoints_missing');

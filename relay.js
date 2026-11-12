@@ -3110,6 +3110,11 @@ function assertRankedMoves(profile, layoutId, moves) {
   if (!Number.isSafeInteger(moves) || moves < 1) throw Error("invalid_replay");
   if (moves > maximum) throw Error("ranked_move_limit");
 }
+var PUBLIC_SUBMISSION_MAX_MOVES = 220;
+function assertSubmissionMoves(profile, layoutId, moves) {
+  assertRankedMoves(profile, layoutId, moves);
+  if (moves > PUBLIC_SUBMISSION_MAX_MOVES) throw Error("submission_move_limit");
+}
 function positions(board) {
   if (typeof board !== "string" || !/^[A-J.]{20}$/.test(board)) throw Error("invalid_board");
   const result = SHAPES.map((shape, index) => board.indexOf(String.fromCharCode(65 + index)));
@@ -3928,6 +3933,7 @@ async function processSessionRequest(request, { storage, available, rateSecret, 
       token,
       nonce,
       interval: SESSION_INTERVAL,
+      maxMoves: PUBLIC_SUBMISSION_MAX_MOVES,
       head,
       rulesDigest: seed2.rulesDigest,
       layoutSeed: seed2.layoutSeed,
@@ -3945,6 +3951,8 @@ async function processSessionRequest(request, { storage, available, rateSecret, 
   const seed = await sessionSeed(body.layout, body.id, body.nonce, body.rodAnchor);
   if (body.rulesDigest !== seed.rulesDigest || body.layoutSeed !== seed.layoutSeed || body.sessionSeed !== seed.sessionSeed)
     throw new SessionFailure("seed_mismatch");
+  if (typeof body.moves === "string" && body.moves.length > PUBLIC_SUBMISSION_MAX_MOVES)
+    throw new SessionFailure("submission_move_limit");
   verifySessionEvidence(body.layout, body.moves, body.trace, { complete: final });
   if (!final && body.moves.length !== SESSION_INTERVAL * (body.seq + 1)) throw new SessionFailure("checkpoint_boundary");
   if (final && body.seq < 2) throw new SessionFailure("checkpoints_missing");
@@ -4001,6 +4009,10 @@ function broadcastDiagnostic(error) {
 }
 async function admit(storage, verified) {
   const { id, text, player, claim, moves, points, session } = verified;
+  if (moves > PUBLIC_SUBMISSION_MAX_MOVES) {
+    const existing = await storage.publicRead("status", { id });
+    if (existing?.receipt_id !== id) return { code: "submission_move_limit" };
+  }
   return storage.rpc("admit", { id, bytes: text, player, nickname: claim.n, layout: claim.l, epoch: claim.w, moves, points, move_path: claim.m, profile: claim.p, ...session ? { session } : {} });
 }
 async function broadcastStored(storage, chain, claim) {
@@ -5479,7 +5491,7 @@ async function handleApi(request, { storage = null, issuer = null, available = f
       } : null;
       let result = await admit(storage, verified);
       if (result.code) {
-        const status2 = { queue_full: 429, name_conflict: 409, epoch_changed: 409, idempotency_conflict: 409, session_required: 422, invalid_session: 422 }[result.code] || 503;
+        const status2 = { queue_full: 429, name_conflict: 409, epoch_changed: 409, idempotency_conflict: 409, session_required: 422, invalid_session: 422, submission_move_limit: 422 }[result.code] || 503;
         return json({ code: result.code, retryable: status2 >= 429 }, status2);
       }
       if (issuer && ["queued", "unsigned_preparing", "signed_persisted", "broadcast_pending", "broadcast_unknown"].includes(result.state)) {
@@ -5708,6 +5720,7 @@ export {
   NETWORK,
   PIECES,
   PUBLIC_RESPONSE_BYTES,
+  PUBLIC_SUBMISSION_MAX_MOVES,
   RANKED_MAX_MOVES,
   RANKED_MOVE_MULTIPLIER,
   RANKED_PROFILE,
@@ -5725,6 +5738,7 @@ export {
   assertCapacity,
   assertProfile,
   assertRankedMoves,
+  assertSubmissionMoves,
   authenticateOriginal,
   authenticateRetirement,
   base58check,

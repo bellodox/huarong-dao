@@ -4,7 +4,7 @@
  */
 (() => {
   'use strict';
-  const INTERVAL=40,MAX=1260,DOMAIN='huarong/ranked-session/v1';
+  const INTERVAL=40,MAX=220,DOMAIN='huarong/ranked-session/v1';
   const HEX=/^[0-9a-f]{64}$/;
   const TOKEN=/^[A-Za-z0-9_-]{43}$/;
   let active=null;
@@ -118,5 +118,6 @@
     }catch{s.status='invalid';return null;}
   }
   const isPending=()=>active?.status==='pending';
-  window.hdRanked={start,reset,record,finish,invalidate,isPending};
+  const eligible=moves=>Number.isSafeInteger(moves)&&moves>0&&moves<=MAX;
+  window.hdRanked={start,reset,record,finish,invalidate,isPending,eligible,maxMoves:MAX};
 })();

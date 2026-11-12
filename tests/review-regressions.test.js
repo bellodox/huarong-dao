@@ -28,7 +28,9 @@ async function setup(directory) {
 }
 function connect(db) {
   const storage={rpc:async(operation,payload={})=>(await db.query('select public.hd1_rpc($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value};
-  storage.read=()=>storage.rpc('read');return storage;
+  storage.read=()=>storage.rpc('read');
+  storage.publicRead=async(operation,payload={})=>(await db.query('select public.hd1_public($1,$2::jsonb) as value',[operation,JSON.stringify(payload)])).rows[0].value;
+  return storage;
 }
 /** Fixture lineage extended by exact raw spends at heights 3..; the tip has the given confirmations.
  * Stands in for independently authenticated canonical observations. */
@@ -114,7 +116,11 @@ for(const outstanding of ['queued','signing_started','broadcast_unknown'])test(`
   const exact=row=>({id:row.id,owner:row.owner,generation:row.generation,raw:row.raw,txid:row.txid,receipt:row.receipt});
   try {
     await reconcile(storage,chainWith([],1));
-    assert.equal((await admit(storage,predecessor)).state,'queued');
+    // Historical predecessor admitted before today's 220-move HTTP policy.
+    // Seed via legacy SQL only; subsequent retries exercise current admission.
+    assert.equal((await storage.rpc('admit',{id:predecessor.id,bytes:predecessor.text,
+      player:predecessor.player,nickname:predecessor.claim.n,layout:predecessor.claim.l,
+      epoch:predecessor.claim.w,moves:predecessor.moves,points:predecessor.points})).state,'queued');
     const published=await advance(storage,transport(broadcasts),app,marker,predecessor.id);
     const finalized=await reconcile(storage,chainWith([published.raw],6));
     assert.equal(finalized.paused,false);assert.equal((await claimRow(storage,predecessor.id)).state,'confirmed');

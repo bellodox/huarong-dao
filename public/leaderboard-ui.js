@@ -44,6 +44,7 @@
     <details class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400 hd1-rank-note">
       <summary class="cursor-pointer text-slate-300">Правила и проверка</summary>
       <p class="mt-2">Точките зависят от броя ходове и сложността на подредбата. При равен брой ходове в една подредба по-бързото прието време определя реда. За общото класиране важат общите точки. Времето се пази в класацията, но не и в публичната разписка; по-старите записи може да са без време. Ходовете се преиграват и потвърждават в блокчейна.</p>
+      <p class="mt-2">Публично се изпращат до 220 хода включително. Локалната игра и резултатите са без лимит.</p>
     </details>
     `;
   const backup=document.createElement('button');
@@ -180,7 +181,8 @@
       signing_unknown:[t('Подписването е спряно','Signing paused'),t('Провери състоянието по-късно.','Check the status later.')],
       reorged:[t('Проверява се отново','Rechecking'),t('Промяна във веригата; потвърждението се преоценява.','Chain changed; confirmation is being re-evaluated.')],
       session_required:[t('Няма валидна сесия','No valid session'),t('Този резултат не може да бъде публикуван.','This result cannot be published.')],
-      invalid_session:[t('Невалидна сесия','Invalid session'),t('Резултатът остава локален.','The result stays local.')]
+      invalid_session:[t('Невалидна сесия','Invalid session'),t('Резултатът остава локален.','The result stays local.')],
+      submission_move_limit:[t('Само локален резултат','Local result only'),t('Публично се изпращат до 220 хода включително. Локалната игра и резултатите са без лимит.','Public submissions allow up to 220 moves inclusive. Local play and results are unlimited.')]
     };
     return mapping[code] || [t('Статусът не е потвърден','Status unverified'),t('Изпращането може да е прието. Провери статуса по-късно.','The request may have been accepted. Check its status again later.')];
   }
@@ -204,7 +206,8 @@
       broadcast_unknown:t('Проверява се','Checking'),included:t('В блок','Included'),
       confirmed:t('Потвърдено','Confirmed'),not_improved:t('Без по-малко ходове','No fewer moves'),
       signing_unknown:t('Спряно','Paused'),reorged:t('Проверява се','Rechecking'),
-      session_required:t('Невалидна сесия','No session'),invalid_session:t('Невалидна сесия','Invalid session')
+      session_required:t('Невалидна сесия','No session'),invalid_session:t('Невалидна сесия','Invalid session'),
+      submission_move_limit:t('Само локално','Local only')
     };
     const short=shortLabels[code]||t('Проверка','Checking');
     submissionState.textContent=(code==='confirmed'?'✓ ':'')+short+
@@ -413,6 +416,15 @@
             if(!['not_improved','queued','unsigned_preparing','signed_persisted','broadcast_pending','broadcast_unknown'].includes(state.status))return state;
           }
           if(!consented())return;
+          // The signed path, not editable outbox metadata, determines eligibility.
+          // Existing admitted over-limit entries remain observable and durable,
+          // but the browser never POSTs or re-signs them under today's policy.
+          const path=JSON.parse(signed.bytes).m;
+          if(typeof path!=='string')return;
+          if(path.length>cryptoModule.PUBLIC_SUBMISSION_MAX_MOVES){
+            if(!known.ok)showStatus({code:'submission_move_limit'},signed.id);
+            return;
+          }
           const headers={'Content-Type':'application/json','Idempotency-Key':signed.id};
           if(signed.witness?.id&&signed.witness?.proof&&signed.witness?.rodAnchor?.hash){
             const w=signed.witness;
@@ -447,7 +459,9 @@
       }
       for(const layout of [...new Set(evidenceRows().map(row=>row.l))]) {
         if(!consented())return;
-        const evidence=candidate(layout);if(!evidence?.witness?.id||!evidence?.witness?.proof||!evidence?.witness?.rodAnchor?.hash)continue;
+        const evidence=candidate(layout);
+        if(evidence?.m.length>cryptoModule.PUBLIC_SUBMISSION_MAX_MOVES)continue;
+        if(!evidence?.witness?.id||!evidence?.witness?.proof||!evidence?.witness?.rodAnchor?.hash)continue;
         const previous=Object.values(durable).find(row=>row.localId===evidence.localId&&row.epoch===snapshot.epoch&&row.player===player);
         if(previous){
           if(!previous.witness?.proof){previous.witness=evidence.witness;durable[previous.id]=previous;saveOutbox(durable);await retry(previous);}

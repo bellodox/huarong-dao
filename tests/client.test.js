@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createSignedClaim,exportIdentity } from '../leaderboard/client.js';
-import { RANKED_PROFILE,RANKED_MAX_MOVES,positions,step,ALPHABET,occupancy } from '../leaderboard/profile.js';
+import { RANKED_PROFILE,PUBLIC_SUBMISSION_MAX_MOVES,CATALOG,positions,step,ALPHABET,occupancy } from '../leaderboard/profile.js';
 import { base58check,parseCanonical,canonical,recover } from '../leaderboard/receipt.js';
 const {playerClaim}=JSON.parse(readFileSync(new URL('./fixtures/receipt.json',import.meta.url)));
 function store() {const data=new Map();return {data,getItem:key=>data.get(key)||null,setItem:(key,value)=>data.set(key,value)};}
@@ -29,14 +29,16 @@ function padded(path,moves) {
   assert(pair);assert.equal((moves-path.m.length)%2,0);
   return {...path,m:pair.repeat((moves-path.m.length)/2)+path.m};
 }
-for(const [layout,maximum] of Object.entries(RANKED_MAX_MOVES))test(`client hd2 ${layout} inclusive policy and no identity for overlimit`,()=>{
+for(const layout of Object.keys(CATALOG).filter(id=>!CATALOG[id].practice))test(`client hd2 ${layout} inclusive admission policy and no identity for overlimit`,()=>{
+  const maximum=PUBLIC_SUBMISSION_MAX_MOVES;
+  assert.equal(maximum,220);
   const path=paths.find(path=>path.l===layout),reachable=maximum-(maximum-path.m.length)%2;
   const evidence=padded(path,reachable),original=JSON.stringify(evidence),storage=store();
   const signed=createSignedClaim(evidence,'Player',2900,{storage,consented:()=>true});
   assert.equal(parseCanonical(signed.bytes,7).m,evidence.m);assert.equal(JSON.stringify(evidence),original);
   for(const over of [{...evidence,m:evidence.m+'A'.repeat(maximum+1-reachable)},padded(path,reachable+2)]) {
     const untouched=JSON.stringify(over),empty=store();
-    assert.throws(()=>createSignedClaim(over,'Player',2900,{storage:empty,consented:()=>true}),/ranked_move_limit/);
+    assert.throws(()=>createSignedClaim(over,'Player',2900,{storage:empty,consented:()=>true}),/submission_move_limit/);
     assert.equal(empty.data.size,0);assert.equal(JSON.stringify(over),untouched);
   }
 });

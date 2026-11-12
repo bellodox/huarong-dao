@@ -1,6 +1,7 @@
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { canonical,signPlayer,receiptId,base58check,decodeWif } from './receipt.js';
-import { replay,RANKED_PROFILE,assertRankedMoves } from './profile.js';
+import { replay,RANKED_PROFILE,assertSubmissionMoves } from './profile.js';
+export { PUBLIC_SUBMISSION_MAX_MOVES } from './profile.js';
 const IDENTITY_KEY='huarong_rod_identity_v1';
 /** Existing WIF is never overwritten or normalized in storage. No wallet before opt-in. */
 function playerSecret(storage) {
@@ -20,7 +21,7 @@ function playerSecret(storage) {
 export function createSignedClaim(evidence,name,epoch,{storage=localStorage,consented=()=>false}={}) {
   if(!consented()||evidence.assisted)throw Error('consent_required');
   const unsigned={p:RANKED_PROFILE,w:epoch,l:evidence.l,b:evidence.b,n:name,m:evidence.m};
-  assertRankedMoves(RANKED_PROFILE,evidence.l,evidence.m?.length);
+  assertSubmissionMoves(RANKED_PROFILE,evidence.l,evidence.m?.length);
   replay(unsigned);
   canonical(unsigned,6);
   if(!consented())throw Error('consent_required');

@@ -43,6 +43,13 @@ export function assertRankedMoves(profile,layoutId,moves) {
   if(moves>maximum)throw Error('ranked_move_limit');
 }
 
+/** Current admission policy only; never apply this ceiling to historical replay or signatures. */
+export const PUBLIC_SUBMISSION_MAX_MOVES = 220;
+export function assertSubmissionMoves(profile,layoutId,moves) {
+  assertRankedMoves(profile,layoutId,moves);
+  if(moves>PUBLIC_SUBMISSION_MAX_MOVES)throw Error('submission_move_limit');
+}
+
 /** Expand and validate a complete rectangular board. */
 export function positions(board) {
   if (typeof board !== 'string' || !/^[A-J.]{20}$/.test(board)) throw Error('invalid_board');

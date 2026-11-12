@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import * as cryptoModule from '../leaderboard/client.js';
 
 /** Deliberately no MutationObserver: the app must work in the CI VM fixture. */
 function fixture(){
@@ -34,21 +35,27 @@ function fixture(){
   element('#hd1-view').value='overall';
   element('btn-language').textContent='EN';
   const doc={documentElement:{lang:'bg'},createElement:(tag)=>fresh(tag),getElementById:element};
-  let state={available:true,stale:false,epoch:100,rows:[]};
+  let state={available:true,stale:false,epoch:100,rows:[]},known=true,signCalls=0;
+  const postCalls=[];
+  const signing={...cryptoModule,createSignedClaim(...args){signCalls++;return cryptoModule.createSignedClaim(...args);}};
   const context={document:doc,rankLayout,location:{protocol:'https:'},
     URLSearchParams,AbortSignal,HUARONG_PUBLIC_ENABLED:false,
     nickname:'ALICE',SCORE_STORE_V2_KEY:'huarong_local_scores_v2',
+    allowPublicScores:false,publicNameReady:true,nameLocked:true,isPracticeLayout:()=>false,
+    __cryptoModule:signing,
     localStorage:{getItem:key=>store.get(key)??null,setItem:(key,val)=>store.set(key,String(val))},
     window:{addEventListener(){}},
-    fetch:async url=>{
+    fetch:async (url,init)=>{
       urlCalls.push(String(url));
-      return {ok:true,json:async()=>String(url).startsWith('/api/submissions/')
+      if(init?.method==='POST'){postCalls.push(init);return {ok:true,json:async()=>({status:'queued'})};}
+      return {ok:!String(url).startsWith('/api/submissions/')||known,json:async()=>String(url).startsWith('/api/submissions/')
         ?state.submission:{...state}};
     }
   };
   const script=readFileSync(new URL('../public/leaderboard-ui.js',import.meta.url),'utf8');
-  runInNewContext(script,context);
-  return {context,element,store,urlCalls,set:(next)=>{state={...state,...next};},
+  // Replace only the lazy module loader; all eligibility/retry code runs unchanged.
+  runInNewContext(script.replace("await import('/leaderboard-client.js')",'__cryptoModule'),context);
+  return {context,element,store,urlCalls,postCalls,signCalls:()=>signCalls,known:value=>{known=value;},set:(next)=>{state={...state,...next};},
     refresh:async()=>{await context.window.hd1UI.refresh();},
     submitted:async()=>{await context.window.hd1UI.refreshSubmission();}};
 }
@@ -130,4 +137,31 @@ test('time tie-break explanation uses English after language switch',()=>{
   f.context.document.documentElement.lang='en';
   f.element('btn-language').emit('click');
   assert.match(f.element('details p').textContent,/Only when moves tie within the same layout/);
+});
+
+
+test('over-220 signed outbox stays byte-identical and read-only, without starving eligible retries or signing oversized evidence',async()=>{
+  for(const language of ['bg','en'])for(const known of [false,true]) {
+    const f=fixture();await f.refresh();f.context.document.documentElement.lang=language;
+    f.context.allowPublicScores=true;f.known(known);
+    const witness={id:'session',proof:'proof',rodAnchor:{hash:'a'.repeat(64)}};
+    // Deliberately misleading metadata: the actual signed path must control retry admission.
+    const oversized={id:RECEIPT_A,player:'ALICE',moves:1,layout:'wings',bytes:JSON.stringify({m:'A'.repeat(448)}),witness};
+    const eligible={id:RECEIPT_B,player:'ALICE',moves:999,layout:'rear_guard',bytes:JSON.stringify({m:'A'.repeat(220)}),witness};
+    const saved=JSON.stringify({[RECEIPT_A]:oversized,[RECEIPT_B]:eligible});
+    f.store.set('huarong_hd1_outbox_v1',saved);
+    const evidence=JSON.stringify({evidence:{long:{p:'hd1',n:'ALICE',l:'wings',m:'A'.repeat(221),moves:221,witness}}});
+    f.store.set('huarong_local_scores_v2',evidence);
+    f.context.window.hd1UI.beginSubmission(oversized,RECEIPT_A);
+    f.set({submission:{status:'queued',publication_retryable:true}});
+    await f.context.window.hd1UI.sync();
+    assert.equal(f.postCalls.length,1);assert.equal(f.postCalls[0].body,eligible.bytes);
+    assert.equal(f.signCalls(),0,'ineligible evidence must not reach signing');
+    assert.equal(f.store.get('huarong_hd1_outbox_v1'),saved);
+    assert.equal(f.store.get('huarong_local_scores_v2'),evidence);
+    assert(f.urlCalls.includes('/api/submissions/'+RECEIPT_A));
+    assert.equal(f.store.has('huarong_rod_identity_v1'),false);
+    assert.match(f.element('#hd1-submission-note').textContent,known?
+      (language==='en'?/accepted/:/приет/):(language==='en'?/220 moves inclusive/:/220 хода включително/));
+  }
 });

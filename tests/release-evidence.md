@@ -2,6 +2,44 @@
 
 ## Status and authority
 
+### Experimental new public admission ceiling — 2026-11-12
+
+**Local experimental implementation, validation and final independent reviews complete; uninterrupted aggregate test run INCONCLUSIVE. No deployment or live acceptance claimed.** Administrative closeout verified Git **v0.1.1**, HEAD **d517924441353dc655bb819145581c009f8e28f0**. Final results below are independently reported evidence supplied by the parent, not application reruns by this writer. Parent retains overall status and record ownership; this executor performs only scoped handoff edits and the explicitly authorized existing-store OSG refresh on the parent's behalf. Earlier reviews below do not approve this delta.
+
+#### Implemented boundary and preservation
+
+- The [normative amendment](../tasks/plan.md#experimental-new-public-admission-amendment--2026-11-12) separates new **inclusive 220-move public admission** from frozen historical hd1 replay and hd2 10× optimum canonical validity. New unadmitted 221+ claims receive non-retryable HTTP 422, code submission_move_limit; existing admitted exact IDs retain SQL idempotent/status semantics, not expanded publication authority.
+- [Client signing](../leaderboard/client.js:21) checks before identity creation/signing. The [durable browser retry](../public/leaderboard-ui.js:419) preserves stored signed entries and status observation while suppressing over-limit POST/re-sign attempts. Ranked sessions advertise/enforce 220 for new witnesses; Bulgarian/English victory, rules and status guidance retain unlimited local results and complete actual paths.
+- The **existing admitted 448-move queued claim remains blocked by the 100,000-unit fee cap**; no deletion, re-signing or reset is authorized or claimed. A 220-move path does not guarantee fee fit with arbitrary multiple funding inputs. Historical receipts, outbox, counters, reservations and signing fences remain preserved. This operational condition is task-supplied, not a fresh hosted-state observation by this writer.
+
+#### Executor-reported validation — not documentation reruns
+
+| Check | Supplied result and qualification |
+| --- | --- |
+| npm run build | Exit **0**. |
+| Focused implementation tests | **62 passed, exit 0**. |
+| npm test, initial run (historical) | **243/246 passed; 3 historical-fixture failures**, subsequently corrected. Not a green initial full-suite result. |
+| Final full-suite attempts | Two attempts timed out at **300 / 600 seconds**; last observed progress was **124 / 164 passing tests**, respectively. No assertion failures reported; uninterrupted aggregate completion/exit remains **INCONCLUSIVE**, not passed. |
+| Remaining-file verification | **19 files, 88 passed, exit 0**; six tests overlap the last full-suite attempt, yielding **164 + 88 − 6 = 246 distinct passing tests** across runs, not one uninterrupted aggregate pass. |
+| Fresh independent security checks | **52 + 10 passed, exit 0**; browser bundle parity check **exit 0**. These overlap implementation coverage and are not added to the distinct total. |
+| [Submission-policy browser QA](qa_submission_policy.py), BG/EN | **Passed, exit 0**, no POSTs/page errors reported. Loopback/programmatic-move evidence checks 220 offered and 221/448 local-only with full paths retained and no identity/outbox creation; not human-input proof or live admission/publication evidence. |
+
+**Parent-supplied final independent reviews:** Code Reviewer **APPROVE, no issues**, and Vulnerability Checker **NO BLOCKING FINDINGS, no confirmed vulnerabilities**; both cover all **22 changed/added files against HEAD d517924441353dc655bb819145581c009f8e28f0**, branch **v0.1.1**. Verdicts apply only to the reviewed local experimental scope, not hosted operation, deployment or future changes. Administrative transcription does not expand either review.
+
+Earlier documentation validation reported **25 added local links/anchors/citation bounds passed, exit 0**, and whole working-tree whitespace **exit 0**, with LF/CRLF warnings only; rejected zero-match/escaping attempts were not counted. The earlier documentation executor edited five requested Markdown documents and performed no staging; the two initially untracked policy tests became index-added externally. This final administrative executor edits only this section and performs no application reruns. Hosted behavior, deployed/source parity, arbitrary-input fee fit and funded confirmation remain unverified. The existing **448-move queued claim / 100,000-unit fee-cap blocker is unchanged**. No uninterrupted-full-suite-green or production-readiness claim is made.
+
+#### Parent-authorized final OSG refresh — 2026-11-12
+
+Existing-store public CLI sequence used the explicit target workspace on every command: bounded context and resolved-entity history → sync → embed → remember → embed → verify → task context. All exited **0** with successful envelopes. The source-current related historical blocker heading was rechecked before remember; it is a relationship anchor, not current approval. No initialization, repair, migration, legacy bank or NotebookLM operation occurred.
+
+- Sync: **2,320 changes / 110 files / one rename**, graph **c3cfcef01da745de5bd0a7dd78b6fcbcbf612a00e062be844fad47066933b5f0a**; **2,205 AMBIGUOUS_DECLARATION warnings**, declarations skipped, so indexing is not exhaustive.
+- First embed: **3,572 total / 127 embedded / 3,445 reused / four removed / zero remaining or skipped**, complete=true; model **Xenova/all-MiniLM-L6-v2@q8**, no warnings.
+- Remember: one relationship resolved; episode **agent:episode:5ccb37c5b3278a46ca7c7e1e**, graph **c701f3c1d42704b374bf4cafca0c903e653428e421b6d7dde16a1c4a588edd67a**. Only warning **POLICY_REFS_UNAVAILABLE**: host-loaded rule hashes were not verified/recorded.
+- Second embed: **3,573 total / one embedded / 3,572 reused / zero removed, remaining or skipped**, complete=true, no warnings.
+- Verify: **99 commits / 57,798 elements**, no warnings. Final bounded task context returned the saved episode with anchors **ok**, actual Git branch/revision and blended keyword/vector seeds; no fallback warning. Graph **main** differs from actual Git **v0.1.1**.
+
+Integrity and eligible-text embedding completion do not establish exhaustive indexing, measured semantic recall quality, application correctness or hosted readiness. These successful persistence IDs are transcribed once after refresh, not recursively remembered or claimed reindexed. Parent retains final record/status ownership; no application reruns, source/ignore changes, deployment, push or secret access occurred.
+
 ### Experimental local 0.1.1 release preparation — 2026-11-04
 
 **Local documentation, exit-evidence work and final scoped reviews complete; not production approval or deployment.** Fresh Git inspection confirmed branch **v0.1.1**, HEAD **40c1191488e9cbebd6e1f954f6dfb4cd6a12a7c9**. The comparison baseline **b2b3baa** is a reconstructed prior-release boundary, **not a release tag**. Earlier scoped approvals below remain historical and do not approve this release delta. Parent retains final status ownership and authorizes this closeout executor to refresh OSG on its behalf.

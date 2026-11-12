@@ -2787,7 +2787,8 @@
       ({best:leaderboard,recent:recentScores}=readLocalScores());
       function bestForLayout(layout){return leaderboard[layout] || null;}
       function needsPublicUpdate(layout){
-          return !isPracticeLayout(layout) && !!window.hd1UI?.candidate(layout);
+          const evidence=window.hd1UI?.candidate(layout);
+          return !isPracticeLayout(layout) && !!evidence && window.hdRanked?.eligible(evidence.m.length)===true;
       }
       function setAssisted(reason){
           if(!solverEnabled){
@@ -3056,7 +3057,7 @@
       confirmFirstScoreBtn.onclick=openFirstScoreDialog;
       function openPublicScoreDialog(){
           const score=pendingPublicScore;
-          if(!HUARONG_PUBLIC_ENABLED || !score || score.epoch!==victoryEpoch || !roundFinalized || assistedRun ||
+          if(!HUARONG_PUBLIC_ENABLED || !score || !window.hdRanked?.eligible(score.moves) || score.epoch!==victoryEpoch || !roundFinalized || assistedRun ||
              GAME_LAYOUTS[currentLayoutIdx]?.id!==score.layout)return;
           if(!nameLocked)return;
           configureNameGate('public');
@@ -3119,7 +3120,7 @@
               playerGate.classList.add('hidden');
               confirmFirstScoreBtn.classList.add('hidden');
               updateNameLockUI();
-              if(HUARONG_PUBLIC_ENABLED && !isPracticeLayout(first.layout) && needsPublicUpdate(first.layout)) {
+              if(HUARONG_PUBLIC_ENABLED && window.hdRanked?.eligible(first.moves) && !isPracticeLayout(first.layout) && needsPublicUpdate(first.layout)) {
                   const best=bestForLayout(first.layout);
                   pendingPublicScore={layout:first.layout,moves:first.moves,seconds:first.seconds,epoch:victoryEpoch,nickname};
                   submitScoreBtn.classList.remove('hidden');
@@ -3127,7 +3128,7 @@
               return;
           }
           const score=pendingPublicScore;
-          if(playerGateMode!=='public' || !HUARONG_PUBLIC_ENABLED || !nameLocked || !score ||
+          if(playerGateMode!=='public' || !HUARONG_PUBLIC_ENABLED || !nameLocked || !score || !window.hdRanked?.eligible(score.moves) ||
              score.epoch!==victoryEpoch || !roundFinalized || assistedRun ||
              GAME_LAYOUTS[currentLayoutIdx]?.id!==score.layout){
               playerGate.classList.add('hidden');return;
@@ -3221,7 +3222,12 @@
           victoryRankStatus.textContent=isPracticeLayout(layout)
               ? 'Резултатът е запазен само на това устройство. Не се изпраща в общата класация.'
               : 'Резултатът е запазен в последните 5 локални резултата.';
-          if(!isPracticeLayout(layout) && HUARONG_PUBLIC_ENABLED){
+          if(!window.hdRanked?.eligible(moves)){
+              pendingPublicScore=null;
+              submitScoreBtn.classList.add('hidden');
+              victoryRankStatus.textContent='Резултатът е запазен локално. Публично се изпращат до 220 хода включително; локалната игра е без лимит.';
+          }
+          if(!isPracticeLayout(layout) && HUARONG_PUBLIC_ENABLED && window.hdRanked?.eligible(moves)){
               // Complete actual runs are retained independently of lifetime bests.
               // The Worker rechecks strict lifetime OR inclusion-week improvement.
               if(needsPublicUpdate(layout)){
@@ -4359,7 +4365,7 @@
                 roundFinalized=true;
                 stopTimer();
                 const finishedEvidence=runEvidence;
-                if(HUARONG_PUBLIC_ENABLED&&finishedEvidence&&!finishedEvidence.assisted&&!assistedRun&&!isPracticeLayout(finishedEvidence.l)) {
+                if(HUARONG_PUBLIC_ENABLED&&finishedEvidence&&window.hdRanked?.eligible(finishedEvidence.m.length)&&!finishedEvidence.assisted&&!assistedRun&&!isPracticeLayout(finishedEvidence.l)) {
                     const completedPath=finishedEvidence.m;
                     Promise.resolve(window.hdRanked?.finish(completedPath)).then(proof=>{
                         if(!proof)return;
@@ -4961,6 +4967,10 @@
         "Избрана подредба":"Selected layout",
         "Всички времена":"Lifetime",
         "Текуща седмица":"Current week",
+        'Резултатът е запазен локално. Публично се изпращат до 220 хода включително; локалната игра е без лимит.':'Score saved locally. Public submissions allow up to 220 moves inclusive; local play is unlimited.',
+        'Публично се изпращат до 220 хода включително. Локалната игра и резултатите са без лимит.':'Public submissions allow up to 220 moves inclusive. Local play and results are unlimited.',
+        'Само локален резултат':'Local result only',
+        'Само локално':'Local only',
         "Името, постоянният публичен ключ и целият път стават публични. Оттеглянето на съгласие не изтрива публикувани данни. Няма награди или преводи.":"Your name, stable public key and entire path become public. Withdrawing consent cannot erase published data. No rewards or transfers.",
         "Класация":"Leaderboard", "Резултати":"Scores",
         "Последен резултат":"Latest result", "Подготовка…":"Preparing…",

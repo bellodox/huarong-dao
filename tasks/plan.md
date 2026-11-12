@@ -4,6 +4,17 @@
 
 ## 1. Status, authority and scope
 
+### Experimental new public admission amendment — 2026-11-12
+
+The user authorizes an **inclusive 220-move ceiling for NEW public score admission**, implemented as a separate admission policy. It supersedes earlier public-admission wording only, not historical canonical validity: frozen hd1 parsing/replay/signatures and hd2's inclusive **10 × frozen optimum** table in [§14](#experimental-profile-decision) remain unchanged for verification and independent historical reconstruction. Do not reinterpret, truncate or replace old signed paths, change profile/signing domains or session rules digests to retrofit this policy. Local play, results and full actual-path evidence remain unlimited.
+
+- A verified but **unadmitted 221+ move claim** is rejected before SQL admission with non-retryable HTTP 422, code submission_move_limit. An already admitted exact receipt ID retains the existing SQL idempotent/status path; this does not grant new publication authority or bypass fee/ambiguity fences. See [admission](../leaderboard/issuer.js:18) and [HTTP response](../leaderboard/relay-entry.js:102).
+- The [client](../leaderboard/client.js:21) checks before identity creation and player signing. The [durable retry path](../public/leaderboard-ui.js:419) checks the actual signed move path, preserves stored bytes/status observation and suppresses over-limit POST/re-sign attempts; new over-limit local candidates are not signed. Consent remains required independently.
+- [Ranked session admission](../leaderboard/session.js:168) advertises 220 moves; checkpoint/finish requests above 220 cannot obtain a new witness. The [browser session integration](../public/ranked-session.js:7) bounds ranked evidence to 220 without capping local play. Bulgarian/English rules, victory/status text and submission affordances explain that 221+ remains local.
+- The existing **admitted 448-move queued claim remains blocked by the 100,000-unit fee cap**. Preserve its claim, exact bytes, journals, reservations and counters: no deletion, re-signing, reset or alternate-spend workaround. The ceiling reduces new path size; it is **not a guarantee that 220 moves fit with arbitrary multiple funding inputs**, nor permission to raise fees or widen authority. The [experimental fee policy](#experimental-fee-and-positive-conflict-recovery-amendment--2026-10-31) remains binding.
+
+This amendment authorizes no deployment, push, funded operation or retrospective state mutation. Attributed tests, current review status and remaining limits belong only in the [handoff](../tests/release-evidence.md#experimental-new-public-admission-ceiling--2026-11-12).
+
 ### Experimental fee and positive-conflict recovery amendment — 2026-10-31
 
 The user's standing instruction is that **all work remains experimental until further notice**. This amendment replaces conflicting earlier unsigned-byte fee ceilings for experimental construction only; it does not grant live spending, deployment or public-use authority. Current validation and review verdicts belong only in the [execution handoff](../tests/release-evidence.md#experimental-fee-and-recovery-current-scope).

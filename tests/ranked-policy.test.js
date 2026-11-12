@@ -114,6 +114,13 @@ test('mixed hd1/hd2 raw reconstruction keeps shared identity, bests and earliest
     const rows=rank(result.receipts,options);assert.equal(rows.length,1);assert.equal(rows[0].completed,1);
     assert.equal(rows[0].bests.wings.receipt_id,receiptId(legacy.playerClaim));
   }
+  // Today's admission ceiling must never invalidate already published hd2 history.
+  const historical=signApp(signPlayer(evidence(paths.find(path=>path.l==='wings'),448),playerSecret),appSecret);
+  const historicalBytes=canonical(historical,8);
+  const restored=reconstruct(history([historical]));
+  assert.equal(restored.invalid.length,0);assert.equal(restored.receipts[0].moves,448);
+  assert.equal(verifyOffline(historicalBytes,bytesToHex(appKey)).moves,448);
+  assert.equal(canonical(historical,8),historicalBytes);
   const over=evidence(paths.find(path=>path.l==='wings'),1162);
   const rejected=reconstruct(history([signApp(signPlayer(over,playerSecret),appSecret)]));
   assert.equal(rejected.receipts.length,0);assert.equal(rejected.invalid[0].code,'ranked_move_limit');
